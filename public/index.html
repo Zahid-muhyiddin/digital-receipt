@@ -388,18 +388,31 @@
                 minute: '2-digit'
             });
 
-            const formData = new FormData(form);
+            const formData = new FormData();
+            formData.append('recipientName', recipientName);
+            formData.append('department', department);
             formData.append('date', date);
+
+            // Tambah items secara manual ke FormData
+            items.forEach((item, index) => {
+                formData.append(`items[${index}][desc]`, item.desc);
+                formData.append(`items[${index}][qty]`, item.qty);
+                formData.append(`items[${index}][unit]`, item.unit);
+                formData.append(`items[${index}][prNumber]`, item.prNumber);
+                formData.append(`items[${index}][poNumber]`, item.poNumber);
+            });
+
             if (photoSrc) {
                 const photoBlob = await fetch(photoSrc).then(res => res.blob());
-                formData.set('photo', photoBlob, 'photo.jpg');
+                formData.append('photo', photoBlob, 'photo.jpg');
             }
             const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
             const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
             formData.append('signatureSender', signatureSenderBlob, 'sender.png');
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
 
-            // Debugging: Cek data yang dikirim
+            // Debugging
+            console.log('Items sebelum dikirim:', items);
             console.log('Data yang akan dikirim ke /api/receipts:');
             for (const [key, value] of formData.entries()) {
                 console.log(`${key}: ${value}`);
