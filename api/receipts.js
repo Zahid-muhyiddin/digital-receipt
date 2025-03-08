@@ -51,6 +51,24 @@ async function uploadToDrive(file) {
     return response.data.webViewLink;
 }
 
+// Fungsi untuk mengurai items dari req.body
+function parseItems(body) {
+    const items = [];
+    const itemRegex = /^items\[(\d+)\]\[(\w+)\]$/;
+    
+    for (const key in body) {
+        const match = key.match(itemRegex);
+        if (match) {
+            const index = parseInt(match[1], 10);
+            const field = match[2];
+            if (!items[index]) items[index] = {};
+            items[index][field] = body[key];
+        }
+    }
+    
+    return items.filter(item => item.desc); // Filter item yang valid
+}
+
 module.exports = async (req, res) => {
     if (req.method === 'POST') {
         const multerMiddleware = upload.fields([
@@ -60,9 +78,10 @@ module.exports = async (req, res) => {
         ]);
 
         multerMiddleware(req, res, async (err) => {
-            if (err) return res.status(500).json({ error: 'Upload failed' });
+            if (err) return res.status(500).json({ error: 'Upload failed: ' + err.message });
 
-            const { recipientName, department, items, date } = req.body;
+            const { recipientName, department, date } = req.body;
+            const items = parseItems(req.body); // Parsing items dari req.body
             const photoFile = req.files['photo'] ? req.files['photo'][0] : null;
             const sigSenderFile = req.files['signatureSender'] ? req.files['signatureSender'][0] : null;
             const sigReceiverFile = req.files['signatureReceiver'] ? req.files['signatureReceiver'][0] : null;
@@ -74,8 +93,8 @@ module.exports = async (req, res) => {
                 const sigSenderUrl = sigSenderFile ? await uploadToDrive(sigSenderFile) : '';
                 const sigReceiverUrl = sigReceiverFile ? await uploadToDrive(sigReceiverFile) : '';
 
-                const parsedItems = JSON.parse(items); // Items dari formData sebagai JSON
-                const itemsString = parsedItems.map(item => 
+                // Konversi items ke string
+                const itemsString = items.map(item => 
                     `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
                 ).join('\n');
 
@@ -100,7 +119,7 @@ module.exports = async (req, res) => {
 
                 res.json({ message: 'Tanda terima berhasil disimpan' });
             } catch (error) {
-                console.error(error);
+                console.error('Server error:', error);
                 res.status(500).json({ error: 'Server error: ' + error.message });
             }
         });
