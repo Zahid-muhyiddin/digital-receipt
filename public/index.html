@@ -1,516 +1,153 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tanda Terima Digital</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
+            max-width: 100%;
             padding: 10px;
+            margin: 0;
             box-sizing: border-box;
         }
-        .receipt-container {
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 5px;
-            max-width: 100%;
-        }
-        .header {
+        h1 {
+            font-size: 24px;
             text-align: center;
-            margin-bottom: 15px;
         }
-        .form-group {
-            margin-bottom: 15px;
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
         }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input, select {
+        input, textarea, button {
             width: 100%;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
             box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
         }
         button {
             background-color: #4CAF50;
             color: white;
-            padding: 10px;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-            width: 100%;
-            margin-top: 5px;
         }
         button:hover {
             background-color: #45a049;
         }
-        #savePdfBtn {
-            background-color: #008CBA;
-            display: none;
-        }
-        #savePdfBtn:hover {
-            background-color: #007B9A;
-        }
-        #receiptOutput {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border: 1px dashed #666;
-            display: none;
-        }
-        #signatureSenderCanvas, #signatureReceiverCanvas {
-            border: 1px solid #000;
-            background-color: #fff;
-            width: 100%;
-            max-width: 300px;
-            height: 150px;
+        #message {
+            text-align: center;
+            color: #333;
             margin-top: 10px;
         }
-        #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
-            max-width: 100%;
-            height: auto;
-            margin-top: 10px;
-        }
-        #itemList .item-row {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        @media (min-width: 600px) {
-            #itemList .item-row {
-                flex-direction: row;
+        /* Responsif untuk smartphone */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 20px;
             }
-            #itemList .item-row input, #itemList .item-row select {
-                flex: 1;
+            input, textarea, button {
+                font-size: 14px;
             }
-            #itemList .item-row .itemQty { flex: 0.5; }
-            #itemList .item-row .itemUnit { flex: 0.5; }
-            #itemList .item-row .itemPrNumber { flex: 0.7; }
-            #itemList .item-row .itemPoNumber { flex: 0.7; }
-        }
-        #cameraPreview {
-            width: 100%;
-            max-width: 300px;
-            height: auto;
-            display: none;
-            margin-top: 10px;
-        }
-        #capturePhoto {
-            margin-top: 10px;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="receipt-container">
-        <div class="header">
-            <h2>Tanda Terima Digital</h2>
-        </div>
-        
-        <form id="receiptForm">
-            <div class="form-group">
-                <label for="recipientName">Nama Penerima:</label>
-                <input type="text" id="recipientName" required>
-            </div>
-            <div class="form-group">
-                <label for="department">Departemen:</label>
-                <select id="department" required>
-                    <option value="" disabled selected>Pilih Departemen</option>
-                    <option value="PLANT">PLANT</option>
-                    <option value="HCGS">HCGS</option>
-                    <option value="ENGINEERING">ENGINEERING</option>
-                    <option value="SHE">SHE</option>
-                    <option value="SM">SM</option>
-                    <option value="FAT">FAT</option>
-                    <option value="PRODUKSI">PRODUKSI</option>
-                    <option value="ICT">ICT</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Deskripsi Barang:</label>
-                <div id="itemList">
-                    <div class="item-row">
-                        <input type="text" class="itemDesc" placeholder="Deskripsi Barang" required>
-                        <input type="number" class="itemQty" placeholder="Qty" required>
-                        <select class="itemUnit" required>
-                            <option value="" disabled selected>Pilih Satuan</option>
-                            <option value="Assy">Assy</option>
-                            <option value="Each">Each</option>
-                            <option value="Set">Set</option>
-                            <option value="Pcs">Pcs</option>
-                            <option value="Colly">Colly</option>
-                        </select>
-                        <input type="number" class="itemPrNumber" placeholder="No PR" required>
-                        <input type="text" class="itemPoNumber" placeholder="No PO" required>
-                    </div>
-                </div>
-                <button type="button" id="addItem">Tambah Barang</button>
-            </div>
-            <div class="form-group">
-                <label for="recipientPhoto">Foto Penerima:</label>
-                <input type="file" id="recipientPhoto" accept="image/*">
-                <button type="button" id="useCamera">Gunakan Kamera</button>
-                <video id="cameraPreview" autoplay playsinline></video>
-                <button type="button" id="capturePhoto">Ambil Foto</button>
-                <img id="photoPreview" src="" alt="Preview Foto" style="display: none;">
-            </div>
-            <div class="form-group">
-                <label>Tanda Tangan Pengirim:</label>
-                <canvas id="signatureSenderCanvas" width="300" height="150"></canvas>
-                <button type="button" id="clearSenderSignature">Hapus Tanda Tangan Pengirim</button>
-            </div>
-            <div class="form-group">
-                <label>Tanda Tangan Penerima:</label>
-                <canvas id="signatureReceiverCanvas" width="300" height="150"></canvas>
-                <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan Penerima</button>
-            </div>
-            <button type="submit">Buat Tanda Terima</button>
-        </form>
-        
-        <div id="receiptOutput">
-            <h3>Tanda Terima</h3>
-            <p><strong>Tanggal:</strong> <span id="date"></span></p>
-            <p><strong>Penerima:</strong> <span id="outputName"></span></p>
-            <p><strong>Departemen:</strong> <span id="outputDepartment"></span></p>
-            <p><strong>Deskripsi Barang:</strong></p>
-            <ul id="outputItems"></ul>
-            <p><strong>Foto Penerima:</strong></p>
-            <img id="outputPhoto" src="" alt="Foto Penerima">
-            <p><strong>Tanda Tangan Pengirim:</strong></p>
-            <img id="signatureSenderPreview" src="" alt="Tanda Tangan Pengirim">
-            <p><strong>Tanda Tangan Penerima:</strong></p>
-            <img id="signatureReceiverPreview" src="" alt="Tanda Tangan Penerima">
-            <button id="savePdfBtn">Simpan sebagai PDF</button>
-        </div>
-    </div>
+    <h1>Tanda Terima Digital</h1>
+    <form id="receiptForm">
+        <input type="text" name="recipientName" placeholder="Nama Penerima" required>
+        <input type="text" name="department" placeholder="Departemen" required>
+        <textarea name="items" placeholder="Daftar Barang" required></textarea>
+        <input type="date" name="date" required>
+        <input type="file" name="photo" accept="image/*" capture="camera">
+        <input type="file" name="signatureSender" accept="image/*" capture="camera">
+        <input type="file" name="signatureReceiver" accept="image/*" capture="camera">
+        <button type="submit">Submit</button>
+    </form>
+    <p id="message"></p>
 
     <script>
-        const { jsPDF } = window.jspdf;
-
-        // Foto Penerima dari File
-        const photoInput = document.getElementById('recipientPhoto');
-        const photoPreview = document.getElementById('photoPreview');
-        photoInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    photoPreview.src = e.target.result;
-                    photoPreview.style.display = 'block';
-                    stopCamera();
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Foto Penerima dari Kamera
-        const useCameraBtn = document.getElementById('useCamera');
-        const cameraPreview = document.getElementById('cameraPreview');
-        const capturePhotoBtn = document.getElementById('capturePhoto');
-        let stream;
-        useCameraBtn.addEventListener('click', async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                cameraPreview.srcObject = stream;
-                cameraPreview.style.display = 'block';
-                capturePhotoBtn.style.display = 'block';
-                photoPreview.style.display = 'none';
-                console.log('Kamera diaktifkan');
-            } catch (error) {
-                console.error('Gagal mengakses kamera:', error);
-                alert('Gagal mengakses kamera: ' + error.message);
-            }
-        });
-        capturePhotoBtn.addEventListener('click', () => {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = cameraPreview.videoWidth;
-            tempCanvas.height = cameraPreview.videoHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(cameraPreview, 0, 0, tempCanvas.width, tempCanvas.height);
-            photoPreview.src = tempCanvas.toDataURL('image/jpeg', 0.7);
-            photoPreview.style.display = 'block';
-            stopCamera();
-        });
-        function stopCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                cameraPreview.style.display = 'none';
-                capturePhotoBtn.style.display = 'none';
-            }
-        }
-
-        // Tanda Tangan Digital
-        const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
-        const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
-        const ctxSender = signatureSenderCanvas.getContext('2d');
-        const ctxReceiver = signatureReceiverCanvas.getContext('2d');
-        let drawingSender = false;
-        let drawingReceiver = false;
-
-        function getCanvasCoordinates(event, canvas) {
-            const rect = canvas.getBoundingClientRect();
-            if (event.touches) {
-                return {
-                    x: event.touches[0].clientX - rect.left,
-                    y: event.touches[0].clientY - rect.top
-                };
-            }
-            return {
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top
-            };
-        }
-
-        signatureSenderCanvas.addEventListener('mousedown', (e) => {
-            drawingSender = true;
-            const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
-            ctxSender.beginPath();
-            ctxSender.moveTo(x, y);
-        });
-        signatureSenderCanvas.addEventListener('mousemove', (e) => {
-            if (drawingSender) {
-                const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
-                ctxSender.lineTo(x, y);
-                ctxSender.stroke();
-            }
-        });
-        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
-        signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
-
-        signatureSenderCanvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            drawingSender = true;
-            const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
-            ctxSender.beginPath();
-            ctxSender.moveTo(x, y);
-        });
-        signatureSenderCanvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (drawingSender) {
-                const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
-                ctxSender.lineTo(x, y);
-                ctxSender.stroke();
-            }
-        });
-        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
-
-        signatureReceiverCanvas.addEventListener('mousedown', (e) => {
-            drawingReceiver = true;
-            const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
-            ctxReceiver.beginPath();
-            ctxReceiver.moveTo(x, y);
-        });
-        signatureReceiverCanvas.addEventListener('mousemove', (e) => {
-            if (drawingReceiver) {
-                const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
-                ctxReceiver.lineTo(x, y);
-                ctxReceiver.stroke();
-            }
-        });
-        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
-        signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
-
-        signatureReceiverCanvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            drawingReceiver = true;
-            const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
-            ctxReceiver.beginPath();
-            ctxReceiver.moveTo(x, y);
-        });
-        signatureReceiverCanvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (drawingReceiver) {
-                const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
-                ctxReceiver.lineTo(x, y);
-                ctxReceiver.stroke();
-            }
-        });
-        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
-
-        document.getElementById('clearSenderSignature').addEventListener('click', () => {
-            ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
-        });
-        document.getElementById('clearReceiverSignature').addEventListener('click', () => {
-            ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
-        });
-
-        // Tambah Barang
-        document.getElementById('addItem').addEventListener('click', () => {
-            const itemList = document.getElementById('itemList');
-            const newItem = document.createElement('div');
-            newItem.className = 'item-row';
-            newItem.innerHTML = `
-                <input type="text" class="itemDesc" placeholder="Deskripsi Barang" required>
-                <input type="number" class="itemQty" placeholder="Qty" required>
-                <select class="itemUnit" required>
-                    <option value="" disabled selected>Pilih Satuan</option>
-                    <option value="Assy">Assy</option>
-                    <option value="Each">Each</option>
-                    <option value="Set">Set</option>
-                    <option value="Pcs">Pcs</option>
-                    <option value="Colly">Colly</option>
-                </select>
-                <input type="number" class="itemPrNumber" placeholder="No PR" required>
-                <input type="text" class="itemPoNumber" placeholder="No PO" required>
-            `;
-            itemList.appendChild(newItem);
-        });
-
-        // Form Submission
-        document.getElementById('receiptForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const recipientName = document.getElementById('recipientName').value;
-            const department = document.getElementById('department').value;
-            const items = Array.from(document.getElementsByClassName('itemDesc')).map((desc, index) => ({
-                desc: desc.value,
-                qty: document.getElementsByClassName('itemQty')[index].value,
-                unit: document.getElementsByClassName('itemUnit')[index].value,
-                prNumber: document.getElementsByClassName('itemPrNumber')[index].value,
-                poNumber: document.getElementsByClassName('itemPoNumber')[index].value
-            }));
-            const photoSrc = photoPreview.src;
-            const signatureSenderData = signatureSenderCanvas.toDataURL();
-            const signatureReceiverData = signatureReceiverCanvas.toDataURL();
-            const date = new Date().toLocaleString('id-ID', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+        // Fungsi untuk kompresi gambar (opsional, untuk hindari timeout Vercel)
+        async function compressImage(file) {
+            if (!file) return file; // Jika tidak ada file, kembalikan null
+            const img = new Image();
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const url = URL.createObjectURL(file);
+            img.src = url;
+            await img.decode();
+            const maxWidth = 800; // Ukuran maksimum
+            canvas.width = Math.min(maxWidth, img.width);
+            canvas.height = (img.height / img.width) * canvas.width;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            return new Promise(resolve => {
+                canvas.toBlob(blob => {
+                    resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.7); // Kualitas 70%
             });
+        }
 
+        // Event listener untuk submit form
+        document.getElementById('receiptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
             const formData = new FormData();
+
+            // Ambil data teks
+            const recipientName = form.recipientName.value;
+            const department = form.department.value;
+            const items = form.items.value;
+            const date = form.date.value;
+
+            // Tambahkan data teks ke FormData
             formData.append('recipientName', recipientName);
             formData.append('department', department);
-            formData.append('items', JSON.stringify(items));
+            formData.append('items', items);
             formData.append('date', date);
 
-            const photoBlob = await fetch(photoSrc).then(res => res.blob());
-            const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
-            const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
+            // Ambil dan kompres file (opsional)
+            const photoFile = form.photo.files[0];
+            const sigSenderFile = form.signatureSender.files[0];
+            const sigReceiverFile = form.signatureReceiver.files[0];
 
-            formData.append('photo', photoBlob, 'photo.jpg');
-            formData.append('signatureSender', signatureSenderBlob, 'sender.png');
-            formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+            // Kompresi file sebelum upload (hapus komentar jika ingin aktif)
+            /*
+            const compressedPhoto = photoFile ? await compressImage(photoFile) : null;
+            const compressedSigSender = sigSenderFile ? await compressImage(sigSenderFile) : null;
+            const compressedSigReceiver = sigReceiverFile ? await compressImage(sigReceiverFile) : null;
+
+            if (compressedPhoto) formData.append('photo', compressedPhoto);
+            if (compressedSigSender) formData.append('signatureSender', compressedSigSender);
+            if (compressedSigReceiver) formData.append('signatureReceiver', compressedSigReceiver);
+            */
+
+            // Tanpa kompresi (default)
+            if (photoFile) formData.append('photo', photoFile);
+            if (sigSenderFile) formData.append('signatureSender', sigSenderFile);
+            if (sigReceiverFile) formData.append('signatureReceiver', sigReceiverFile);
 
             try {
-                const response = await fetch('/api/receipts', { // URL relatif
+                document.getElementById('message').textContent = 'Mengirim...';
+                const response = await fetch('/api/receipts', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
                 });
                 const result = await response.json();
-                console.log(result);
-                if (!response.ok) throw new Error(result.error);
-                alert('Tanda terima berhasil disimpan ke Google Sheets!');
+                if (response.ok) {
+                    document.getElementById('message').textContent = result.message;
+                    form.reset(); // Reset form setelah sukses
+                } else {
+                    throw new Error(result.error || 'Gagal menyimpan');
+                }
             } catch (error) {
-                console.error('Gagal menyimpan ke Google Sheets:', error);
-                alert('Gagal menyimpan: ' + error.message);
-                return;
+                document.getElementById('message').textContent = 'Error: ' + error.message;
             }
-
-            document.getElementById('date').textContent = date;
-            document.getElementById('outputName').textContent = recipientName;
-            document.getElementById('outputDepartment').textContent = department;
-            const outputItems = document.getElementById('outputItems');
-            outputItems.innerHTML = '';
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - No PR: ${item.prNumber} - No PO: ${item.poNumber}`;
-                outputItems.appendChild(li);
-            });
-
-            const outputPhoto = document.getElementById('outputPhoto');
-            const signatureSenderPreview = document.getElementById('signatureSenderPreview');
-            const signatureReceiverPreview = document.getElementById('signatureReceiverPreview');
-            outputPhoto.src = photoSrc;
-            signatureSenderPreview.src = signatureSenderData;
-            signatureReceiverPreview.src = signatureReceiverData;
-
-            await Promise.all([
-                new Promise(resolve => outputPhoto.complete && outputPhoto.naturalHeight !== 0 ? resolve() : outputPhoto.onload = resolve),
-                new Promise(resolve => signatureSenderPreview.complete && signatureSenderPreview.naturalHeight !== 0 ? resolve() : signatureSenderPreview.onload = resolve),
-                new Promise(resolve => signatureReceiverPreview.complete && signatureReceiverPreview.naturalHeight !== 0 ? resolve() : signatureReceiverPreview.onload = resolve)
-            ]);
-
-            const output = document.getElementById('receiptOutput');
-            output.style.display = 'block';
-            document.getElementById('savePdfBtn').style.display = 'block';
-        });
-
-        document.getElementById('savePdfBtn').addEventListener('click', async function() {
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const date = document.getElementById('date').textContent;
-            const recipientName = document.getElementById('outputName').textContent;
-            const department = document.getElementById('outputDepartment').textContent;
-            const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
-                const parts = li.textContent.split(' - ');
-                const desc = parts[0];
-                const qtyUnit = parts[1].replace('Qty: ', '').split(' ');
-                const qty = qtyUnit[0];
-                const unit = qtyUnit[1];
-                const prNumber = parts[2].replace('No PR: ', '');
-                const poNumber = parts[3].replace('No PO: ', '');
-                return { desc, qty, unit, prNumber, poNumber };
-            });
-            const photoSrc = document.getElementById('outputPhoto').src;
-            const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
-            const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
-
-            const itemsPerPage = 10;
-            const totalPages = Math.ceil(items.length / itemsPerPage);
-
-            for (let page = 0; page < totalPages; page++) {
-                if (page > 0) doc.addPage();
-                doc.setFontSize(16);
-                doc.text('Tanda Terima', 105, 20, { align: 'center' });
-                doc.setFontSize(12);
-                doc.text(`Tanggal: ${date}`, 20, 40);
-                doc.text(`Penerima: ${recipientName}`, 20, 50);
-                doc.text(`Departemen: ${department}`, 20, 60);
-                doc.text(`Deskripsi Barang (Halaman ${page + 1} dari ${totalPages}):`, 20, 70);
-
-                const startIdx = page * itemsPerPage;
-                const endIdx = Math.min(startIdx + itemsPerPage, items.length);
-                const pageItems = items.slice(startIdx, endIdx);
-                const tableData = pageItems.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]);
-
-                doc.autoTable({
-                    startY: 75,
-                    head: [['Deskripsi Barang', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: tableData,
-                    styles: { fontSize: 10, cellPadding: 2 },
-                    headStyles: { fillColor: [0, 128, 0] },
-                    margin: { left: 20, right: 20 },
-                    tableWidth: 'auto'
-                });
-
-                let tableEndY = doc.lastAutoTable.finalY;
-                doc.text('Foto Penerima:', 20, tableEndY + 10);
-                try {
-                    doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 20, 60, 40);
-                } catch (error) {
-                    console.error('Gagal menambahkan foto:', error);
-                }
-
-                const signatureY = tableEndY + 70;
-                doc.text('Pengirim:', 20, signatureY);
-                doc.text('Penerima:', 110, signatureY);
-                try {
-                    doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 60, 20);
-                    doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 60, 20);
-                } catch (error) {
-                    console.error('Gagal menambahkan tanda tangan:', error);
-                }
-            }
-
-            doc.save('tanda-terima.pdf');
         });
     </script>
 </body>
