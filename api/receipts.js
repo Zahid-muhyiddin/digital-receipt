@@ -51,7 +51,6 @@ async function uploadToDrive(file) {
     return response.data.webViewLink;
 }
 
-// Fungsi untuk mengurai items dari req.body
 function parseItems(body) {
     const items = [];
     const itemRegex = /^items\[(\d+)\]\[(\w+)\]$/;
@@ -66,7 +65,7 @@ function parseItems(body) {
         }
     }
     
-    return items.filter(item => item.desc); // Filter item yang valid
+    return items.filter(item => item && item.desc); // Pastikan item valid
 }
 
 module.exports = async (req, res) => {
@@ -81,10 +80,14 @@ module.exports = async (req, res) => {
             if (err) return res.status(500).json({ error: 'Upload failed: ' + err.message });
 
             const { recipientName, department, date } = req.body;
-            const items = parseItems(req.body); // Parsing items dari req.body
+            const items = parseItems(req.body);
             const photoFile = req.files['photo'] ? req.files['photo'][0] : null;
             const sigSenderFile = req.files['signatureSender'] ? req.files['signatureSender'][0] : null;
             const sigReceiverFile = req.files['signatureReceiver'] ? req.files['signatureReceiver'][0] : null;
+
+            // Debugging
+            console.log('req.body:', req.body);
+            console.log('Parsed items:', items);
 
             try {
                 await initializeSheet();
@@ -93,22 +96,27 @@ module.exports = async (req, res) => {
                 const sigSenderUrl = sigSenderFile ? await uploadToDrive(sigSenderFile) : '';
                 const sigReceiverUrl = sigReceiverFile ? await uploadToDrive(sigReceiverFile) : '';
 
-                // Konversi items ke string
-                const itemsString = items.map(item => 
-                    `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
-                ).join('\n');
+                const itemsString = items.length > 0 
+                    ? items.map(item => 
+                        `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
+                      ).join('\n')
+                    : 'Tidak ada barang';
+
+                console.log('Items String:', itemsString);
 
                 const values = [[
                     Date.now(),
-                    date,
-                    recipientName,
-                    department,
+                    date || new Date().toISOString(),
+                    recipientName || 'Tidak ada nama',
+                    department || 'Tidak ada departemen',
                     itemsString,
                     photoUrl,
                     sigSenderUrl,
                     sigReceiverUrl,
-                    '' // PDF URL kosong karena dibuat di klien
+                    ''
                 ]];
+
+                console.log('Values to Sheets:', values);
 
                 await sheets.spreadsheets.values.append({
                     spreadsheetId,
