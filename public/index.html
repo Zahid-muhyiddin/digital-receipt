@@ -389,15 +389,21 @@
             });
 
             const formData = new FormData(form);
-            formData.append('date', date); // Tambah tanggal ke FormData
+            formData.append('date', date);
             if (photoSrc) {
                 const photoBlob = await fetch(photoSrc).then(res => res.blob());
-                formData.set('photo', photoBlob, 'photo.jpg'); // Ganti file input dengan blob dari kamera
+                formData.set('photo', photoBlob, 'photo.jpg');
             }
             const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
             const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
             formData.append('signatureSender', signatureSenderBlob, 'sender.png');
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+
+            // Debugging: Cek data yang dikirim
+            console.log('Data yang akan dikirim ke /api/receipts:');
+            for (const [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
 
             try {
                 const response = await fetch('/api/receipts', {
@@ -442,6 +448,7 @@
             document.getElementById('savePdfBtn').style.display = 'block';
         });
 
+        // Simpan sebagai PDF
         document.getElementById('savePdfBtn').addEventListener('click', async function() {
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const date = document.getElementById('date').textContent;
