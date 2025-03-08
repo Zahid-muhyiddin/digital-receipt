@@ -73,80 +73,37 @@
     <p id="message"></p>
 
     <script>
-        // Fungsi untuk kompresi gambar (opsional, untuk hindari timeout Vercel)
-        async function compressImage(file) {
-            if (!file) return file; // Jika tidak ada file, kembalikan null
-            const img = new Image();
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const url = URL.createObjectURL(file);
-            img.src = url;
-            await img.decode();
-            const maxWidth = 800; // Ukuran maksimum
-            canvas.width = Math.min(maxWidth, img.width);
-            canvas.height = (img.height / img.width) * canvas.width;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            return new Promise(resolve => {
-                canvas.toBlob(blob => {
-                    resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                }, 'image/jpeg', 0.7); // Kualitas 70%
-            });
-        }
-
         // Event listener untuk submit form
         document.getElementById('receiptForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
-            const formData = new FormData();
+            const formData = new FormData(form);
 
-            // Ambil data teks
-            const recipientName = form.recipientName.value;
-            const department = form.department.value;
-            const items = form.items.value;
-            const date = form.date.value;
-
-            // Tambahkan data teks ke FormData
-            formData.append('recipientName', recipientName);
-            formData.append('department', department);
-            formData.append('items', items);
-            formData.append('date', date);
-
-            // Ambil dan kompres file (opsional)
-            const photoFile = form.photo.files[0];
-            const sigSenderFile = form.signatureSender.files[0];
-            const sigReceiverFile = form.signatureReceiver.files[0];
-
-            // Kompresi file sebelum upload (hapus komentar jika ingin aktif)
-            /*
-            const compressedPhoto = photoFile ? await compressImage(photoFile) : null;
-            const compressedSigSender = sigSenderFile ? await compressImage(sigSenderFile) : null;
-            const compressedSigReceiver = sigReceiverFile ? await compressImage(sigReceiverFile) : null;
-
-            if (compressedPhoto) formData.append('photo', compressedPhoto);
-            if (compressedSigSender) formData.append('signatureSender', compressedSigSender);
-            if (compressedSigReceiver) formData.append('signatureReceiver', compressedSigReceiver);
-            */
-
-            // Tanpa kompresi (default)
-            if (photoFile) formData.append('photo', photoFile);
-            if (sigSenderFile) formData.append('signatureSender', sigSenderFile);
-            if (sigReceiverFile) formData.append('signatureReceiver', sigReceiverFile);
+            // Debugging: Tampilkan data yang akan dikirim (opsional)
+            // for (let [key, value] of formData.entries()) {
+            //     console.log(`${key}: ${value}`);
+            // }
 
             try {
-                document.getElementById('message').textContent = 'Mengirim...';
+                document.getElementById('message').textContent = 'Mengirim data ke server...';
+
+                // Kirim data ke endpoint /api/receipts
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
                     body: formData,
                 });
+
                 const result = await response.json();
+
                 if (response.ok) {
-                    document.getElementById('message').textContent = result.message;
+                    document.getElementById('message').textContent = result.message || 'Tanda terima berhasil disimpan!';
                     form.reset(); // Reset form setelah sukses
                 } else {
-                    throw new Error(result.error || 'Gagal menyimpan');
+                    throw new Error(result.error || 'Gagal menyimpan data');
                 }
             } catch (error) {
                 document.getElementById('message').textContent = 'Error: ' + error.message;
+                console.error('Fetch error:', error);
             }
         });
     </script>
