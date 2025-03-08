@@ -55,6 +55,8 @@ function parseItems(body) {
     const items = [];
     const itemRegex = /^items\[(\d+)\]\[(\w+)\]$/;
     
+    console.log('Parsing req.body:', body); // Debugging
+
     for (const key in body) {
         const match = key.match(itemRegex);
         if (match) {
@@ -65,7 +67,9 @@ function parseItems(body) {
         }
     }
     
-    return items.filter(item => item && item.desc); // Pastikan item valid
+    const validItems = items.filter(item => item && item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
+    console.log('Parsed items:', validItems); // Debugging
+    return validItems;
 }
 
 module.exports = async (req, res) => {
@@ -85,10 +89,6 @@ module.exports = async (req, res) => {
             const sigSenderFile = req.files['signatureSender'] ? req.files['signatureSender'][0] : null;
             const sigReceiverFile = req.files['signatureReceiver'] ? req.files['signatureReceiver'][0] : null;
 
-            // Debugging
-            console.log('req.body:', req.body);
-            console.log('Parsed items:', items);
-
             try {
                 await initializeSheet();
 
@@ -97,12 +97,10 @@ module.exports = async (req, res) => {
                 const sigReceiverUrl = sigReceiverFile ? await uploadToDrive(sigReceiverFile) : '';
 
                 const itemsString = items.length > 0 
-                    ? items.map(item => 
-                        `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
-                      ).join('\n')
+                    ? items.map(item => `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`).join('\n')
                     : 'Tidak ada barang';
 
-                console.log('Items String:', itemsString);
+                console.log('Items String:', itemsString); // Debugging
 
                 const values = [[
                     Date.now(),
@@ -116,7 +114,7 @@ module.exports = async (req, res) => {
                     ''
                 ]];
 
-                console.log('Values to Sheets:', values);
+                console.log('Values to Sheets:', values); // Debugging
 
                 await sheets.spreadsheets.values.append({
                     spreadsheetId,
