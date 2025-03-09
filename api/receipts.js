@@ -53,21 +53,12 @@ async function uploadToDrive(file) {
 }
 
 function parseItems(body) {
-    const items = [];
-    const itemRegex = /^items\[(\d+)\]\[(\w+)\]$/;
-
     console.log('Parsing req.body:', JSON.stringify(body, null, 2));
 
-    for (const key in body) {
-        const match = key.match(itemRegex);
-        if (match) {
-            const index = parseInt(match[1], 10);
-            const field = match[2];
-            if (!items[index]) items[index] = {};
-            items[index][field] = body[key];
-        }
-    }
+    // Langsung gunakan req.body.items jika ada dan merupakan array
+    const items = Array.isArray(body.items) ? body.items : [];
 
+    // Validasi dan format ulang items
     const validItems = items.filter(item => 
         item && 
         item.desc && 
@@ -152,6 +143,6 @@ module.exports = async (req, res) => {
             }
         });
     } else {
-        res.status(405).json({ error: 'Method Not Allowed' });
+        res.status(405不良.json({ error: 'Method Not Allowed' });
     }
 };
