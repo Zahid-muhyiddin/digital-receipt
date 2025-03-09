@@ -3,11 +3,7 @@ const { google } = require('googleapis');
 const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
-const upload = multer({ dest: '/tmp' }).fields([
-    { name: 'photo', maxCount: 1 },
-    { name: 'signatureSender', maxCount: 1 },
-    { name: 'signatureReceiver', maxCount: 1 }
-]);	
+const upload = multer({ dest: '/tmp' });
 
 const app = express();
 app.use(cors());
@@ -102,8 +98,8 @@ module.exports = async (req, res) => {
         multerMiddleware(req, res, async (err) => {
             if (err) return res.status(500).json({ error: 'Upload failed: ' + err.message });
 
-            console.log('Raw req.body:', JSON.stringify(req.body, null, 2));
-            console.log('Raw req.files:', req.files);
+            console.log('Full req.body:', JSON.stringify(req.body, null, 2));
+            console.log('Full req.files:', req.files);
 
             const { recipientName, department, date } = req.body;
             const items = parseItems(req.body);
@@ -150,7 +146,6 @@ module.exports = async (req, res) => {
                 console.error('Server error:', error);
                 res.status(500).json({ error: 'Server error: ' + error.message });
             } finally {
-                // Cleanup temporary files
                 if (photoFile) fs.unlinkSync(photoFile.path);
                 if (sigSenderFile) fs.unlinkSync(sigSenderFile.path);
                 if (sigReceiverFile) fs.unlinkSync(sigReceiverFile.path);

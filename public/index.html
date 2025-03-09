@@ -172,6 +172,35 @@
     <script>
         const { jsPDF } = window.jspdf;
 
+        // Inisialisasi variabel
+        let itemCount = 1;
+        let stream = null;
+
+        // Tambah Barang
+        const addItemBtn = document.getElementById('addItem');
+        addItemBtn.addEventListener('click', () => {
+            const itemList = document.getElementById('itemList');
+            const newItem = document.createElement('div');
+            newItem.className = 'item-row';
+            newItem.innerHTML = `
+                <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
+                <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
+                <select class="itemUnit" name="items[${itemCount}][unit]" required>
+                    <option value="" disabled selected>Pilih Satuan</option>
+                    <option value="Assy">Assy</option>
+                    <option value="Each">Each</option>
+                    <option value="Set">Set</option>
+                    <option value="Pcs">Pcs</option>
+                    <option value="Colly">Colly</option>
+                </select>
+                <input type="number" class="itemPrNumber" name="items[${itemCount}][prNumber]" placeholder="No PR" required>
+                <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
+            `;
+            itemList.appendChild(newItem);
+            console.log(`Added item ${itemCount}`);
+            itemCount++;
+        });
+
         // Foto Penerima dari File
         const photoInput = document.getElementById('recipientPhoto');
         const photoPreview = document.getElementById('photoPreview');
@@ -192,7 +221,6 @@
         const useCameraBtn = document.getElementById('useCamera');
         const cameraPreview = document.getElementById('cameraPreview');
         const capturePhotoBtn = document.getElementById('capturePhoto');
-        let stream;
         useCameraBtn.addEventListener('click', async () => {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -200,11 +228,13 @@
                 cameraPreview.style.display = 'block';
                 capturePhotoBtn.style.display = 'block';
                 photoPreview.style.display = 'none';
+                console.log('Camera started');
             } catch (error) {
-                console.error('Gagal mengakses kamera:', error);
+                console.error('Error accessing camera:', error);
                 alert('Gagal mengakses kamera: ' + error.message);
             }
         });
+
         capturePhotoBtn.addEventListener('click', () => {
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = cameraPreview.videoWidth;
@@ -214,12 +244,15 @@
             photoPreview.src = tempCanvas.toDataURL('image/jpeg', 0.7);
             photoPreview.style.display = 'block';
             stopCamera();
+            console.log('Photo captured');
         });
+
         function stopCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 cameraPreview.style.display = 'none';
                 capturePhotoBtn.style.display = 'none';
+                console.log('Camera stopped');
             }
         }
 
@@ -245,11 +278,13 @@
             };
         }
 
+        // Tanda Tangan Pengirim
         signatureSenderCanvas.addEventListener('mousedown', (e) => {
             drawingSender = true;
             const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
             ctxSender.beginPath();
             ctxSender.moveTo(x, y);
+            console.log('Sender signature started');
         });
         signatureSenderCanvas.addEventListener('mousemove', (e) => {
             if (drawingSender) {
@@ -258,7 +293,10 @@
                 ctxSender.stroke();
             }
         });
-        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('mouseup', () => {
+            drawingSender = false;
+            console.log('Sender signature stopped');
+        });
         signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
 
         signatureSenderCanvas.addEventListener('touchstart', (e) => {
@@ -278,11 +316,18 @@
         });
         signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
 
+        document.getElementById('clearSenderSignature').addEventListener('click', () => {
+            ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
+            console.log('Sender signature cleared');
+        });
+
+        // Tanda Tangan Penerima
         signatureReceiverCanvas.addEventListener('mousedown', (e) => {
             drawingReceiver = true;
             const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
             ctxReceiver.beginPath();
             ctxReceiver.moveTo(x, y);
+            console.log('Receiver signature started');
         });
         signatureReceiverCanvas.addEventListener('mousemove', (e) => {
             if (drawingReceiver) {
@@ -291,7 +336,10 @@
                 ctxReceiver.stroke();
             }
         });
-        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('mouseup', () => {
+            drawingReceiver = false;
+            console.log('Receiver signature stopped');
+        });
         signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
 
         signatureReceiverCanvas.addEventListener('touchstart', (e) => {
@@ -311,36 +359,9 @@
         });
         signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
 
-        document.getElementById('clearSenderSignature').addEventListener('click', () => {
-            ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
-        });
         document.getElementById('clearReceiverSignature').addEventListener('click', () => {
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
-        });
-
-        // Tambah Barang
-        let itemCount = 1;
-        document.getElementById('addItem').addEventListener('click', () => {
-            const itemList = document.getElementById('itemList');
-            const newItem = document.createElement('div');
-            newItem.className = 'item-row';
-            newItem.innerHTML = `
-                <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
-                <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
-                <select class="itemUnit" name="items[${itemCount}][unit]" required>
-                    <option value="" disabled selected>Pilih Satuan</option>
-                    <option value="Assy">Assy</option>
-                    <option value="Each">Each</option>
-                    <option value="Set">Set</option>
-                    <option value="Pcs">Pcs</option>
-                    <option value="Colly">Colly</option>
-                </select>
-                <input type="number" class="itemPrNumber" name="items[${itemCount}][prNumber]" placeholder="No PR" required>
-                <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
-            `;
-            itemList.appendChild(newItem);
-            console.log(`Menambahkan item baru dengan index ${itemCount}`);
-            itemCount++;
+            console.log('Receiver signature cleared');
         });
 
         // Form Submission
@@ -349,16 +370,12 @@
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
             const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
-                const desc = row.querySelector('.itemDesc')?.value || '';
-                const qty = row.querySelector('.itemQty')?.value || '';
-                const unit = row.querySelector('.itemUnit')?.value || '';
-                const prNumber = row.querySelector('.itemPrNumber')?.value || '';
-                const poNumber = row.querySelector('.itemPoNumber')?.value || '';
-		return { desc, qty, unit, prNumber, poNumber };
-            }).filter(item => item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
-
-	    console.log('Items sebelum FormData:', items); // Debug
-
+                desc: row.querySelector('.itemDesc').value,
+                qty: row.querySelector('.itemQty').value,
+                unit: row.querySelector('.itemUnit').value,
+                prNumber: row.querySelector('.itemPrNumber').value,
+                poNumber: row.querySelector('.itemPoNumber').value
+            })).filter(item => item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
             const photoSrc = photoPreview.src || '';
             const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
             const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
@@ -375,7 +392,6 @@
             formData.append('department', department);
             formData.append('date', date);
 
-            // Tambah items secara eksplisit ke FormData
             items.forEach((item, index) => {
                 formData.append(`items[${index}][desc]`, item.desc);
                 formData.append(`items[${index}][qty]`, item.qty);
@@ -393,7 +409,6 @@
             formData.append('signatureSender', signatureSenderBlob, 'sender.png');
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
 
-            // Debugging
             console.log('Items sebelum FormData:', items);
             console.log('Data yang akan dikirim ke /api/receipts:');
             for (const [key, value] of formData.entries()) {
@@ -409,7 +424,7 @@
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
                 alert('Tanda terima berhasil disimpan ke Google Sheets!');
             } catch (error) {
-                console.error('Gagal menyimpan:', error);
+                console.error('Error saving receipt:', error);
                 alert('Gagal menyimpan: ' + error.message);
                 return;
             }
@@ -496,7 +511,7 @@
                 try {
                     doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 20, 60, 40);
                 } catch (error) {
-                    console.error('Gagal menambahkan foto:', error);
+                    console.error('Error adding photo to PDF:', error);
                 }
 
                 const signatureY = tableEndY + 70;
@@ -506,7 +521,7 @@
                     doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 60, 20);
                     doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 60, 20);
                 } catch (error) {
-                    console.error('Gagal menambahkan tanda tangan:', error);
+                    console.error('Error adding signatures to PDF:', error);
                 }
             }
 
