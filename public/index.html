@@ -19,17 +19,9 @@
             border-radius: 5px;
             max-width: 100%;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
+        .header { text-align: center; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
         input, select {
             width: 100%;
             padding: 8px;
@@ -47,16 +39,9 @@
             width: 100%;
             margin-top: 5px;
         }
-        button:hover {
-            background-color: #45a049;
-        }
-        #savePdfBtn {
-            background-color: #008CBA;
-            display: none;
-        }
-        #savePdfBtn:hover {
-            background-color: #007B9A;
-        }
+        button:hover { background-color: #45a049; }
+        #savePdfBtn { background-color: #008CBA; display: none; }
+        #savePdfBtn:hover { background-color: #007B9A; }
         #receiptOutput {
             margin-top: 20px;
             padding: 15px;
@@ -84,12 +69,8 @@
             margin-bottom: 10px;
         }
         @media (min-width: 600px) {
-            #itemList .item-row {
-                flex-direction: row;
-            }
-            #itemList .item-row input, #itemList .item-row select {
-                flex: 1;
-            }
+            #itemList .item-row { flex-direction: row; }
+            #itemList .item-row input, #itemList .item-row select { flex: 1; }
             #itemList .item-row .itemQty { flex: 0.5; }
             #itemList .item-row .itemUnit { flex: 0.5; }
             #itemList .item-row .itemPrNumber { flex: 0.7; }
@@ -102,10 +83,7 @@
             display: none;
             margin-top: 10px;
         }
-        #capturePhoto {
-            margin-top: 10px;
-            display: none;
-        }
+        #capturePhoto { margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -361,22 +339,22 @@
                 <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
             `;
             itemList.appendChild(newItem);
+            console.log(`Menambahkan item baru dengan index ${itemCount}`);
             itemCount++;
         });
 
         // Form Submission
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const form = this;
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
-            const items = Array.from(document.getElementsByClassName('itemDesc')).map((desc, index) => ({
-                desc: desc.value,
-                qty: document.getElementsByClassName('itemQty')[index].value,
-                unit: document.getElementsByClassName('itemUnit')[index].value,
-                prNumber: document.getElementsByClassName('itemPrNumber')[index].value,
-                poNumber: document.getElementsByClassName('itemPoNumber')[index].value
-            }));
+            const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
+                desc: row.querySelector('.itemDesc').value,
+                qty: row.querySelector('.itemQty').value,
+                unit: row.querySelector('.itemUnit').value,
+                prNumber: row.querySelector('.itemPrNumber').value,
+                poNumber: row.querySelector('.itemPoNumber').value
+            })).filter(item => item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
             const photoSrc = photoPreview.src || '';
             const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
             const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
@@ -393,7 +371,7 @@
             formData.append('department', department);
             formData.append('date', date);
 
-            // Tambah items secara manual ke FormData
+            // Tambah items secara eksplisit ke FormData
             items.forEach((item, index) => {
                 formData.append(`items[${index}][desc]`, item.desc);
                 formData.append(`items[${index}][qty]`, item.qty);
@@ -412,7 +390,7 @@
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
 
             // Debugging
-            console.log('Items sebelum dikirim:', items);
+            console.log('Items sebelum FormData:', items);
             console.log('Data yang akan dikirim ke /api/receipts:');
             for (const [key, value] of formData.entries()) {
                 console.log(`${key}: ${value}`);
@@ -432,6 +410,7 @@
                 return;
             }
 
+            // Tampilkan output
             document.getElementById('date').textContent = date;
             document.getElementById('outputName').textContent = recipientName;
             document.getElementById('outputDepartment').textContent = department;
@@ -451,9 +430,9 @@
             signatureReceiverPreview.src = signatureReceiverData;
 
             await Promise.all([
-                new Promise(resolve => outputPhoto.complete && outputPhoto.naturalHeight !== 0 ? resolve() : outputPhoto.onload = resolve),
-                new Promise(resolve => signatureSenderPreview.complete && signatureSenderPreview.naturalHeight !== 0 ? resolve() : signatureSenderPreview.onload = resolve),
-                new Promise(resolve => signatureReceiverPreview.complete && signatureReceiverPreview.naturalHeight !== 0 ? resolve() : signatureReceiverPreview.onload = resolve)
+                new Promise(resolve => outputPhoto.complete ? resolve() : outputPhoto.onload = resolve),
+                new Promise(resolve => signatureSenderPreview.complete ? resolve() : signatureSenderPreview.onload = resolve),
+                new Promise(resolve => signatureReceiverPreview.complete ? resolve() : signatureReceiverPreview.onload = resolve)
             ]);
 
             const output = document.getElementById('receiptOutput');
@@ -469,13 +448,13 @@
             const department = document.getElementById('outputDepartment').textContent;
             const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
                 const parts = li.textContent.split(' - ');
-                const desc = parts[0];
-                const qtyUnit = parts[1].replace('Qty: ', '').split(' ');
-                const qty = qtyUnit[0];
-                const unit = qtyUnit[1];
-                const prNumber = parts[2].replace('No PR: ', '');
-                const poNumber = parts[3].replace('No PO: ', '');
-                return { desc, qty, unit, prNumber, poNumber };
+                return {
+                    desc: parts[0],
+                    qty: parts[1].replace('Qty: ', '').split(' ')[0],
+                    unit: parts[1].replace('Qty: ', '').split(' ')[1],
+                    prNumber: parts[2].replace('No PR: ', ''),
+                    poNumber: parts[3].replace('No PO: ', '')
+                };
             });
             const photoSrc = document.getElementById('outputPhoto').src;
             const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
@@ -505,8 +484,7 @@
                     body: tableData,
                     styles: { fontSize: 10, cellPadding: 2 },
                     headStyles: { fillColor: [0, 128, 0] },
-                    margin: { left: 20, right: 20 },
-                    tableWidth: 'auto'
+                    margin: { left: 20, right: 20 }
                 });
 
                 let tableEndY = doc.lastAutoTable.finalY;

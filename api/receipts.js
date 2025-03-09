@@ -2,6 +2,7 @@ const express = require('express');
 const { google } = require('googleapis');
 const cors = require('cors');
 const multer = require('multer');
+const fs = require('fs');
 const upload = multer({ dest: '/tmp' });
 
 const app = express();
@@ -37,7 +38,7 @@ async function uploadToDrive(file) {
     const fileMetadata = { name: file.originalname };
     const media = {
         mimeType: file.mimetype,
-        body: require('fs').createReadStream(file.path),
+        body: fs.createReadStream(file.path),
     };
     const response = await drive.files.create({
         resource: fileMetadata,
@@ -54,8 +55,8 @@ async function uploadToDrive(file) {
 function parseItems(body) {
     const items = [];
     const itemRegex = /^items\[(\d+)\]\[(\w+)\]$/;
-    
-    console.log('Parsing req.body:', body); // Debugging
+
+    console.log('Parsing req.body:', JSON.stringify(body, null, 2));
 
     for (const key in body) {
         const match = key.match(itemRegex);
@@ -66,9 +67,23 @@ function parseItems(body) {
             items[index][field] = body[key];
         }
     }
-    
-    const validItems = items.filter(item => item && item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
-    console.log('Parsed items:', validItems); // Debugging
+
+    const validItems = items.filter(item => 
+        item && 
+        item.desc && 
+        item.qty && 
+        item.unit && 
+        item.prNumber && 
+        item.poNumber
+    ).map(item => ({
+        desc: item.desc,
+        qty: item.qty,
+        unit: item.unit,
+        prNumber: item.prNumber,
+        poNumber: item.poNumber
+    }));
+
+    console.log('Parsed items:', validItems);
     return validItems;
 }
 
@@ -83,11 +98,14 @@ module.exports = async (req, res) => {
         multerMiddleware(req, res, async (err) => {
             if (err) return res.status(500).json({ error: 'Upload failed: ' + err.message });
 
+            console.log('Full req.body:', JSON.stringify(req.body, null, 2));
+            console.log('Full req.files:', req.files);
+
             const { recipientName, department, date } = req.body;
             const items = parseItems(req.body);
-            const photoFile = req.files['photo'] ? req.files['photo'][0] : null;
-            const sigSenderFile = req.files['signatureSender'] ? req.files['signatureSender'][0] : null;
-            const sigReceiverFile = req.files['signatureReceiver'] ? req.files['signatureReceiver'][0] : null;
+            const photoFile = req.files && req.files['photo'] ? req.files['photo'][0] : null;
+            const sigSenderFile = req.files && req.files['signatureSender'] ? req.files['signatureSender'][0] : null;
+            const sigReceiverFile = req.files && req.files['signatureReceiver'] ? req.files['signatureReceiver'][0] : null;
 
             try {
                 await initializeSheet();
@@ -100,7 +118,7 @@ module.exports = async (req, res) => {
                     ? items.map(item => `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`).join('\n')
                     : 'Tidak ada barang';
 
-                console.log('Items String:', itemsString); // Debugging
+                console.log('Items String:', itemsString);
 
                 const values = [[
                     Date.now(),
@@ -114,7 +132,7 @@ module.exports = async (req, res) => {
                     ''
                 ]];
 
-                console.log('Values to Sheets:', values); // Debugging
+                console.log('Values to Sheets:', values);
 
                 await sheets.spreadsheets.values.append({
                     spreadsheetId,
@@ -127,6 +145,11 @@ module.exports = async (req, res) => {
             } catch (error) {
                 console.error('Server error:', error);
                 res.status(500).json({ error: 'Server error: ' + error.message });
+            } finally {
+                // Cleanup temporary files
+                if (photoFile) fs.unlinkSync(photoFile.path);
+                if (sigSenderFile) fs.unlinkSync(sigSenderFile.path);
+                if (sigReceiverFile) fs.unlinkSync(sigReceiverFile.path);
             }
         });
     } else {
