@@ -3,7 +3,11 @@ const { google } = require('googleapis');
 const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
-const upload = multer({ dest: '/tmp' });
+const upload = multer({ dest: '/tmp' }).fields([
+    { name: 'photo', maxCount: 1 },
+    { name: 'signatureSender', maxCount: 1 },
+    { name: 'signatureReceiver', maxCount: 1 }
+]);	
 
 const app = express();
 app.use(cors());
@@ -98,8 +102,8 @@ module.exports = async (req, res) => {
         multerMiddleware(req, res, async (err) => {
             if (err) return res.status(500).json({ error: 'Upload failed: ' + err.message });
 
-            console.log('Full req.body:', JSON.stringify(req.body, null, 2));
-            console.log('Full req.files:', req.files);
+            console.log('Raw req.body:', JSON.stringify(req.body, null, 2));
+            console.log('Raw req.files:', req.files);
 
             const { recipientName, department, date } = req.body;
             const items = parseItems(req.body);

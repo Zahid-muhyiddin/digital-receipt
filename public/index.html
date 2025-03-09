@@ -349,12 +349,16 @@
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
             const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
-                desc: row.querySelector('.itemDesc').value,
-                qty: row.querySelector('.itemQty').value,
-                unit: row.querySelector('.itemUnit').value,
-                prNumber: row.querySelector('.itemPrNumber').value,
-                poNumber: row.querySelector('.itemPoNumber').value
-            })).filter(item => item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
+                const desc = row.querySelector('.itemDesc')?.value || '';
+                const qty = row.querySelector('.itemQty')?.value || '';
+                const unit = row.querySelector('.itemUnit')?.value || '';
+                const prNumber = row.querySelector('.itemPrNumber')?.value || '';
+                const poNumber = row.querySelector('.itemPoNumber')?.value || '';
+		return { desc, qty, unit, prNumber, poNumber };
+            }).filter(item => item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
+
+	    console.log('Items sebelum FormData:', items); // Debug
+
             const photoSrc = photoPreview.src || '';
             const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
             const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
