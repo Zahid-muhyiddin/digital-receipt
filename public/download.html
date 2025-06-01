@@ -19,44 +19,36 @@
             background: #f3f4f6;
         }
         .sidebar {
-            width: 250px;
+            width: 220px;
             background: #1e3a8a;
             color: #fff;
             height: 100vh;
             position: fixed;
-            padding: 20px;
+            padding: 15px;
             transition: transform 0.3s ease;
         }
-        .sidebar.closed {
-            transform: translateX(-250px);
-        }
-        .logo-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .logo {
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
+        .sidebar.hidden {
+            transform: translateX(-220px);
         }
         .logo-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 24px;
             font-weight: 700;
+            margin-bottom: 20px;
         }
         .sidebar ul {
             list-style: none;
         }
         .sidebar ul li {
-            margin: 10px 0;
+            margin: 8px 0;
         }
         .sidebar ul li a {
             color: #fff;
             text-decoration: none;
-            padding: 10px;
+            padding: 8px;
             display: block;
-            border-radius: 5px;
+            border-radius: 4px;
+            font-size: 14px;
         }
         .sidebar ul li a:hover, .sidebar ul li a.active {
             background: #3b82f6;
@@ -65,60 +57,53 @@
             background: #10b981;
             color: #fff;
             border: none;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 8px;
+            border-radius: 4px;
             cursor: pointer;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            font-size: 14px;
         }
         .logout-btn {
             background: #ef4444;
             color: #fff;
             border: none;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 8px;
+            border-radius: 4px;
             cursor: pointer;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 15px;
+            font-size: 14px;
         }
         .content {
-            margin-left: 250px;
-            padding: 20px;
-            width: calc(100% - 250px);
+            margin-left: 220px;
+            padding: 15px;
+            width: calc(100% - 220px);
             background: #fff;
             min-height: 100vh;
             transition: margin-left 0.3s ease, width 0.3s ease;
         }
-        .content.full {
+        .content.full-width {
             margin-left: 0;
             width: 100%;
         }
         .content-header {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .content-toggle {
             display: none;
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 8px;
+            border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
         }
-        .content-toggle.show {
+        .content-toggle.visible {
             display: block;
-        }
-        .header {
-            display: flex;
-            align-items: center;
-        }
-        .header .logo {
-            width: 30px;
-            height: 30px;
-            margin-right: 8px;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
@@ -126,20 +111,23 @@
             color: #1e3a8a;
         }
         .download-container {
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .table-wrapper {
+            overflow-x: auto;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-top: 10px;
         }
         th, td {
             border: 1px solid #d1d5db;
-            padding: 8px;
+            padding: 6px;
             text-align: center;
-            font-size: 14px;
+            font-size: 13px;
         }
         th {
             background: #10b981;
@@ -152,15 +140,17 @@
             background: #3b82f6;
             color: #fff;
             border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 13px;
         }
         .error {
             color: #ef4444;
             text-align: center;
-            font-size: 14px;
+            font-size: 12px;
             display: none;
+            margin-top: 10px;
         }
         .loading {
             display: none;
@@ -171,11 +161,11 @@
             transform: translate(-50%, -50%);
         }
         .spinner {
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #3b82f6;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #3b82f6;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
@@ -184,24 +174,37 @@
         }
         @media (max-width: 768px) {
             .sidebar {
-                transform: translateX(-250px);
+                transform: translateX(-220px);
             }
-            .sidebar.closed {
+            .sidebar.hidden {
                 transform: translateX(0);
             }
             .content {
                 margin-left: 0;
                 width: 100%;
             }
-            .content.full {
-                margin-left: 250px;
-                width: calc(100% - 250px);
+            .content.full-width {
+                margin-left: 220px;
+                width: calc(100% - 220px);
             }
             .content-toggle {
                 display: block;
             }
-            table {
+            .header-text {
+                font-size: 18px;
+            }
+            th, td {
                 font-size: 12px;
+                padding: 4px;
+            }
+            .download-btn {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+        }
+        @media (max-width: 480px) {
+            .download-container {
+                padding: 10px;
             }
         }
     </style>
@@ -209,10 +212,7 @@
 <body>
     <div class="sidebar" id="sidebar">
         <button class="toggle-btn" id="toggleSidebar"><i class="fas fa-arrow-left"></i></button>
-        <div class="logo-container">
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="Logo" class="logo">
-            <span class="logo-text">DIREC</span>
-        </div>
+        <div class="logo-text">DIREC</div>
         <ul>
             <li><a href="/index.html">Input Form</a></li>
             <li><a href="/history.html">History</a></li>
@@ -223,49 +223,173 @@
     <div class="content" id="content">
         <div class="content-header">
             <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-            <div class="header">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb25zZXJyYXQsIHNhbnMtc2VyaWZhIIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="Logo" class="logo">
-                <span class="header-text">DIREC - Download PDF</span>
-            </div>
+            <div class="header-text">DIREC - Download Tanda Terima</div>
         </div>
         <div class="download-container">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
             </div>
-            <table id="downloadTable">
-                <thead>
-                    <tr>
-                        <th>Tanggal</th>
-                        <th>Nama Penerima</th>
-                        <th>Departemen</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="downloadBody"></tbody>
-            </table>
-            <p class="error" class="error" id="errorMessage"></p>
+            <div class="table-wrapper">
+                <table id="downloadTable">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama Penerima</th>
+                            <th>Departemen</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="downloadBody"></tbody>
+                </table>
+            </div>
+            <p class="error" id="errorMessage"></p>
         </div>
     </div>
 
     <script>
-        if (!localStorage.getItem('isLoggedIn') === 'true') {
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
-        // Sidebar Toggle
         const sidebar = document.getElementById('sidebar');
-        const content = document.querySelector('.content');
-        const toggleBtn = document.querySelector('#toggle-btn');
-        const contentToggle = document.querySelector('.content-toggle');
+        const content = document.getElementById('content');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const contentToggle = document.getElementById('contentToggle');
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
-            toggleBtn.querySelector('i').classList.toggle('fa-arrow-left');
-            toggleBtn.querySelector('i').classList.toggle('fa-bars');
+            toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
             contentToggle.classList.toggle('visible');
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
-        // Lazy load jsPDF
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                script.onload = () => {
+                    const autoTableScript = document.createElement('script');
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.onload = resolve;
+                    autoTableScript.onerror = reject;
+                    document.head.appendChild(autoTableScript);
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        function parseItems(itemsString) {
+            if (!itemsString || itemsString === 'Tidak ada barang') return [];
+            return itemsString.split('\n').map(item => {
+                const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
+                return match ? {
+                    desc: match[1].trim(),
+                    qty: match[2],
+                    unit: match[3],
+                    prNumber: match[4],
+                    poNumber: match[5]
+                } : null;
+            }).filter(item => item);
+        }
+        async function loadDownloadData() {
+            const errorMessage = document.getElementById('errorMessage');
+            const loading = document.getElementById('loading');
+            const downloadBody = document.getElementById('downloadBody');
+            loading.style.display = 'flex';
+            try {
+                const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
+                const result = await response.json();
+                if (response.ok) {
+                    const data = result.data || [];
+                    if (data.length === 0) {
+                        errorMessage.textContent = 'Belum ada data tanda terima';
+                        errorMessage.style.display = 'block';
+                        return;
+                    }
+                    data.sort((a, b) => {
+                        const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                        const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                        return dateB - dateA;
+                    });
+                    downloadBody.innerHTML = '';
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${row.date || '-'}</td>
+                            <td>${row.recipientName || '-'}</td>
+                            <td>${row.department || '-'}</td>
+                            <td><button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button></td>
+                        `;
+                        downloadBody.appendChild(tr);
+                    });
+                    document.querySelectorAll('.download-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const row = JSON.parse(btn.dataset.row);
+                            let jsPDFInstance = window.jspdf;
+                            if (!jsPDFInstance) {
+                                try {
+                                    await loadJsPDF();
+                                    jsPDFInstance = window.jspdf;
+                                } catch (error) {
+                                    alert('Gagal memuat library PDF');
+                                    return;
+                                }
+                            }
+                            const { jsPDF } = jsPDFInstance;
+                            const doc = new jsPDF();
+                            const items = parseItems(row.items);
+                            doc.setFontSize(16);
+                            doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
+                            doc.setFontSize(12);
+                            doc.text(`Tanggal: ${row.date || '-'}`, 20, 40);
+                            doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 50);
+                            doc.text(`Departemen: ${row.department || '-'}`, 20, 60);
+                            doc.text('Deskripsi Barang:', 20, 70);
+                            doc.autoTable({
+                                startY: 75,
+                                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                                body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
+                                styles: { fontSize: 10 },
+                                headStyles: { fillColor: [16, 185, 129] }
+                            });
+                            let tableEndY = doc.lastAutoTable.finalY;
+                            doc.text('Foto Penerima:', 20, tableEndY + 10);
+                            if (row.photoUrl) {
+                                try {
+                                    doc.addImage(row.photoUrl, 'JPEG', 20, tableEndY + 15, 50, 30);
+                                } catch (error) {}
+                            }
+                            const signatureY = tableEndY + 50;
+                            doc.text('Pengirim:', 20, signatureY);
+                            doc.text('Penerima:', 110, signatureY);
+                            if (row.signatureSenderUrl) {
+                                try {
+                                    doc.addImage(row.signatureSenderUrl, 'PNG', 20, signatureY + 5, 50, 15);
+                                } catch (error) {}
+                            }
+                            if (row.signatureReceiverUrl) {
+                                try {
+                                    doc.addImage(row.signatureReceiverUrl, 'PNG', 110, signatureY + 5, 50, 15);
+                                } catch (error) {}
+                            }
+                            doc.save(`direc-tanda-terima-${row.date.replace(/[\/, :]/g, '-')}.pdf`);
+                        });
+                    });
+                } else {
+                    errorMessage.textContent = result.error || 'Gagal memuat data';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
+                errorMessage.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        loadDownloadData();
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = '/login.html';
+        });
+    </script>
+</body>
+</html>
