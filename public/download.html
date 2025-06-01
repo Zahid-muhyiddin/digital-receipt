@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Download Tanda Terima - DIREC</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -98,10 +98,10 @@
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 6px;
+            padding: 4px 6px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             margin-right: 10px;
         }
         .content-toggle.visible {
@@ -195,7 +195,6 @@
             justify-content: center;
             gap: 8px;
             margin-top: 10px;
-            align-items: center;
         }
         .pagination button {
             background: #3b82f6;
@@ -284,7 +283,7 @@
         <ul>
             <li><a href="/index.html">Input Form</a></li>
             <li><a href="/history.html">History</a></li>
-            <li><a href="/download.html" class="active">Download Tanda Terima</a></li>
+            <li><a href="#" class="active">Download Tanda Terima</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
@@ -317,8 +316,8 @@
                     <tbody id="downloadBody"></tbody>
                 </table>
             </div>
-            <div class="pagination" id="pagination"></div>
-            <p class="error" id="errorMessage"></p>
+            <div id="pagination" class="pagination"></div>
+            <p id="errorMessage" class="error"></p>
         </div>
     </div>
 
@@ -326,18 +325,22 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
+
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
+
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
             toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
             contentToggle.classList.toggle('visible');
         }
+
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
+
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -353,8 +356,9 @@
                 document.head.appendChild(script);
             });
         }
+
         function parseItems(itemsString) {
-            if (!itemsString || itemsString === 'Tidak ada barang') return [];
+            if (!itemsString || itemsString === 'undefined') return [];
             return itemsString.split('\n').map(item => {
                 const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
                 return match ? {
@@ -366,10 +370,12 @@
                 } : null;
             }).filter(item => item);
         }
+
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
         let itemsPerPage = 10;
+
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
             downloadBody.innerHTML = '';
@@ -391,24 +397,91 @@
                 downloadBody.appendChild(tr);
             });
             renderPagination(data.length, page);
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const row = JSON.parse(btn.dataset.row);
+                    console.log('Row data for PDF:', row);
+                    let jsPDFInstance = window.jspdf;
+                    if (!jsPDFInstance) {
+                        try {
+                            await loadJsPDF();
+                            jsPDFInstance = window.jspdf;
+                        } catch (error) {
+                            console.error('Gagal memuat library PDF:', error);
+                            alert('Gagal memuat library PDF');
+                            return;
+                        }
+                    }
+                    const { jsPDF } = jsPDFInstance;
+                    const doc = new jsPDF();
+                    const items = parseItems(row.items);
+                    doc.setFontSize(16);
+                    doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.text(`No Registrasi: ${row.regNumber || '-'}`, 20, 30);
+                    doc.text(`Tanggal: ${row.date || '-'}`, 20, 35);
+                    doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 40);
+                    doc.text(`Departemen: ${row.department || '-'}`, 20, 45);
+                    doc.text('Deskripsi Barang:', 20, 55);
+                    doc.autoTable({
+                        startY: 60,
+                        head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                        body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
+                        styles: { fontSize: 10 },
+                        headStyles: { fillColor: [16, 185, 129] }
+                    });
+                    let tableEndY = doc.lastAutoTable.finalY || 60;
+                    doc.text('Foto Penerima:', 20, tableEndY + 10);
+                    if (row.photo) {
+                        try {
+                            doc.addImage(row.photo, 'JPEG', 20, tableEndY + 15, 50, 30);
+                        } catch (error) {
+                            console.error('Gagal menambahkan foto:', error);
+                        }
+                    }
+                    const signatureY = tableEndY + 50;
+                    doc.text('Pengirim:', 20, signatureY);
+                    doc.text('Penerima:', 110, signatureY);
+                    if (row.signatureSender) {
+                        try {
+                            doc.addImage(row.signatureSender, 'PNG', 20, signatureY + 5, 50, 15);
+                        } catch (error) {
+                            console.error('Gagal menambahkan tanda tangan pengirim:', error);
+                        }
+                    }
+                    if (row.signatureReceiver) {
+                        try {
+                            doc.addImage(row.signatureReceiver, 'PNG', 110, signatureY + 5, 50, 15);
+                            doc.setFontSize(10);
+                            doc.text(row.recipientName || '-', 110, signatureY + 25, { align: 'left' });
+                        } catch (error) {
+                            console.error('Gagal menambahkan tanda tangan penerima:', error);
+                        }
+                    }
+                    doc.save(`direc-tanda-terima-${row.regNumber || 'unknown'}.pdf`);
+                });
+            });
         }
+
         function renderPagination(totalItems, page) {
             const pagination = document.getElementById('pagination');
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
-            const select = document.createElement('select');
-            select.id = 'rowsPerPage';
-            select.innerHTML = `
+
+            const selectPage = document.createElement('select');
+            selectPage.id = 'rowsPerPage';
+            selectPage.innerHTML = `
                 <option value="5" ${itemsPerPage === 5 ? 'selected' : ''}>5</option>
                 <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
                 <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
             `;
-            select.addEventListener('change', () => {
-                itemsPerPage = parseInt(select.value);
+            selectPage.addEventListener('change', () => {
+                itemsPerPage = parseInt(selectPage.value);
                 currentPage = 1;
                 renderTable(filteredData, currentPage);
             });
-            pagination.appendChild(select);
+            pagination.appendChild(selectPage);
+
             const prevBtn = document.createElement('button');
             prevBtn.textContent = 'Previous';
             prevBtn.disabled = page === 1;
@@ -419,6 +492,7 @@
                 }
             });
             pagination.appendChild(prevBtn);
+
             for (let i = 1; i <= totalPages; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
@@ -429,6 +503,7 @@
                 });
                 pagination.appendChild(pageBtn);
             }
+
             const nextBtn = document.createElement('button');
             nextBtn.textContent = 'Next';
             nextBtn.disabled = page === totalPages;
@@ -440,11 +515,12 @@
             });
             pagination.appendChild(nextBtn);
         }
+
         function searchData(query) {
             query = query.toLowerCase().trim();
             filteredData = allData.filter(item => {
                 const items = parseItems(item.items);
-                return items.some(item => 
+                return items.some(item =>
                     item.prNumber.toString().includes(query) ||
                     item.poNumber.toLowerCase().includes(query)
                 );
@@ -452,6 +528,14 @@
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
+
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            filteredData = [...allData];
+            currentPage = 1;
+            renderTable(filteredData, currentPage);
+        }
+
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
@@ -459,7 +543,7 @@
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
-                console.log('Data from /api/history:', result); // Debug
+                console.log('Download API response:', result);
                 if (response.ok) {
                     allData = result.data || [];
                     if (allData.length === 0) {
@@ -474,79 +558,24 @@
                     });
                     filteredData = [...allData];
                     renderTable(filteredData, currentPage);
-                    document.querySelectorAll('.download-btn').forEach(btn => {
-                        btn.addEventListener('click', async () => {
-                            const row = JSON.parse(btn.dataset.row);
-                            let jsPDFInstance = window.jspdf;
-                            if (!jsPDFInstance) {
-                                try {
-                                    await loadJsPDF();
-                                    jsPDFInstance = window.jspdf;
-                                } catch (error) {
-                                    alert('Gagal memuat library PDF');
-                                    return;
-                                }
-                            }
-                            const { jsPDF } = jsPDFInstance;
-                            const doc = new jsPDF();
-                            const items = parseItems(row.items);
-                            doc.setFontSize(16);
-                            doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
-                            doc.setFontSize(12);
-                            doc.text(`No Registrasi: ${row.regNumber || '-'}`, 20, 30);
-                            doc.text(`Tanggal: ${row.date || '-'}`, 20, 40);
-                            doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 50);
-                            doc.text(`Departemen: ${row.department || '-'}`, 20, 60);
-                            doc.text('Deskripsi Barang:', 20, 70);
-                            doc.autoTable({
-                                startY: 75,
-                                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                                body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                                styles: { fontSize: 10 },
-                                headStyles: { fillColor: [16, 185, 129] }
-                            });
-                            let tableEndY = doc.lastAutoTable.finalY;
-                            doc.text('Foto Penerima:', 20, tableEndY + 10);
-                            if (row.photo) {
-                                try {
-                                    doc.addImage(row.photo, 'JPEG', 20, tableEndY + 15, 50, 30);
-                                } catch (error) {}
-                            }
-                            const signatureY = tableEndY + 50;
-                            doc.text('Pengirim:', 20, signatureY);
-                            doc.text('Penerima:', 110, signatureY);
-                            if (row.signatureSender) {
-                                try {
-                                    doc.addImage(row.signatureSender, 'PNG', 20, signatureY + 5, 50, 15);
-                                } catch (error) {}
-                            }
-                            if (row.signatureReceiver) {
-                                try {
-                                    doc.addImage(row.signatureReceiver, 'PNG', 110, signatureY + 5, 50, 15);
-                                } catch (error) {}
-                            }
-                            doc.save(`direc-tanda-terima-${row.date.replace(/[\/, :]/g, '-')}.pdf`);
-                        });
-                    });
                 } else {
                     errorMessage.textContent = result.error || 'Gagal memuat data';
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
+                console.error('Error loading download data:', error);
                 errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
                 errorMessage.style.display = 'block';
             } finally {
                 loading.style.display = 'none';
             }
         }
+
         loadDownloadData();
+
         document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            document.getElementById('searchInput').value = '';
-            filteredData = [...allData];
-            currentPage = 1;
-            renderTable(filteredData, currentPage);
-        });
+        document.getElementById('resetBtn').addEventListener('click', resetSearch);
+
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';

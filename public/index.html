@@ -92,18 +92,20 @@
             flex-direction: column;
             align-items: center;
             margin-bottom: 15px;
+            position: relative;
         }
         .content-toggle {
             display: none;
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 6px;
+            padding: 4px 6px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             position: absolute;
-            left: 15px;
+            top: 10px;
+            left: 10px;
         }
         .content-toggle.visible {
             display: block;
@@ -513,7 +515,6 @@
         function stopDrawing() {
             return false;
         }
-        // Tanda Tangan Pengirim
         signatureSenderCanvas.addEventListener('mousedown', (e) => {
             drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
         });
@@ -540,7 +541,6 @@
         document.getElementById('clearSenderSignature').addEventListener('click', () => {
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
-        // Tanda Tangan Penerima
         signatureReceiverCanvas.addEventListener('mousedown', (e) => {
             drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
         });
@@ -680,12 +680,12 @@
             doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
             doc.setFontSize(12);
             doc.text(`No Registrasi: ${regNumber}`, 20, 30);
-            doc.text(`Tanggal: ${date}`, 20, 40);
-            doc.text(`Penerima: ${recipientName}`, 20, 50);
-            doc.text(`Departemen: ${department}`, 20, 60);
-            doc.text('Deskripsi Barang:', 20, 70);
+            doc.text(`Tanggal: ${date}`, 20, 35);
+            doc.text(`Penerima: ${recipientName}`, 20, 40);
+            doc.text(`Departemen: ${department}`, 20, 45);
+            doc.text('Deskripsi Barang:', 20, 55);
             doc.autoTable({
-                startY: 75,
+                startY: 60,
                 head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
                 body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
                 styles: { fontSize: 10 },
@@ -695,14 +695,20 @@
             doc.text('Foto Penerima:', 20, tableEndY + 10);
             try {
                 doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
-            } catch (error) {}
+            } catch (error) {
+                console.error('Gagal menambahkan foto:', error);
+            }
             const signatureY = tableEndY + 50;
             doc.text('Pengirim:', 20, signatureY);
             doc.text('Penerima:', 110, signatureY);
             try {
                 doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 50, 15);
                 doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 50, 15);
-            } catch (error) {}
+                doc.setFontSize(10);
+                doc.text(recipientName, 110, signatureY + 25, { align: 'left' });
+            } catch (error) {
+                console.error('Gagal menambahkan tanda tangan:', error);
+            }
             doc.save('direc-tanda-terima.pdf');
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
