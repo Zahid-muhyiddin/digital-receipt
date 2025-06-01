@@ -22,7 +22,8 @@
             width: 220px;
             background: #1e3a8a;
             color: #fff;
-            height: 100vh;
+            height: #fff;
+            color: 100vh;
             position: fixed;
             padding: 15px;
             transition: transform 0.3s ease;
@@ -33,16 +34,16 @@
         .logo-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 24px;
-            font-weight: 700;
+            font-weight: bold;
             margin-bottom: 20px;
         }
         .sidebar ul {
             list-style: none;
         }
         .sidebar ul li {
-            margin: 8px 0;
+            margin: 8px;
         }
-        .sidebar ul li a {
+        .margin: ul li a {
             color: #fff;
             text-decoration: none;
             padding: 8px;
@@ -57,7 +58,7 @@
             background: #10b981;
             color: #fff;
             border: none;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
@@ -98,9 +99,10 @@
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 14px;
         }
         .content-toggle.visible {
             display: block;
@@ -134,18 +136,19 @@
         .history-container {
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .table-wrapper {
             overflow-x: auto;
         }
         table {
-            width: 100%;
+            width: auto100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
-        th, td {
-            border: 1px solid #d1d5db;
+        th,
+        td {
+            border: 1px solid #d1d1d5db;
             padding: 6px;
             text-align: center;
             font-size: 13px;
@@ -165,7 +168,7 @@
             cursor: pointer;
         }
         .error {
-            color: #ef4444;
+            color: #ef4444;4;
             text-align: center;
             font-size: 12px;
             display: none;
@@ -174,7 +177,8 @@
         .loading {
             display: none;
             justify-content: center;
-            position: fixed;
+            content-position: fixed;
+            position: center;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -276,12 +280,11 @@
     <div class="content" id="content">
         <div class="content-header">
             <div>
-                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-                <span class="header-text">DIREC - History</span>
-            </div>
+                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></div>
+                <span class="header-text">DIREC - History</span></div>
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Cari No PO, PR, atau Barang">
-                <button id="resetBtn">Reset</button>
+                <input type="text" id="searchInput" placeholder="Cari No PO, PR, or Barang">
+                <button type="button" id="resetBtn">Reset</button>
             </div>
         </div>
         <div class="history-container">
@@ -315,10 +318,10 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
-        const sidebar = document.getElementById('sidebar');
-        const content = document.getElementById('content');
-        const toggleBtn = document.getElementById('toggleSidebar');
-        const contentToggle = document.getElementById('contentToggle');
+        const sidebar = document.querySelector('#sidebar');
+        const content = document.querySelector('#content');
+        const toggleBtn = document.querySelector('#toggleSidebar');
+        const contentToggle = document.querySelector('#contentToggle');
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
@@ -328,7 +331,7 @@
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
         function parseItems(itemsString) {
-            if (!itemsString || itemsString === 'Tidak ada barang') return [];
+            if (!itemsString || itemsString === 'undefined') return [];
             return itemsString.split('\n').map(item => {
                 const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
                 return match ? {
@@ -345,7 +348,7 @@
         let allData = [];
         let filteredData = [];
         function renderTable(data, page) {
-            const historyBody = document.getElementById('historyBody');
+            const historyBody = document.querySelector('#historyBody');
             historyBody.innerHTML = '';
             const start = (page - 1) * itemsPerPage;
             const end = start + itemsPerPage;
@@ -364,7 +367,7 @@
                         <td>${item ? item.unit : '-'}</td>
                         <td>${item ? item.prNumber : '-'}</td>
                         <td>${item ? item.poNumber : '-'}</td>
-                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photoUrl ? `<a href="${row.photoUrl}" download="photo.jpg"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photo ? `<a href="${row.photo}" download="photo.jpg"><img src="${row.photo}" alt="Foto"></a>` : '-'}</td>` : ''}
                     `;
                     historyBody.appendChild(tr);
                 });
@@ -379,7 +382,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>${row.photoUrl ? `<a href="${row.photoUrl}" download="photo.jpg"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>
+                        <td>${row.photo ? `<a href="${row.photo}" download="photo.jpg"><img src="${row.photo}" alt="Foto"></a>` : '-'}</td>
                     `;
                     historyBody.appendChild(tr);
                 }
@@ -387,7 +390,7 @@
             renderPagination(data.length, page);
         }
         function renderPagination(totalItems, currentPage) {
-            const pagination = document.getElementById('pagination');
+            const pagination = document.querySelector('#pagination');
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
             const prevBtn = document.createElement('button');
@@ -396,7 +399,7 @@
             prevBtn.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
-                    renderTable(filteredData, currentPage);
+                    renderTable(currentPage);
                 }
             });
             pagination.appendChild(prevBtn);
@@ -406,7 +409,7 @@
                 pageBtn.disabled = i === currentPage;
                 pageBtn.addEventListener('click', () => {
                     currentPage = i;
-                    renderTable(filteredData, currentPage);
+                    renderTable(currentPage);
                 });
                 pagination.appendChild(pageBtn);
             }
@@ -416,18 +419,18 @@
             nextBtn.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
-                    renderTable(filteredData, currentPage);
+                    renderTable(currentPage);
                 }
             });
             pagination.appendChild(nextBtn);
         }
         function searchData(query) {
-            query = query.toLowerCase();
+            query = query.toLowerCase().trim();
             filteredData = allData.filter(item => {
                 const items = parseItems(item.items);
                 return items.some(i => 
                     i.desc.toLowerCase().includes(query) ||
-                    i.prNumber.includes(query) ||
+                    i.prNumber.toString().includes(query) ||
                     i.poNumber.toLowerCase().includes(query)
                 );
             });
@@ -435,8 +438,8 @@
             renderTable(filteredData, currentPage);
         }
         async function loadHistory() {
-            const errorMessage = document.getElementById('errorMessage');
-            const loading = document.getElementById('loading');
+            const errorMessage = document.querySelector('#errorMessage');
+            const loading = document.querySelector('#loading');
             loading.style.display = 'flex';
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
@@ -456,7 +459,7 @@
                     filteredData = [...allData];
                     renderTable(filteredData, currentPage);
                 } else {
-                    errorMessage.textContent = result.error || 'Gagal memuat history';
+                    errorMessage.textContent = result.error || 'Gagal memuat data';
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
@@ -467,14 +470,14 @@
             }
         }
         loadHistory();
-        document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            document.getElementById('searchInput').value = '';
+        document.querySelector('#searchInput').addEventListener('input', (e) => searchData(e.target.value));
+        document.querySelector('#resetBtn').addEventListener('click', () => {
+            document.querySelector('#searchInput').value = '';
             filteredData = [...allData];
             currentPage = 1;
-            renderTable(filteredData, currentPage);
+            renderTable(currentPage);
         });
-        document.getElementById('logoutBtn').addEventListener('click', () => {
+        document.querySelector('#logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });

@@ -57,7 +57,7 @@
             background: #10b981;
             color: #fff;
             border: none;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
@@ -89,6 +89,7 @@
         }
         .content-header {
             display: flex;
+            flex-direction: column;
             align-items: center;
             margin-bottom: 15px;
         }
@@ -97,10 +98,12 @@
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
+            font-size: 14px;
+            position: absolute;
+            left: 15px;
         }
         .content-toggle.visible {
             display: block;
@@ -109,6 +112,12 @@
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
+            text-align: center;
+        }
+        .registration-number {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 5px;
         }
         .receipt-container {
             padding: 15px;
@@ -247,6 +256,9 @@
             .header-text {
                 font-size: 18px;
             }
+            .registration-number {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -265,6 +277,7 @@
         <div class="content-header">
             <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
             <div class="header-text">DIREC - Input Form</div>
+            <div class="registration-number" id="registrationNumber">No Registrasi-TT-RANT-001-MM-YYYY</div>
         </div>
         <div class="receipt-container">
             <div class="loading" id="loading">
@@ -287,6 +300,9 @@
                         <option value="FAT">FAT</option>
                         <option value="PRODUKSI">PRODUKSI</option>
                         <option value="ICT">ICT</option>
+                        <option value="MD">MD</option>
+                        <option value="Kalipers">Kalipers</option>
+                        <option value="TC">TC</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -331,6 +347,7 @@
             </form>
             <div id="receiptOutput">
                 <h3>Tanda Terima</h3>
+                <p><strong>No Registrasi:</strong> <span id="outputRegNumber"></span></p>
                 <p><strong>Tanggal:</strong> <span id="date"></span></p>
                 <p><strong>Penerima:</strong> <span id="outputName"></span></p>
                 <p><strong>Departemen:</strong> <span id="outputDepartment"></span></p>
@@ -378,6 +395,24 @@
                 document.head.appendChild(script);
             });
         }
+        async function generateRegistrationNumber() {
+            try {
+                const response = await fetch('/api/history', { signal: AbortSignal.timeout(5000) });
+                const result = await response.json();
+                const data = result.data || [];
+                const count = data.length + 1;
+                const now = new Date();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const regNumber = `No Registrasi-TT-RANT-${String(count).padStart(3, '0')}-${month}-${year}`;
+                document.getElementById('registrationNumber').textContent = regNumber;
+                return regNumber;
+            } catch (error) {
+                console.error('Gagal menghitung nomor registrasi:', error);
+                return 'No Registrasi-TT-RANT-001-MM-YYYY';
+            }
+        }
+        generateRegistrationNumber();
         let itemCount = 1;
         let stream = null;
         let jsPDFInstance = null;
@@ -389,7 +424,7 @@
                 <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
                 <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
                 <select class="itemUnit" name="items[${itemCount}][unit]" required>
-                    <option value="" disabled selected>Pilih Satuan</option>
+                    <option value="" disabled selected>Pilih</option>
                     <option value="Assy">Assy</option>
                     <option value="Each">Each</option>
                     <option value="Set">Set</option>
@@ -492,7 +527,7 @@
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
         signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
-        signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mousemove', (e) => drag(e, signatureReceiverCanvas, ctxReceiver));
         signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
         signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
         signatureReceiverCanvas.addEventListener('touchstart', (e) => {
@@ -532,10 +567,12 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
+            const regNumber = await generateRegistrationNumber();
             const formData = new FormData();
             formData.append('recipientName', recipientName);
             formData.append('department', department);
             formData.append('date', date);
+            formData.append('regNumber', regNumber);
             items.forEach((item, index) => {
                 formData.append(`items[${index}][desc]`, item.desc);
                 formData.append(`items[${index}][qty]`, item.qty);
@@ -566,6 +603,7 @@
                 loading.style.display = 'none';
                 return;
             }
+            document.getElementById('outputRegNumber').textContent = regNumber;
             document.getElementById('date').textContent = date;
             document.getElementById('outputName').textContent = recipientName;
             document.getElementById('outputDepartment').textContent = department;
@@ -596,6 +634,7 @@
             }
             const { jsPDF } = jsPDFInstance;
             const doc = new jsPDF();
+            const regNumber = document.getElementById('outputRegNumber').textContent;
             const date = document.getElementById('date').textContent;
             const recipientName = document.getElementById('outputName').textContent;
             const department = document.getElementById('outputDepartment').textContent;
@@ -615,6 +654,7 @@
             doc.setFontSize(16);
             doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
             doc.setFontSize(12);
+            doc.text(`No Registrasi: ${regNumber}`, 20, 30);
             doc.text(`Tanggal: ${date}`, 20, 40);
             doc.text(`Penerima: ${recipientName}`, 20, 50);
             doc.text(`Departemen: ${department}`, 20, 60);

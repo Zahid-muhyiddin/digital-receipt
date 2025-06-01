@@ -57,7 +57,7 @@
             background: #10b981;
             color: #fff;
             border: none;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
@@ -90,6 +90,7 @@
         .content-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 15px;
         }
         .content-toggle {
@@ -97,10 +98,10 @@
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
+            font-size: 14px;
         }
         .content-toggle.visible {
             display: block;
@@ -109,6 +110,27 @@
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
+        }
+        .search-container {
+            display: flex;
+            gap: 8px;
+            max-width: 250px;
+        }
+        .search-container input {
+            width: 150px;
+            padding: 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .search-container button {
+            background: #3b82f6;
+            color: #fff;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
         }
         .download-container {
             padding: 15px;
@@ -168,6 +190,32 @@
             height: 20px;
             animation: spin 1s linear infinite;
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .pagination button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .pagination button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        .pagination select {
+            padding: 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -185,10 +233,21 @@
             }
             .content.full-width {
                 margin-left: 220px;
-                width: calc(100% - 220px);
+                width: calc(100% -220px);
             }
             .content-toggle {
                 display: block;
+            }
+            .search-container {
+                max-width: 200px;
+            }
+            .search-container input {
+                width: 120px;
+                font-size: 12px;
+            }
+            .search-container button {
+                padding: 5px 10px;
+                font-size: 12px;
             }
             .header-text {
                 font-size: 18px;
@@ -201,10 +260,18 @@
                 padding: 5px 10px;
                 font-size: 12px;
             }
+            .pagination select {
+                font-size: 12px;
+                padding: 5px;
+            }
         }
         @media (max-width: 480px) {
             .download-container {
                 padding: 10px;
+            }
+            .search-container {
+                max-width: 100%;
+                justify-content: flex-end;
             }
         }
     </style>
@@ -222,32 +289,46 @@
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-            <div class="header-text">DIREC - Download Tanda Terima</div>
+            <div>
+                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+                <span class="header-text">DIREC - Download Tanda Terima</span>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Cari No PO atau PR">
+                <button id="resetBtn">Reset</button>
+            </div>
         </div>
         <div class="download-container">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
             </div>
             <div class="table-wrapper">
-                <table id="downloadTable">
+                table id="downloadTable">
                     <thead>
                         <tr>
                             <th>Tanggal</th>
-                            <th>Nama Penerima</th>
                             <th>Departemen</th>
+                            <th>No PR</th>
+                            <th>No PO</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="downloadBody"></tbody>
                 </table>
             </div>
+            <div class="pagination" id="pagination">
+                <select id="rowsPerPage">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                </select>
+            </div>
             <p class="error" id="errorMessage"></p>
         </div>
     </div>
 
     <script>
-        if (localStorage.getItem('isLoggedIn') !== 'true') {
+        if (!localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
         const sidebar = document.getElementById('sidebar');
@@ -257,7 +338,7 @@
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
-            toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
+            toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa fa-bars"></i>' : '<i class="fas fa fa-arrow-left"></i>';
             contentToggle.classList.toggle('visible');
         }
         toggleBtn.addEventListener('click', toggleSidebar);
@@ -268,7 +349,7 @@
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
                 script.onload = () => {
                     const autoTableScript = document.createElement('script');
-                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.8.2/jspdf-autotable.min.js';
                     autoTableScript.onload = resolve;
                     autoTableScript.onerror = reject;
                     document.head.appendChild(autoTableScript);
@@ -281,46 +362,122 @@
             if (!itemsString || itemsString === 'Tidak ada barang') return [];
             return itemsString.split('\n').map(item => {
                 const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
-                return match ? {
+                return match ? ({
                     desc: match[1].trim(),
                     qty: match[2],
-                    unit: match[3],
+                    unit Koleksi: match[3],
                     prNumber: match[4],
                     poNumber: match[5]
                 } : null;
             }).filter(item => item);
         }
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        function renderTable(data, page, rowsPerPage) {
+            const downloadBody = document.getElementById('downloadBody');
+            downloadBody.innerHTML = '';
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+            pageData.forEach(row => {
+                const items = parseItems(row.items);
+                const prNumbers = items.map(item => item.prNumber).join(', ');
+                const poNumbers = items.map(item => item.poNumber).join(', ');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.date || '-'}</td>
+                    <td>${row.department || '-'}</td>
+                    <td>${prNumbers || '-'}</td>
+                    <td>${poNumbers || '-'}</td>
+                    <td><button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button></td>
+                `;
+                downloadBody.appendChild(tr);
+            });
+            renderPagination(data.length, page, rowsPerPage);
+        }
+        function renderPagination(totalItems, page, rowsPerPage) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(totalItems / rowsPerPage);
+            pagination.innerHTML = '';
+            const select = document.createElement('select');
+            select.id = 'rowsPerPage';
+            select.innerHTML = `
+                <option value="5" ${rowsPerPage === 5 ? 'selected' : ''}>5</option>
+                <option value="10" rowsPerPage=== 10 ? 'selected' : ''}>10</option>
+                <option value="25" ${rowsPerPage === 25 ? 'selected' : ''}>25</option>
+            `;
+            select.addEventListener('change', () => {
+                itemsPerPage = parseInt(select.value);
+                currentPage = 1;
+                renderTable(filteredData, currentPage, itemsPerPage);
+            });
+            pagination.appendChild(select);
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = 'Previous';
+            prevBtn.disabled = page === 1;
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable(filteredData, currentPage, itemsPerPage);
+                }
+            });
+            pagination.appendChild(prevBtn);
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.disabled = i === currentPage;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable(filteredData, currentPage, itemsPerPage);
+                });
+                pagination.appendChild(pageBtn);
+            }
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Next';
+            nextBtn.disabled = page === totalPages;
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable(filteredData, currentPage, itemsPerPage);
+                }
+            });
+            pagination.appendChild(nextBtn);
+        }
+        function searchData(query) {
+            query = query.toLowerCase().trim();
+            filteredData = allData.filter(item => {
+                const items = parseItems(item.items);
+                return items.some(item => 
+                    item.prNumber.toString().includes(query) ||
+                    item.poNumber.toLowerCase().includes(query)
+                );
+            });
+            currentPage = 1;
+            renderTable(filteredData, currentPage, itemsPerPage);
+        }
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
-            const downloadBody = document.getElementById('downloadBody');
             loading.style.display = 'flex';
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
                 if (response.ok) {
-                    const data = result.data || [];
-                    if (data.length === 0) {
+                    allData = result.data || [];
+                    if (allData.length === 0) {
                         errorMessage.textContent = 'Belum ada data tanda terima';
                         errorMessage.style.display = 'block';
                         return;
                     }
-                    data.sort((a, b) => {
+                    allData.sort((a, b) => {
                         const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
                         const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
                         return dateB - dateA;
                     });
-                    downloadBody.innerHTML = '';
-                    data.forEach(row => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${row.date || '-'}</td>
-                            <td>${row.recipientName || '-'}</td>
-                            <td>${row.department || '-'}</td>
-                            <td><button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button></td>
-                        `;
-                        downloadBody.appendChild(tr);
-                    });
+                    filteredData = [...allData];
+                    renderTable(filteredData, currentPage, itemsPerPage);
                     document.querySelectorAll('.download-btn').forEach(btn => {
                         btn.addEventListener('click', async () => {
                             const row = JSON.parse(btn.dataset.row);
@@ -340,6 +497,7 @@
                             doc.setFontSize(16);
                             doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
                             doc.setFontSize(12);
+                            doc.text(`No Registrasi: ${row.regNumber || '-'}`, 20, 30);
                             doc.text(`Tanggal: ${row.date || '-'}`, 20, 40);
                             doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 50);
                             doc.text(`Departemen: ${row.department || '-'}`, 20, 60);
@@ -353,22 +511,22 @@
                             });
                             let tableEndY = doc.lastAutoTable.finalY;
                             doc.text('Foto Penerima:', 20, tableEndY + 10);
-                            if (row.photoUrl) {
+                            if (row.photo) {
                                 try {
-                                    doc.addImage(row.photoUrl, 'JPEG', 20, tableEndY + 15, 50, 30);
+                                    doc.addImage(row.photo, 'JPEG', 20, tableEndY + 15, 50, 30);
                                 } catch (error) {}
                             }
                             const signatureY = tableEndY + 50;
                             doc.text('Pengirim:', 20, signatureY);
                             doc.text('Penerima:', 110, signatureY);
-                            if (row.signatureSenderUrl) {
+                            if (row.signatureSender) {
                                 try {
-                                    doc.addImage(row.signatureSenderUrl, 'PNG', 20, signatureY + 5, 50, 15);
+                                    doc.addImage(row.signatureSender, 'PNG', 20, signatureY + 50, 15);
                                 } catch (error) {}
                             }
-                            if (row.signatureReceiverUrl) {
+                            if (row.signatureReceiver) {
                                 try {
-                                    doc.addImage(row.signatureReceiverUrl, 'PNG', 110, signatureY + 5, 50, 15);
+                                    doc.addImage(row.signatureReceiver, 'PNG', 110, signatureY + 50, 15);
                                 } catch (error) {}
                             }
                             doc.save(`direc-tanda-terima-${row.date.replace(/[\/, :]/g, '-')}.pdf`);
@@ -386,10 +544,18 @@
             }
         }
         loadDownloadData();
+        document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            filteredData = [...allData];
+            currentPage = 1;
+            renderTable(filteredData, currentPage, itemsPerPage);
+        });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });
     </script>
+);
 </body>
 </html>
