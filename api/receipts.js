@@ -17,6 +17,56 @@ const sheets = google.sheets({ version: 'v4', auth });
 const drive = google.drive({ version: 'v3', auth });
 const spreadsheetId = process.env.SPREADSHEET_ID;
 
+// Endpoint untuk login
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const validUsername = process.env.LOGIN_USERNAME;
+        const validPassword = process.env.LOGIN_PASSWORD;
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username dan password diperlukan' });
+        }
+
+        if (username === validUsername && password === validPassword) {
+            return res.status(200).json({ message: 'Login berhasil' });
+        } else {
+            return res.status(401).json({ error: 'Username atau password salah' });
+        }
+    } catch (error) {
+        console.error('Error during login:', error);
+        return res.status(500).json({ error: 'Server error: ' + error.message });
+    }
+});
+
+// Endpoint untuk history
+app.get('/api/history', async (req, res) => {
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'Sheet1!A2:I',
+        });
+
+        const rows = response.data.values || [];
+        const data = rows.map(row => ({
+            id: row[0] || '',
+            date: row[1] || '',
+            recipientName: row[2] || '',
+            department: row[3] || '',
+            items: row[4] || '',
+            photoUrl: row[5] || '',
+            signatureSenderUrl: row[6] || '',
+            signatureReceiverUrl: row[7] || '',
+            pdfUrl: row[8] || ''
+        }));
+
+        res.status(200).json({ data });
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        res.status(500).json({ error: 'Failed to fetch history: ' + error.message });
+    }
+});
+
 async function initializeSheet() {
     try {
         const response = await sheets.spreadsheets.values.get({
@@ -66,11 +116,7 @@ async function uploadToDrive(file) {
 
 function parseItems(body) {
     console.log('Parsing req.body:', JSON.stringify(body, null, 2));
-
-    // Langsung gunakan req.body.items jika ada dan merupakan array
     const items = Array.isArray(body.items) ? body.items : [];
-
-    // Validasi dan format ulang items
     const validItems = items.filter(item => 
         item && 
         item.desc && 
@@ -85,13 +131,13 @@ function parseItems(body) {
         prNumber: item.prNumber,
         poNumber: item.poNumber
     }));
-
     console.log('Parsed items:', validItems);
     return validItems;
 }
 
 module.exports = async (req, res) => {
-    if (req.method !== 'POST') {
+    if (req.method !== 'POST' || req.path !== '/api/receipts') {
+        if (req.path === '/api/login' || req.path === '/api/history') return;
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
@@ -156,7 +202,6 @@ module.exports = async (req, res) => {
         console.error('Server error:', error);
         res.status(500).json({ error: 'Server error: ' + error.message });
     } finally {
-        // Cleanup uploaded files
         const files = [req.files?.['photo']?.[0], req.files?.['signatureSender']?.[0], req.files?.['signatureReceiver']?.[0]];
         files.forEach(file => {
             if (file && fs.existsSync(file.path)) {

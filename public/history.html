@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History Tanda Terima</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #333;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 20px;
+        }
+        .sidebar h2 {
+            margin: 0 0 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar ul li {
+            margin: 10px 0;
+        }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .sidebar ul li a:hover, .sidebar ul li a.active {
+            background-color: #4CAF50;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            width: calc(100% - 250px);
+        }
+        .history-container {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .header { text-align: center; margin-bottom: 15px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        tr:hover { background-color: #ddd; }
+        img { max-width: 100px; height: auto; }
+        .error { color: red; text-align: center; margin-top: 20px; display: none; }
+        button#logoutBtn {
+            background-color: #ff4444;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button#logoutBtn:hover { background-color: #cc0000; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Tanda Terima</h2>
+        <ul>
+            <li><a href="/index.html">Input Form Tanda Terima</a></li>
+            <li><a href="/history.html" class="active">History Tanda Terima</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <div class="history-container">
+            <div class="header">
+                <h2>History Tanda Terima</h2>
+            </div>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Nama Penerima</th>
+                        <th>Departemen</th>
+                        <th>Deskripsi Barang</th>
+                        <th>Foto Penerima</th>
+                        <th>Tanda Tangan Pengirim</th>
+                        <th>Tanda Tangan Penerima</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+            <p class="error" id="errorMessage"></p>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        // Cek status login
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = '/login.html';
+        }
+
+        // Ambil data history
+        async function loadHistory() {
+            const errorMessage = document.getElementById('errorMessage');
+            const historyBody = document.getElementById('historyBody');
+
+            try {
+                const response = await fetch('/api/history', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    historyBody.innerHTML = '';
+                    if (result.data.length === 0) {
+                        errorMessage.textContent = 'Belum ada data tanda terima';
+                        errorMessage.style.display = 'block';
+                        return;
+                    }
+
+                    result.data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${row.date || '-'}</td>
+                            <td>${row.recipientName || '-'}</td>
+                            <td>${row.department || '-'}</td>
+                            <td>${row.items ? row.items.replace(/\n/g, '<br>') : '-'}</td>
+                            <td>${row.photoUrl ? `<a href="${row.photoUrl}" target="_blank"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>
+                            <td>${row.signatureSenderUrl ? `<a href="${row.signatureSenderUrl}" target="_blank"><img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim"></a>` : '-'}</td>
+                            <td>${row.signatureReceiverUrl ? `<a href="${row.signatureReceiverUrl}" target="_blank"><img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima"></a>` : '-'}</td>
+                        `;
+                        historyBody.appendChild(tr);
+                    });
+                } else {
+                    errorMessage.textContent = result.error || 'Gagal memuat history';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+                errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Load history saat halaman dibuka
+        loadHistory();
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = '/login.html';
+        });
+    </script>
+</body>
+</html>
