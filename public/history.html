@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>History Tanda Terima</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>History - DIREC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -35,11 +35,21 @@
         .sidebar.closed {
             transform: translateX(-250px);
         }
-        .sidebar h2 {
-            font-size: 22px;
-            text-align: center;
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
-            color: #fff;
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
         }
         .sidebar ul {
             list-style: none;
@@ -124,6 +134,21 @@
         .content-toggle.show {
             display: block;
         }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header .logo {
+            width: 30px;
+            height: 30px;
+            margin-right: 8px;
+        }
+        .header .logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 20px;
+            color: #1e3a8a;
+        }
         .history-container {
             background: #fff;
             padding: 20px;
@@ -131,13 +156,30 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             animation: fadeIn 0.5s ease;
         }
-        .header {
-            text-align: center;
+        .search-container {
+            display: flex;
+            gap: 10px;
             margin-bottom: 20px;
         }
-        .header h2 {
-            font-size: 24px;
-            color: #1e3a8a;
+        .search-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .search-container button {
+            background: #3b82f6;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .search-container button:hover {
+            background: #2563eb;
         }
         table {
             width: 100%;
@@ -162,10 +204,10 @@
             background: #e5e7eb;
         }
         img {
-            width: 50px;
-            height: 50px;
+            width: 80px;
+            height: 80px;
             object-fit: cover;
-            border-radius: 4px;
+            border-radius: 8px;
         }
         .error {
             color: #ef4444;
@@ -234,10 +276,14 @@
         <button class="toggle-btn" id="toggleSidebar" title="Tutup Sidebar">
             <i class="fas fa-arrow-left"></i>
         </button>
-        <h2>Tanda Terima</h2>
+        <div class="logo-container">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb250c2VycmF0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+DjwvdGV4dD4KPC9zdmc+" alt="DIREC Logo" class="logo">
+            <span class="logo-text">DIREC</span>
+        </div>
         <ul>
             <li><a href="/index.html">Input Form</a></li>
             <li><a href="/history.html" class="active">History</a></li>
+            <li><a href="/download.html">Download Tanda Terima</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
@@ -246,11 +292,18 @@
             <button class="content-toggle" id="contentToggle" title="Buka Sidebar">
                 <i class="fas fa-bars"></i>
             </button>
-            <h2>History Tanda Terima</h2>
+            <div class="header">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb250c2VycmF0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+DjwvdGV4dD4KPC9zdmc+" alt="DIREC Logo" class="logo">
+                <span class="logo-text">DIREC - History</span>
+            </div>
         </div>
         <div class="history-container">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Cari nama, departemen, atau barang...">
+                <button id="resetBtn">Reset</button>
             </div>
             <table id="historyTable">
                 <thead>
@@ -323,6 +376,7 @@
         let currentPage = 1;
         const itemsPerPage = 10;
         let allData = [];
+        let filteredData = [];
 
         function renderTable(data, page) {
             const historyBody = document.getElementById('historyBody');
@@ -346,7 +400,7 @@
                         <td>${item ? item.unit : '-'}</td>
                         <td>${item ? item.prNumber : '-'}</td>
                         <td>${item ? item.poNumber : '-'}</td>
-                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photoUrl ? `<a href="${row.photoUrl}" target="_blank"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto">` : '-'}</td>` : ''}
                     `;
                     historyBody.appendChild(tr);
                 });
@@ -362,7 +416,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>${row.photoUrl ? `<a href="${row.photoUrl}" target="_blank"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>
+                        <td>${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto">` : '-'}</td>
                     `;
                     historyBody.appendChild(tr);
                 }
@@ -382,7 +436,7 @@
             prevBtn.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
-                    renderTable(allData, currentPage);
+                    renderTable(filteredData, currentPage);
                 }
             });
             pagination.appendChild(prevBtn);
@@ -393,7 +447,7 @@
                 pageBtn.disabled = i === currentPage;
                 pageBtn.addEventListener('click', () => {
                     currentPage = i;
-                    renderTable(allData, currentPage);
+                    renderTable(filteredData, currentPage);
                 });
                 pagination.appendChild(pageBtn);
             }
@@ -404,10 +458,23 @@
             nextBtn.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
-                    renderTable(allData, currentPage);
+                    renderTable(filteredData, currentPage);
                 }
             });
             pagination.appendChild(nextBtn);
+        }
+
+        function searchData(query) {
+            query = query.toLowerCase();
+            filteredData = allData.filter(item => {
+                const items = parseItems(item.items);
+                const desc = items.map(i => i.desc.toLowerCase()).join(' ');
+                return item.recipientName.toLowerCase().includes(query) ||
+                       item.department.toLowerCase().includes(query) ||
+                       desc.includes(query);
+            });
+            currentPage = 1;
+            renderTable(filteredData, currentPage);
         }
 
         async function loadHistory() {
@@ -430,7 +497,14 @@
                         errorMessage.style.display = 'block';
                         return;
                     }
-                    renderTable(allData, currentPage);
+                    // Sort by date descending
+                    allData.sort((a, b) => {
+                        const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                        const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                        return dateB - dateA;
+                    });
+                    filteredData = [...allData];
+                    renderTable(filteredData, currentPage);
                 } else {
                     errorMessage.textContent = result.error || 'Gagal memuat history';
                     errorMessage.style.display = 'block';
@@ -444,6 +518,17 @@
         }
 
         loadHistory();
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchData(e.target.value);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            filteredData = [...allData];
+            currentPage = 1;
+            renderTable(filteredData, currentPage);
+        });
 
         document.getElementById('logoutBtn').addEventListener('click', (e) => {
             e.preventDefault();

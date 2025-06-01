@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tanda Terima Digital</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>Input Form - DIREC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -35,11 +35,21 @@
         .sidebar.closed {
             transform: translateX(-250px);
         }
-        .sidebar h2 {
-            font-size: 22px;
-            text-align: center;
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
-            color: #fff;
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
         }
         .sidebar ul {
             list-style: none;
@@ -124,6 +134,22 @@
         .content-toggle.show {
             display: block;
         }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .header .logo {
+            width: 30px;
+            height: 30px;
+            margin-right: 8px;
+        }
+        .header .logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 20px;
+            color: #1e3a8a;
+        }
         .receipt-container {
             background: #fff;
             padding: 20px;
@@ -131,14 +157,6 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             max-width: 100%;
             animation: fadeIn 0.5s ease;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .header h2 {
-            font-size: 24px;
-            color: #1e3a8a;
         }
         .form-group {
             margin-bottom: 20px;
@@ -219,20 +237,21 @@
             margin-bottom: 10px;
         }
         @media (min-width: 600px) {
-            #itemList .item-row { flex-direction: row; }
-            #itemList .item-row input, #itemList .item-row select { flex: 1; }
-            #itemList .item-row .itemQty { flex: 0.5; }
+            #itemList .item-row .item-row {
+                flex-direction:; row; }
+                .item-row #itemList .input-row input.item, #itemList .item-row .select { flex: row1; }
+            #itemList .item-group-row .itemQty { flex: 0.5; }
             #itemList .item-row .itemUnit { flex: 0.5; }
             #itemList .item-row .itemPrNumber { flex: 0.7; }
-            #itemList .item-row .itemPoNumber { flex: 0.7; }
+            #item-row .itemList .itemPoNumber { flex: 0.7; }
         }
         #cameraPreview {
             width: 100%;
-            max-width: 300px;
+            max-width: 100%;300px;
             height: auto;
             display: none;
             margin-top: 10px;
-            border-radius: 8px;
+            border-radius: 0;px;
         }
         #capturePhoto {
             margin-top: 10px;
@@ -267,13 +286,18 @@
 </head>
 <body>
     <div class="sidebar" id="sidebar">
-        <button class="toggle-btn" id="toggleSidebar" title="Tutup Sidebar">
+        <button class="toggle-btn" id="toggleSidebar" title="Toggle Sidebar">
             <i class="fas fa-arrow-left"></i>
         </button>
-        <h2>Tanda Terima</h2>
+        <div class="logo-container">
+            <div class="logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSJ1MC4iIHk9IjY1IiBmb250LWZhbWlsPSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="DIREC Logo" class="logo">
+            <span class="logo-text">DIREC</span>
+        </div>
         <ul>
             <li><a href="/index.html" class="active">Input Form</a></li>
             <li><a href="/history.html">History</a></li>
+            <li><a href="/download.html">Download Tanda Terima</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
@@ -282,7 +306,10 @@
             <button class="content-toggle" id="contentToggle" title="Buka Sidebar">
                 <i class="fas fa-bars"></i>
             </button>
-            <h2>Tanda Terima Digital</h2>
+            <div class="header">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSJ1MC4iIHk9IjY1IiBmb250LWZhbWlsPSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="DIREC Logo" class="logo">
+                <span class="logo-text">DIREC - Input Form</span>
+            </div>
         </div>
         <div class="receipt-container">
             <div class="loading" id="loading">
@@ -720,7 +747,7 @@
             for (let page = 0; page < totalPages; page++) {
                 if (page > 0) doc.addPage();
                 doc.setFontSize(16);
-                doc.text('Tanda Terima', 105, 20, { align: 'center' });
+                doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
                 doc.setFontSize(12);
                 doc.text(`Tanggal: ${date}`, 20, 40);
                 doc.text(`Penerima: ${recipientName}`, 20, 50);
@@ -756,7 +783,7 @@
                 } catch (error) {}
             }
 
-            doc.save('tanda-terima.pdf');
+            doc.save('direc-tanda-terima.pdf');
         });
 
         document.getElementById('logoutBtn').addEventListener('click', (e) => {
