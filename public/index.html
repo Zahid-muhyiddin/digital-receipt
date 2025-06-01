@@ -510,10 +510,22 @@
             ctx.lineTo(x, y);
             ctx.stroke();
         }
-        signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
-        signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
-        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
-        signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
+        function stopDrawing() {
+            return false;
+        }
+        // Tanda Tangan Pengirim
+        signatureSenderCanvas.addEventListener('mousedown', (e) => {
+            drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('mousemove', (e) => {
+            draw(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('mouseup', () => {
+            drawingSender = stopDrawing();
+        });
+        signatureSenderCanvas.addEventListener('mouseout', () => {
+            drawingSender = stopDrawing();
+        });
         signatureSenderCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
@@ -522,14 +534,25 @@
             e.preventDefault();
             draw(e, signatureSenderCanvas, ctxSender, drawingSender);
         });
-        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('touchend', () => {
+            drawingSender = stopDrawing();
+        });
         document.getElementById('clearSenderSignature').addEventListener('click', () => {
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
-        signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
-        signatureReceiverCanvas.addEventListener('mousemove', (e) => drag(e, signatureReceiverCanvas, ctxReceiver));
-        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
-        signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
+        // Tanda Tangan Penerima
+        signatureReceiverCanvas.addEventListener('mousedown', (e) => {
+            drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('mousemove', (e) => {
+            draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('mouseup', () => {
+            drawingReceiver = stopDrawing();
+        });
+        signatureReceiverCanvas.addEventListener('mouseout', () => {
+            drawingReceiver = stopDrawing();
+        });
         signatureReceiverCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
@@ -538,7 +561,9 @@
             e.preventDefault();
             draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
         });
-        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('touchend', () => {
+            drawingReceiver = stopDrawing();
+        });
         document.getElementById('clearReceiverSignature').addEventListener('click', () => {
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });

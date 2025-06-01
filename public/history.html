@@ -22,8 +22,7 @@
             width: 220px;
             background: #1e3a8a;
             color: #fff;
-            height: #fff;
-            color: 100vh;
+            height: 100vh;
             position: fixed;
             padding: 15px;
             transition: transform 0.3s ease;
@@ -34,16 +33,16 @@
         .logo-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 24px;
-            font-weight: bold;
+            font-weight: 700;
             margin-bottom: 20px;
         }
         .sidebar ul {
             list-style: none;
         }
         .sidebar ul li {
-            margin: 8px;
+            margin: 8px 0;
         }
-        .margin: ul li a {
+        .sidebar ul li a {
             color: #fff;
             text-decoration: none;
             padding: 8px;
@@ -103,9 +102,10 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            margin-right: 10px;
         }
         .content-toggle.visible {
-            display: block;
+            display: inline-block;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
@@ -115,7 +115,6 @@
         .search-container {
             display: flex;
             gap: 8px;
-            max-width: 250px;
         }
         .search-container input {
             width: 150px;
@@ -136,19 +135,18 @@
         .history-container {
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .table-wrapper {
             overflow-x: auto;
         }
         table {
-            width: auto100%;
+            width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
-        th,
-        td {
-            border: 1px solid #d1d1d5db;
+        th, td {
+            border: 1px solid #d1d5db;
             padding: 6px;
             text-align: center;
             font-size: 13px;
@@ -168,7 +166,7 @@
             cursor: pointer;
         }
         .error {
-            color: #ef4444;4;
+            color: #ef4444;
             text-align: center;
             font-size: 12px;
             display: none;
@@ -177,8 +175,7 @@
         .loading {
             display: none;
             justify-content: center;
-            content-position: fixed;
-            position: center;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -230,10 +227,7 @@
                 width: calc(100% - 220px);
             }
             .content-toggle {
-                display: block;
-            }
-            .search-container {
-                max-width: 200px;
+                display: inline-block;
             }
             .search-container input {
                 width: 120px;
@@ -260,8 +254,12 @@
                 padding: 10px;
             }
             .search-container {
-                max-width: 100%;
-                justify-content: flex-end;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            .content-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
@@ -279,11 +277,12 @@
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <div>
-                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></div>
-                <span class="header-text">DIREC - History</span></div>
+            <div style="display: flex; align-items: center;">
+                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+                <span class="header-text">DIREC - History</span>
+            </div>
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Cari No PO, PR, or Barang">
+                <input type="text" id="searchInput" placeholder="Cari No PO, PR, atau Barang">
                 <button type="button" id="resetBtn">Reset</button>
             </div>
         </div>
@@ -318,10 +317,10 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
-        const sidebar = document.querySelector('#sidebar');
-        const content = document.querySelector('#content');
-        const toggleBtn = document.querySelector('#toggleSidebar');
-        const contentToggle = document.querySelector('#contentToggle');
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const contentToggle = document.getElementById('contentToggle');
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
@@ -348,7 +347,7 @@
         let allData = [];
         let filteredData = [];
         function renderTable(data, page) {
-            const historyBody = document.querySelector('#historyBody');
+            const historyBody = document.getElementById('historyBody');
             historyBody.innerHTML = '';
             const start = (page - 1) * itemsPerPage;
             const end = start + itemsPerPage;
@@ -390,7 +389,7 @@
             renderPagination(data.length, page);
         }
         function renderPagination(totalItems, currentPage) {
-            const pagination = document.querySelector('#pagination');
+            const pagination = document.getElementById('pagination');
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
             const prevBtn = document.createElement('button');
@@ -399,7 +398,7 @@
             prevBtn.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
-                    renderTable(currentPage);
+                    renderTable(filteredData, currentPage);
                 }
             });
             pagination.appendChild(prevBtn);
@@ -409,7 +408,7 @@
                 pageBtn.disabled = i === currentPage;
                 pageBtn.addEventListener('click', () => {
                     currentPage = i;
-                    renderTable(currentPage);
+                    renderTable(filteredData, currentPage);
                 });
                 pagination.appendChild(pageBtn);
             }
@@ -419,7 +418,7 @@
             nextBtn.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
-                    renderTable(currentPage);
+                    renderTable(filteredData, currentPage);
                 }
             });
             pagination.appendChild(nextBtn);
@@ -438,8 +437,8 @@
             renderTable(filteredData, currentPage);
         }
         async function loadHistory() {
-            const errorMessage = document.querySelector('#errorMessage');
-            const loading = document.querySelector('#loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const loading = document.getElementById('loading');
             loading.style.display = 'flex';
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
@@ -470,14 +469,14 @@
             }
         }
         loadHistory();
-        document.querySelector('#searchInput').addEventListener('input', (e) => searchData(e.target.value));
-        document.querySelector('#resetBtn').addEventListener('click', () => {
-            document.querySelector('#searchInput').value = '';
+        document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
             filteredData = [...allData];
             currentPage = 1;
-            renderTable(currentPage);
+            renderTable(filteredData, currentPage);
         });
-        document.querySelector('#logoutBtn').addEventListener('click', () => {
+        document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });

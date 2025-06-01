@@ -102,9 +102,10 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            margin-right: 10px;
         }
         .content-toggle.visible {
-            display: block;
+            display: inline-block;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
@@ -114,7 +115,6 @@
         .search-container {
             display: flex;
             gap: 8px;
-            max-width: 250px;
         }
         .search-container input {
             width: 150px;
@@ -233,13 +233,10 @@
             }
             .content.full-width {
                 margin-left: 220px;
-                width: calc(100% -220px);
+                width: calc(100% - 220px);
             }
             .content-toggle {
-                display: block;
-            }
-            .search-container {
-                max-width: 200px;
+                display: inline-block;
             }
             .search-container input {
                 width: 120px;
@@ -270,8 +267,12 @@
                 padding: 10px;
             }
             .search-container {
-                max-width: 100%;
-                justify-content: flex-end;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            .content-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
@@ -289,7 +290,7 @@
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <div>
+            <div style="display: flex; align-items: center;">
                 <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
                 <span class="header-text">DIREC - Download Tanda Terima</span>
             </div>
@@ -303,7 +304,7 @@
                 <div class="spinner"></div>
             </div>
             <div class="table-wrapper">
-                table id="downloadTable">
+                <table id="downloadTable">
                     <thead>
                         <tr>
                             <th>Tanggal</th>
@@ -316,19 +317,13 @@
                     <tbody id="downloadBody"></tbody>
                 </table>
             </div>
-            <div class="pagination" id="pagination">
-                <select id="rowsPerPage">
-                    <option value="5">5</option>
-                    <option value="10" selected>10</option>
-                    <option value="25">25</option>
-                </select>
-            </div>
+            <div class="pagination" id="pagination"></div>
             <p class="error" id="errorMessage"></p>
         </div>
     </div>
 
     <script>
-        if (!localStorage.getItem('isLoggedIn') !== 'true') {
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
         const sidebar = document.getElementById('sidebar');
@@ -338,7 +333,7 @@
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
-            toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa fa-bars"></i>' : '<i class="fas fa fa-arrow-left"></i>';
+            toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
             contentToggle.classList.toggle('visible');
         }
         toggleBtn.addEventListener('click', toggleSidebar);
@@ -349,7 +344,7 @@
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
                 script.onload = () => {
                     const autoTableScript = document.createElement('script');
-                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.8.2/jspdf-autotable.min.js';
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
                     autoTableScript.onload = resolve;
                     autoTableScript.onerror = reject;
                     document.head.appendChild(autoTableScript);
@@ -362,10 +357,10 @@
             if (!itemsString || itemsString === 'Tidak ada barang') return [];
             return itemsString.split('\n').map(item => {
                 const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
-                return match ? ({
+                return match ? {
                     desc: match[1].trim(),
                     qty: match[2],
-                    unit Koleksi: match[3],
+                    unit: match[3],
                     prNumber: match[4],
                     poNumber: match[5]
                 } : null;
@@ -375,7 +370,7 @@
         let filteredData = [];
         let currentPage = 1;
         let itemsPerPage = 10;
-        function renderTable(data, page, rowsPerPage) {
+        function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
             downloadBody.innerHTML = '';
             const start = (page - 1) * itemsPerPage;
@@ -395,23 +390,23 @@
                 `;
                 downloadBody.appendChild(tr);
             });
-            renderPagination(data.length, page, rowsPerPage);
+            renderPagination(data.length, page);
         }
-        function renderPagination(totalItems, page, rowsPerPage) {
+        function renderPagination(totalItems, page) {
             const pagination = document.getElementById('pagination');
-            const totalPages = Math.ceil(totalItems / rowsPerPage);
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
             const select = document.createElement('select');
             select.id = 'rowsPerPage';
             select.innerHTML = `
-                <option value="5" ${rowsPerPage === 5 ? 'selected' : ''}>5</option>
-                <option value="10" rowsPerPage=== 10 ? 'selected' : ''}>10</option>
-                <option value="25" ${rowsPerPage === 25 ? 'selected' : ''}>25</option>
+                <option value="5" ${itemsPerPage === 5 ? 'selected' : ''}>5</option>
+                <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
             `;
             select.addEventListener('change', () => {
                 itemsPerPage = parseInt(select.value);
                 currentPage = 1;
-                renderTable(filteredData, currentPage, itemsPerPage);
+                renderTable(filteredData, currentPage);
             });
             pagination.appendChild(select);
             const prevBtn = document.createElement('button');
@@ -420,7 +415,7 @@
             prevBtn.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
-                    renderTable(filteredData, currentPage, itemsPerPage);
+                    renderTable(filteredData, currentPage);
                 }
             });
             pagination.appendChild(prevBtn);
@@ -430,7 +425,7 @@
                 pageBtn.disabled = i === currentPage;
                 pageBtn.addEventListener('click', () => {
                     currentPage = i;
-                    renderTable(filteredData, currentPage, itemsPerPage);
+                    renderTable(filteredData, currentPage);
                 });
                 pagination.appendChild(pageBtn);
             }
@@ -440,7 +435,7 @@
             nextBtn.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
-                    renderTable(filteredData, currentPage, itemsPerPage);
+                    renderTable(filteredData, currentPage);
                 }
             });
             pagination.appendChild(nextBtn);
@@ -455,7 +450,7 @@
                 );
             });
             currentPage = 1;
-            renderTable(filteredData, currentPage, itemsPerPage);
+            renderTable(filteredData, currentPage);
         }
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
@@ -464,6 +459,7 @@
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
+                console.log('Data from /api/history:', result); // Debug
                 if (response.ok) {
                     allData = result.data || [];
                     if (allData.length === 0) {
@@ -477,7 +473,7 @@
                         return dateB - dateA;
                     });
                     filteredData = [...allData];
-                    renderTable(filteredData, currentPage, itemsPerPage);
+                    renderTable(filteredData, currentPage);
                     document.querySelectorAll('.download-btn').forEach(btn => {
                         btn.addEventListener('click', async () => {
                             const row = JSON.parse(btn.dataset.row);
@@ -521,12 +517,12 @@
                             doc.text('Penerima:', 110, signatureY);
                             if (row.signatureSender) {
                                 try {
-                                    doc.addImage(row.signatureSender, 'PNG', 20, signatureY + 50, 15);
+                                    doc.addImage(row.signatureSender, 'PNG', 20, signatureY + 5, 50, 15);
                                 } catch (error) {}
                             }
                             if (row.signatureReceiver) {
                                 try {
-                                    doc.addImage(row.signatureReceiver, 'PNG', 110, signatureY + 50, 15);
+                                    doc.addImage(row.signatureReceiver, 'PNG', 110, signatureY + 5, 50, 15);
                                 } catch (error) {}
                             }
                             doc.save(`direc-tanda-terima-${row.date.replace(/[\/, :]/g, '-')}.pdf`);
@@ -549,13 +545,12 @@
             document.getElementById('searchInput').value = '';
             filteredData = [...allData];
             currentPage = 1;
-            renderTable(filteredData, currentPage, itemsPerPage);
+            renderTable(filteredData, currentPage);
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });
     </script>
-);
 </body>
 </html>
