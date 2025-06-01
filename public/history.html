@@ -4,20 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>History Tanda Terima</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
             display: flex;
             min-height: 100vh;
+            background: #f3f4f6;
             overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
-            background-color: #333;
-            color: white;
+            background: #1e3a8a;
+            color: #fff;
             height: 100vh;
             position: fixed;
             top: 0;
@@ -31,9 +36,10 @@
             transform: translateX(-250px);
         }
         .sidebar h2 {
-            margin: 0 0 20px;
-            font-size: 24px;
+            font-size: 22px;
             text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
         }
         .sidebar ul {
             list-style: none;
@@ -43,100 +49,209 @@
             margin: 10px 0;
         }
         .sidebar ul li a {
-            color: white;
+            color: #fff;
             text-decoration: none;
             display: block;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background 0.3s ease;
         }
         .sidebar ul li a:hover, .sidebar ul li a.active {
-            background-color: #4CAF50;
+            background: #3b82f6;
         }
         .toggle-btn {
-            background-color: #4CAF50;
-            color: white;
+            background: #10b981;
+            color: #fff;
             border: none;
             padding: 10px;
             cursor: pointer;
             width: 100%;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 18px;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            transition: background 0.3s ease;
         }
-        .toggle-btn:hover { background-color: #45a049; }
+        .toggle-btn:hover {
+            background: #059669;
+        }
         .logout-btn {
-            background-color: #ff4444;
-            color: white;
+            background: #ef4444;
+            color: #fff;
             border: none;
-            padding: 10px;
+            padding: 12px;
             cursor: pointer;
             width: 100%;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             margin-top: 20px;
+            transition: background 0.3s ease;
         }
-        .logout-btn:hover { background-color: #cc0000; }
+        .logout-btn:hover {
+            background: #dc2626;
+        }
         .content {
             margin-left: 250px;
             padding: 20px;
             width: calc(100% - 250px);
-            position: relative;
             transition: margin-left 0.3s ease, width 0.3s ease;
+            background: #fff;
+            min-height: 100vh;
         }
         .content.full {
             margin-left: 0;
             width: 100%;
         }
-        .history-container {
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 5px;
-            background-color: #fff;
+        .content-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
         }
-        .header { text-align: center; margin-bottom: 15px; }
+        .content-toggle {
+            display: none;
+            background: #1e3a8a;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        .content-toggle.show {
+            display: block;
+        }
+        .history-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            font-size: 24px;
+            color: #1e3a8a;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 12px;
             text-align: left;
+            font-size: 14px;
         }
         th {
-            background-color: #4CAF50;
-            color: white;
+            background: #10b981;
+            color: #fff;
+            font-weight: 600;
         }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        tr:hover { background-color: #ddd; }
-        img { max-width: 100px; height: auto; }
-        .error { color: red; text-align: center; margin-top: 20px; display: none; }
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        tr:hover {
+            background: #e5e7eb;
+        }
+        img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+            font-size: 14px;
+        }
         .loading {
-            position: absolute;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            display: none;
-            font-size: 18px;
-            color: #333;
+        }
+        .spinner {
+            border: 6px solid #e5e7eb;
+            border-top: 6px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        .pagination button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .pagination button:hover {
+            background: #2563eb;
+        }
+        .pagination button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        .pagination span {
+            padding: 8px 12px;
+            font-size: 14px;
+            color: #374151;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
     <div class="sidebar" id="sidebar">
-        <button class="toggle-btn" id="toggleSidebar">Tutup Sidebar</button>
+        <button class="toggle-btn" id="toggleSidebar" title="Tutup Sidebar">
+            <i class="fas fa-arrow-left"></i>
+        </button>
         <h2>Tanda Terima</h2>
         <ul>
-            <li><a href="/index.html">Input Form Tanda Terima</a></li>
-            <li><a href="/history.html" class="active">History Tanda Terima</a></li>
+            <li><a href="/index.html">Input Form</a></li>
+            <li><a href="/history.html" class="active">History</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
     <div class="content" id="content">
+        <div class="content-header">
+            <button class="content-toggle" id="contentToggle" title="Buka Sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2>History Tanda Terima</h2>
+        </div>
         <div class="history-container">
-            <div class="header">
-                <h2>History Tanda Terima</h2>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
             </div>
-            <div class="loading" id="loading">Memuat...</div>
             <table id="historyTable">
                 <thead>
                     <tr>
@@ -144,19 +259,21 @@
                         <th>Nama Penerima</th>
                         <th>Departemen</th>
                         <th>Deskripsi Barang</th>
+                        <th>Qty</th>
+                        <th>Satuan</th>
+                        <th>No PR</th>
+                        <th>No PO</th>
                         <th>Foto Penerima</th>
-                        <th>Tanda Tangan Pengirim</th>
-                        <th>Tanda Tangan Penerima</th>
                     </tr>
                 </thead>
                 <tbody id="historyBody"></tbody>
             </table>
+            <div class="pagination" id="pagination"></div>
             <p class="error" id="errorMessage"></p>
         </div>
     </div>
 
     <script>
-        // Cek status login
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
@@ -165,25 +282,138 @@
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
-        toggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+        const contentToggle = document.getElementById('contentToggle');
+
+        function toggleSidebar() {
             if (sidebar.classList.contains('closed')) {
                 sidebar.classList.remove('closed');
                 content.classList.remove('full');
-                toggleBtn.textContent = 'Tutup Sidebar';
+                toggleBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+                contentToggle.classList.remove('show');
             } else {
                 sidebar.classList.add('closed');
                 content.classList.add('full');
-                toggleBtn.textContent = 'Buka Sidebar';
+                toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                contentToggle.classList.add('show');
             }
-        });
+        }
 
-        // Ambil data history
+        toggleBtn.addEventListener('click', toggleSidebar);
+        contentToggle.addEventListener('click', toggleSidebar);
+
+        // Parse items string
+        function parseItems(itemsString) {
+            if (!itemsString || itemsString === 'Tidak ada barang') return [];
+            return itemsString.split('\n').map(item => {
+                const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
+                if (match) {
+                    return {
+                        desc: match[1].trim(),
+                        qty: match[2],
+                        unit: match[3],
+                        prNumber: match[4],
+                        poNumber: match[5]
+                    };
+                }
+                return null;
+            }).filter(item => item);
+        }
+
+        // Pagination
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let allData = [];
+
+        function renderTable(data, page) {
+            const historyBody = document.getElementById('historyBody');
+            historyBody.innerHTML = '';
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            pageData.forEach(row => {
+                const items = parseItems(row.items);
+                const rowCount = items.length || 1;
+
+                items.forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.date || '-'}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.recipientName || '-'}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.department || '-'}</td>` : ''}
+                        <td>${item ? item.desc : '-'}</td>
+                        <td>${item ? item.qty : '-'}</td>
+                        <td>${item ? item.unit : '-'}</td>
+                        <td>${item ? item.prNumber : '-'}</td>
+                        <td>${item ? item.poNumber : '-'}</td>
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photoUrl ? `<a href="${row.photoUrl}" target="_blank"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>` : ''}
+                    `;
+                    historyBody.appendChild(tr);
+                });
+
+                if (items.length === 0) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.date || '-'}</td>
+                        <td>${row.recipientName || '-'}</td>
+                        <td>${row.department || '-'}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>${row.photoUrl ? `<a href="${row.photoUrl}" target="_blank"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>
+                    `;
+                    historyBody.appendChild(tr);
+                }
+            });
+
+            renderPagination(data.length, page);
+        }
+
+        function renderPagination(totalItems, currentPage) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            pagination.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = 'Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable(allData, currentPage);
+                }
+            });
+            pagination.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.disabled = i === currentPage;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable(allData, currentPage);
+                });
+                pagination.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Next';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable(allData, currentPage);
+                }
+            });
+            pagination.appendChild(nextBtn);
+        }
+
         async function loadHistory() {
             const errorMessage = document.getElementById('errorMessage');
-            const historyBody = document.getElementById('historyBody');
             const loading = document.getElementById('loading');
-            loading.style.display = 'block';
+            loading.style.display = 'flex';
 
             try {
                 const response = await fetch('/api/history', {
@@ -194,32 +424,18 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    historyBody.innerHTML = '';
-                    if (result.data.length === 0) {
+                    allData = result.data || [];
+                    if (allData.length === 0) {
                         errorMessage.textContent = 'Belum ada data tanda terima';
                         errorMessage.style.display = 'block';
                         return;
                     }
-
-                    result.data.forEach(row => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${row.date || '-'}</td>
-                            <td>${row.recipientName || '-'}</td>
-                            <td>${row.department || '-'}</td>
-                            <td>${row.items ? row.items.replace(/\n/g, '<br>') : '-'}</td>
-                            <td>${row.photoUrl ? `<a href="${row.photoUrl}" target="_blank"><img src="${row.photoUrl}" alt="Foto"></a>` : '-'}</td>
-                            <td>${row.signatureSenderUrl ? `<a href="${row.signatureSenderUrl}" target="_blank"><img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim"></a>` : '-'}</td>
-                            <td>${row.signatureReceiverUrl ? `<a href="${row.signatureReceiverUrl}" target="_blank"><img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima"></a>` : '-'}</td>
-                        `;
-                        historyBody.appendChild(tr);
-                    });
+                    renderTable(allData, currentPage);
                 } else {
                     errorMessage.textContent = result.error || 'Gagal memuat history';
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
-                console.error('Error loading history:', error);
                 errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
                 errorMessage.style.display = 'block';
             } finally {
@@ -227,10 +443,8 @@
             }
         }
 
-        // Load history saat halaman dibuka
         loadHistory();
 
-        // Logout
         document.getElementById('logoutBtn').addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem('isLoggedIn');

@@ -4,52 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Tanda Terima Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
         body {
-            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            overflow: hidden;
         }
         .login-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             width: 100%;
             max-width: 400px;
-            box-sizing: border-box;
+            animation: fadeIn 0.5s ease;
         }
-        .header { text-align: center; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            font-size: 24px;
+            color: #1e3a8a;
+        }
+        .header p {
+            color: #6b7280;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
         input {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px;
+            background: #10b981;
+            color: #fff;
+            padding: 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
             width: 100%;
+            transition: background 0.3s ease;
         }
-        button:hover { background-color: #45a049; }
-        .error { color: red; text-align: center; margin-top: 10px; display: none; }
-        .loading {
+        button:hover {
+            background: #059669;
+        }
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #ef4444;
             text-align: center;
-            display: none;
             margin-top: 10px;
-            font-size: 16px;
-            color: #333;
+            display: none;
+            font-size: 14px;
+        }
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -71,11 +131,12 @@
             <button type="submit" id="loginBtn">Login</button>
         </form>
         <p class="error" id="errorMessage"></p>
-        <p class="loading" id="loading">Memuat...</p>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+        </div>
     </div>
 
     <script>
-        // Cek apakah sudah login
         if (localStorage.getItem('isLoggedIn') === 'true') {
             window.location.href = '/index.html';
         }
@@ -90,10 +151,10 @@
 
             errorMessage.style.display = 'none';
             loginBtn.disabled = true;
-            loading.style.display = 'block';
+            loading.style.display = 'flex';
 
             try {
-                console.log('Sending login request:', { username }); // Debugging
+                console.log('Sending login request:', { username });
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -101,7 +162,7 @@
                     signal: AbortSignal.timeout(10000)
                 });
 
-                console.log('Login response status:', response.status); // Debugging
+                console.log('Login response status:', response.status);
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await response.text();
@@ -110,7 +171,7 @@
                 }
 
                 const result = await response.json();
-                console.log('Login response JSON:', result); // Debugging
+                console.log('Login response JSON:', result);
 
                 if (response.ok) {
                     localStorage.setItem('isLoggedIn', 'true');

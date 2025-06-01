@@ -4,20 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tanda Terima Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
             display: flex;
             min-height: 100vh;
+            background: #f3f4f6;
             overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
-            background-color: #333;
-            color: white;
+            background: #1e3a8a;
+            color: #fff;
             height: 100vh;
             position: fixed;
             top: 0;
@@ -31,9 +36,10 @@
             transform: translateX(-250px);
         }
         .sidebar h2 {
-            margin: 0 0 20px;
-            font-size: 24px;
+            font-size: 22px;
             text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
         }
         .sidebar ul {
             list-style: none;
@@ -43,103 +49,168 @@
             margin: 10px 0;
         }
         .sidebar ul li a {
-            color: white;
+            color: #fff;
             text-decoration: none;
             display: block;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background 0.3s ease;
         }
         .sidebar ul li a:hover, .sidebar ul li a.active {
-            background-color: #4CAF50;
+            background: #3b82f6;
         }
         .toggle-btn {
-            background-color: #4CAF50;
-            color: white;
+            background: #10b981;
+            color: #fff;
             border: none;
             padding: 10px;
             cursor: pointer;
             width: 100%;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 18px;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            transition: background 0.3s ease;
         }
-        .toggle-btn:hover { background-color: #45a049; }
+        .toggle-btn:hover {
+            background: #059669;
+        }
         .logout-btn {
-            background-color: #ff4444;
-            color: white;
+            background: #ef4444;
+            color: #fff;
             border: none;
-            padding: 10px;
+            padding: 12px;
             cursor: pointer;
             width: 100%;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             margin-top: 20px;
+            transition: background 0.3s ease;
         }
-        .logout-btn:hover { background-color: #cc0000; }
+        .logout-btn:hover {
+            background: #dc2626;
+        }
         .content {
             margin-left: 250px;
             padding: 20px;
             width: calc(100% - 250px);
-            position: relative;
             transition: margin-left 0.3s ease, width 0.3s ease;
+            background: #fff;
+            min-height: 100vh;
         }
         .content.full {
             margin-left: 0;
             width: 100%;
         }
-        .receipt-container {
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 5px;
-            max-width: 100%;
-            background-color: #fff;
-            position: relative;
+        .content-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
         }
-        .header { text-align: center; margin-bottom: 15px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
+        .content-toggle {
+            display: none;
+            background: #1e3a8a;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        .content-toggle.show {
+            display: block;
+        }
+        .receipt-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            font-size: 24px;
+            color: #1e3a8a;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
         input, select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px;
+            background: #10b981;
+            color: #fff;
+            padding: 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
             width: 100%;
-            margin-top: 5px;
+            transition: background 0.3s ease;
         }
-        button:hover { background-color: #45a049; }
+        button:hover {
+            background: #059669;
+        }
         button:disabled {
-            background-color: #cccccc;
+            background: #d1d5db;
             cursor: not-allowed;
         }
-        #savePdfBtn { background-color: #008CBA; display: none; }
-        #savePdfBtn:hover { background-color: #007B9A; }
+        #savePdfBtn {
+            background: #3b82f6;
+            display: none;
+        }
+        #savePdfBtn:hover {
+            background: #2563eb;
+        }
         #receiptOutput {
             margin-top: 20px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border: 1px dashed #666;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
             display: none;
         }
         #signatureSenderCanvas, #signatureReceiverCanvas {
-            border: 1px solid #000;
-            background-color: #fff;
+            border: 1px solid #d1d5db;
+            background: #fff;
             width: 100%;
             max-width: 300px;
             height: 150px;
             margin-top: 10px;
+            border-radius: 8px;
             touch-action: none;
         }
         #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
             max-width: 100%;
             height: auto;
             margin-top: 10px;
+            border-radius: 8px;
         }
         #itemList .item-row {
             display: flex;
@@ -161,35 +232,62 @@
             height: auto;
             display: none;
             margin-top: 10px;
+            border-radius: 8px;
         }
-        #capturePhoto { margin-top: 10px; display: none; }
+        #capturePhoto {
+            margin-top: 10px;
+            display: none;
+        }
         .loading {
-            position: absolute;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            display: none;
-            font-size: 18px;
-            color: #333;
+        }
+        .spinner {
+            border: 6px solid #e5e7eb;
+            border-top: 6px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
     <div class="sidebar" id="sidebar">
-        <button class="toggle-btn" id="toggleSidebar">Tutup Sidebar</button>
+        <button class="toggle-btn" id="toggleSidebar" title="Tutup Sidebar">
+            <i class="fas fa-arrow-left"></i>
+        </button>
         <h2>Tanda Terima</h2>
         <ul>
-            <li><a href="/index.html" class="active">Input Form Tanda Terima</a></li>
-            <li><a href="/history.html">History Tanda Terima</a></li>
+            <li><a href="/index.html" class="active">Input Form</a></li>
+            <li><a href="/history.html">History</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
     <div class="content" id="content">
+        <div class="content-header">
+            <button class="content-toggle" id="contentToggle" title="Buka Sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2>Tanda Terima Digital</h2>
+        </div>
         <div class="receipt-container">
-            <div class="header">
-                <h2>Tanda Terima Digital</h2>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
             </div>
-            <div class="loading" id="loading">Memuat...</div>
             <form id="receiptForm">
                 <div class="form-group">
                     <label for="recipientName">Nama Penerima:</label>
@@ -240,16 +338,15 @@
                 <div class="form-group">
                     <label>Tanda Tangan Pengirim:</label>
                     <canvas id="signatureSenderCanvas" width="300" height="150"></canvas>
-                    <button type="button" id="clearSenderSignature">Hapus Tanda Tangan Pengirim</button>
+                    <button type="button" id="clearSenderSignature">Hapus Tanda Tangan</button>
                 </div>
                 <div class="form-group">
                     <label>Tanda Tangan Penerima:</label>
                     <canvas id="signatureReceiverCanvas" width="300" height="150"></canvas>
-                    <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan Penerima</button>
+                    <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan</button>
                 </div>
                 <button type="submit" id="submitBtn">Buat Tanda Terima</button>
             </form>
-            
             <div id="receiptOutput">
                 <h3>Tanda Terima</h3>
                 <p><strong>Tanggal:</strong> <span id="date"></span></p>
@@ -269,7 +366,6 @@
     </div>
 
     <script>
-        // Cek status login
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
@@ -278,18 +374,24 @@
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
-        toggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+        const contentToggle = document.getElementById('contentToggle');
+
+        function toggleSidebar() {
             if (sidebar.classList.contains('closed')) {
                 sidebar.classList.remove('closed');
                 content.classList.remove('full');
-                toggleBtn.textContent = 'Tutup Sidebar';
+                toggleBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+                contentToggle.classList.remove('show');
             } else {
                 sidebar.classList.add('closed');
                 content.classList.add('full');
-                toggleBtn.textContent = 'Buka Sidebar';
+                toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                contentToggle.classList.add('show');
             }
-        });
+        }
+
+        toggleBtn.addEventListener('click', toggleSidebar);
+        contentToggle.addEventListener('click', toggleSidebar);
 
         // Lazy load jsPDF
         function loadJsPDF() {
@@ -308,12 +410,10 @@
             });
         }
 
-        // Inisialisasi variabel
         let itemCount = 1;
         let stream = null;
         let jsPDFInstance = null;
 
-        // Tambah Barang
         document.getElementById('addItem').addEventListener('click', (e) => {
             e.preventDefault();
             const itemList = document.getElementById('itemList');
@@ -334,11 +434,9 @@
                 <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
             `;
             itemList.appendChild(newItem);
-            console.log(`Added item ${itemCount}`);
             itemCount++;
         });
 
-        // Foto Penerima dari File
         document.getElementById('recipientPhoto').addEventListener('change', function(e) {
             e.preventDefault();
             const file = this.files[0];
@@ -353,7 +451,6 @@
             }
         });
 
-        // Foto Penerima dari Kamera
         document.getElementById('useCamera').addEventListener('click', async (e) => {
             e.preventDefault();
             try {
@@ -362,9 +459,7 @@
                 document.getElementById('cameraPreview').style.display = 'block';
                 document.getElementById('capturePhoto').style.display = 'block';
                 document.getElementById('photoPreview').style.display = 'none';
-                console.log('Camera started');
             } catch (error) {
-                console.error('Error accessing camera:', error);
                 alert('Gagal mengakses kamera: ' + error.message);
             }
         });
@@ -379,7 +474,6 @@
             document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
             document.getElementById('photoPreview').style.display = 'block';
             stopCamera();
-            console.log('Photo captured');
         });
 
         function stopCamera() {
@@ -387,11 +481,9 @@
                 stream.getTracks().forEach(track => track.stop());
                 document.getElementById('cameraPreview').style.display = 'none';
                 document.getElementById('capturePhoto').style.display = 'none';
-                console.log('Camera stopped');
             }
         }
 
-        // Tanda Tangan Digital
         const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
         const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
         const ctxSender = signatureSenderCanvas.getContext('2d');
@@ -419,7 +511,6 @@
             const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
             ctxSender.beginPath();
             ctxSender.moveTo(x, y);
-            console.log('Sender signature started');
         });
         signatureSenderCanvas.addEventListener('mousemove', (e) => {
             if (drawingSender) {
@@ -428,12 +519,8 @@
                 ctxSender.stroke();
             }
         });
-        signatureSenderCanvas.addEventListener('mouseup', () => {
-            drawingSender = false;
-            console.log('Sender signature stopped');
-        });
+        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
         signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
-
         signatureSenderCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawingSender = true;
@@ -457,7 +544,6 @@
         document.getElementById('clearSenderSignature').addEventListener('click', (e) => {
             e.preventDefault();
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
-            console.log('Sender signature cleared');
         });
 
         signatureReceiverCanvas.addEventListener('mousedown', (e) => {
@@ -466,7 +552,6 @@
             const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
             ctxReceiver.beginPath();
             ctxReceiver.moveTo(x, y);
-            console.log('Receiver signature started');
         });
         signatureReceiverCanvas.addEventListener('mousemove', (e) => {
             if (drawingReceiver) {
@@ -475,12 +560,8 @@
                 ctxReceiver.stroke();
             }
         });
-        signatureReceiverCanvas.addEventListener('mouseup', () => {
-            drawingReceiver = false;
-            console.log('Receiver signature stopped');
-        });
+        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
         signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
-
         signatureReceiverCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawingReceiver = true;
@@ -504,16 +585,14 @@
         document.getElementById('clearReceiverSignature').addEventListener('click', (e) => {
             e.preventDefault();
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
-            console.log('Receiver signature cleared');
         });
 
-        // Form Submission
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             submitBtn.disabled = true;
-            loading.style.display = 'block';
+            loading.style.display = 'flex';
 
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
@@ -557,12 +636,6 @@
             formData.append('signatureSender', signatureSenderBlob, 'sender.png');
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
 
-            console.log('Items sebelum FormData:', items);
-            console.log('Data yang akan dikirim ke /api/receipts:');
-            for (const [key, value] of formData.entries()) {
-                console.log(`${key}: ${value}`);
-            }
-
             try {
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
@@ -573,14 +646,12 @@
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
                 alert('Tanda terima berhasil disimpan ke Google Sheets!');
             } catch (error) {
-                console.error('Error saving receipt:', error);
                 alert('Gagal menyimpan: ' + error.message);
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
                 return;
             }
 
-            // Tampilkan output
             document.getElementById('date').textContent = date;
             document.getElementById('outputName').textContent = recipientName;
             document.getElementById('outputDepartment').textContent = department;
@@ -613,7 +684,6 @@
             loading.style.display = 'none';
         });
 
-        // Simpan sebagai PDF
         document.getElementById('savePdfBtn').addEventListener('click', async (e) => {
             e.preventDefault();
             if (!jsPDFInstance) {
@@ -621,7 +691,6 @@
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
                 } catch (error) {
-                    console.error('Error loading jsPDF:', error);
                     alert('Gagal memuat library PDF');
                     return;
                 }
@@ -676,9 +745,7 @@
                 doc.text('Foto Penerima:', 20, tableEndY + 10);
                 try {
                     doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 20, 60, 40);
-                } catch (error) {
-                    console.error('Error adding photo to PDF:', error);
-                }
+                } catch (error) {}
 
                 const signatureY = tableEndY + 70;
                 doc.text('Pengirim:', 20, signatureY);
@@ -686,15 +753,12 @@
                 try {
                     doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 60, 20);
                     doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 60, 20);
-                } catch (error) {
-                    console.error('Error adding signatures to PDF:', error);
-                }
+                } catch (error) {}
             }
 
             doc.save('tanda-terima.pdf');
         });
 
-        // Logout
         document.getElementById('logoutBtn').addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem('isLoggedIn');
