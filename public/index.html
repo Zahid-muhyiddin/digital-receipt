@@ -89,8 +89,8 @@
         }
         .content-header {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 15px;
             position: relative;
         }
@@ -103,18 +103,15 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
-            position: absolute;
-            top: 10px;
-            left: 10px;
+            margin-right: 10px;
         }
         .content-toggle.visible {
-            display: block;
+            display: inline-block;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
-            text-align: center;
         }
         .registration-number {
             font-size: 14px;
@@ -238,7 +235,7 @@
                 width: calc(100% - 220px);
             }
             .content-toggle {
-                display: block;
+                display: inline-block;
             }
             .form-group {
                 font-size: 13px;
@@ -277,8 +274,10 @@
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-            <div class="header-text">DIREC - Input Form</div>
+            <div style="display: flex; align-items: center;">
+                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+                <span class="header-text">DIREC - Input Form</span>
+            </div>
             <div class="registration-number" id="registrationNumber">No Registrasi-TT-RANT-001-MM-YYYY</div>
         </div>
         <div class="receipt-container">
@@ -378,7 +377,7 @@
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
             toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
-            contentToggle.classList.toggle('visible');
+            contentToggle.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
@@ -677,7 +676,7 @@
             const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
             const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
             doc.setFontSize(16);
-            doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
+            doc.text('DIREC - Tanda Terima', 105, 15, { align: 'center' });
             doc.setFontSize(12);
             doc.text(`No Registrasi: ${regNumber}`, 20, 30);
             doc.text(`Tanggal: ${date}`, 20, 35);
