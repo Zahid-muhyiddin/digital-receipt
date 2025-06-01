@@ -24,6 +24,11 @@
             left: 0;
             padding: 20px;
             z-index: 1000;
+            transition: transform 0.3s ease;
+            transform: translateX(0);
+        }
+        .sidebar.closed {
+            transform: translateX(-250px);
         }
         .sidebar h2 {
             margin: 0 0 20px;
@@ -47,11 +52,38 @@
         .sidebar ul li a:hover, .sidebar ul li a.active {
             background-color: #4CAF50;
         }
+        .toggle-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .toggle-btn:hover { background-color: #45a049; }
+        .logout-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .logout-btn:hover { background-color: #cc0000; }
         .content {
             margin-left: 250px;
             padding: 20px;
             width: calc(100% - 250px);
             position: relative;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+        .content.full {
+            margin-left: 0;
+            width: 100%;
         }
         .receipt-container {
             border: 1px solid #ccc;
@@ -88,8 +120,6 @@
         }
         #savePdfBtn { background-color: #008CBA; display: none; }
         #savePdfBtn:hover { background-color: #007B9A; }
-        #logoutBtn { background-color: #ff4444; }
-        #logoutBtn:hover { background-color: #cc0000; }
         #receiptOutput {
             margin-top: 20px;
             padding: 15px;
@@ -104,7 +134,7 @@
             max-width: 300px;
             height: 150px;
             margin-top: 10px;
-            touch-action: none; /* Mencegah scroll saat tanda tangan */
+            touch-action: none;
         }
         #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
             max-width: 100%;
@@ -145,14 +175,16 @@
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+        <button class="toggle-btn" id="toggleSidebar">Tutup Sidebar</button>
         <h2>Tanda Terima</h2>
         <ul>
             <li><a href="/index.html" class="active">Input Form Tanda Terima</a></li>
             <li><a href="/history.html">History Tanda Terima</a></li>
         </ul>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
-    <div class="content">
+    <div class="content" id="content">
         <div class="receipt-container">
             <div class="header">
                 <h2>Tanda Terima Digital</h2>
@@ -233,7 +265,6 @@
                 <img id="signatureReceiverPreview" src="" alt="Tanda Tangan Penerima">
                 <button id="savePdfBtn">Simpan sebagai PDF</button>
             </div>
-            <button id="logoutBtn">Logout</button>
         </div>
     </div>
 
@@ -242,6 +273,23 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
+
+        // Toggle Sidebar
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (sidebar.classList.contains('closed')) {
+                sidebar.classList.remove('closed');
+                content.classList.remove('full');
+                toggleBtn.textContent = 'Tutup Sidebar';
+            } else {
+                sidebar.classList.add('closed');
+                content.classList.add('full');
+                toggleBtn.textContent = 'Buka Sidebar';
+            }
+        });
 
         // Lazy load jsPDF
         function loadJsPDF() {
@@ -519,7 +567,7 @@
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
                     body: formData,
-                    signal: AbortSignal.timeout(30000) // Timeout 30 detik
+                    signal: AbortSignal.timeout(30000)
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');

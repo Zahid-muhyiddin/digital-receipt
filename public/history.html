@@ -11,6 +11,8 @@
             padding: 0;
             box-sizing: border-box;
             display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
@@ -21,6 +23,12 @@
             top: 0;
             left: 0;
             padding: 20px;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            transform: translateX(0);
+        }
+        .sidebar.closed {
+            transform: translateX(-250px);
         }
         .sidebar h2 {
             margin: 0 0 20px;
@@ -44,10 +52,38 @@
         .sidebar ul li a:hover, .sidebar ul li a.active {
             background-color: #4CAF50;
         }
+        .toggle-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .toggle-btn:hover { background-color: #45a049; }
+        .logout-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .logout-btn:hover { background-color: #cc0000; }
         .content {
             margin-left: 250px;
             padding: 20px;
             width: calc(100% - 250px);
+            position: relative;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+        .content.full {
+            margin-left: 0;
+            width: 100%;
         }
         .history-container {
             border: 1px solid #ccc;
@@ -74,32 +110,33 @@
         tr:hover { background-color: #ddd; }
         img { max-width: 100px; height: auto; }
         .error { color: red; text-align: center; margin-top: 20px; display: none; }
-        button#logoutBtn {
-            background-color: #ff4444;
-            color: white;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            font-size: 18px;
+            color: #333;
         }
-        button#logoutBtn:hover { background-color: #cc0000; }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+        <button class="toggle-btn" id="toggleSidebar">Tutup Sidebar</button>
         <h2>Tanda Terima</h2>
         <ul>
             <li><a href="/index.html">Input Form Tanda Terima</a></li>
             <li><a href="/history.html" class="active">History Tanda Terima</a></li>
         </ul>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
-    <div class="content">
+    <div class="content" id="content">
         <div class="history-container">
             <div class="header">
                 <h2>History Tanda Terima</h2>
             </div>
+            <div class="loading" id="loading">Memuat...</div>
             <table id="historyTable">
                 <thead>
                     <tr>
@@ -115,7 +152,6 @@
                 <tbody id="historyBody"></tbody>
             </table>
             <p class="error" id="errorMessage"></p>
-            <button id="logoutBtn">Logout</button>
         </div>
     </div>
 
@@ -125,15 +161,35 @@
             window.location.href = '/login.html';
         }
 
+        // Toggle Sidebar
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (sidebar.classList.contains('closed')) {
+                sidebar.classList.remove('closed');
+                content.classList.remove('full');
+                toggleBtn.textContent = 'Tutup Sidebar';
+            } else {
+                sidebar.classList.add('closed');
+                content.classList.add('full');
+                toggleBtn.textContent = 'Buka Sidebar';
+            }
+        });
+
         // Ambil data history
         async function loadHistory() {
             const errorMessage = document.getElementById('errorMessage');
             const historyBody = document.getElementById('historyBody');
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
 
             try {
                 const response = await fetch('/api/history', {
                     method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(15000)
                 });
                 const result = await response.json();
 
@@ -166,6 +222,8 @@
                 console.error('Error loading history:', error);
                 errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
                 errorMessage.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
             }
         }
 
@@ -173,7 +231,8 @@
         loadHistory();
 
         // Logout
-        document.getElementById('logoutBtn').addEventListener('click', function() {
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });

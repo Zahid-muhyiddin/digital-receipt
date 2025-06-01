@@ -1,11 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/receipts.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/receipts", "dest": "api/receipts.js" },
-    { "src": "/(.*)", "dest": "public/index.html" }
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/login.html"
+    }
   ]
 }

@@ -82,7 +82,8 @@
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password }),
+                    signal: AbortSignal.timeout(10000) // Timeout 10 detik
                 });
                 const result = await response.json();
 
