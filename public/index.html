@@ -17,7 +17,6 @@
             display: flex;
             min-height: 100vh;
             background: #f3f4f6;
-            overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
@@ -25,12 +24,8 @@
             color: #fff;
             height: 100vh;
             position: fixed;
-            top: 0;
-            left: 0;
             padding: 20px;
-            z-index: 1000;
             transition: transform 0.3s ease;
-            transform: translateX(0);
         }
         .sidebar.closed {
             transform: translateX(-250px);
@@ -38,7 +33,6 @@
         .logo-container {
             display: flex;
             align-items: center;
-            justify-content: center;
             margin-bottom: 20px;
         }
         .logo {
@@ -53,7 +47,6 @@
         }
         .sidebar ul {
             list-style: none;
-            padding: 0;
         }
         .sidebar ul li {
             margin: 10px 0;
@@ -61,11 +54,9 @@
         .sidebar ul li a {
             color: #fff;
             text-decoration: none;
+            padding: 10px;
             display: block;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: background 0.3s ease;
+            border-radius: 5px;
         }
         .sidebar ul li a:hover, .sidebar ul li a.active {
             background: #3b82f6;
@@ -75,41 +66,28 @@
             color: #fff;
             border: none;
             padding: 10px;
+            border-radius: 5px;
             cursor: pointer;
             width: 100%;
-            border-radius: 8px;
-            font-size: 18px;
             margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-            transition: background 0.3s ease;
-        }
-        .toggle-btn:hover {
-            background: #059669;
         }
         .logout-btn {
             background: #ef4444;
             color: #fff;
             border: none;
-            padding: 12px;
+            padding: 10px;
+            border-radius: 5px;
             cursor: pointer;
             width: 100%;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
             margin-top: 20px;
-            transition: background 0.3s ease;
-        }
-        .logout-btn:hover {
-            background: #dc2626;
         }
         .content {
             margin-left: 250px;
             padding: 20px;
             width: calc(100% - 250px);
-            transition: margin-left 0.3s ease, width 0.3s ease;
             background: #fff;
             min-height: 100vh;
+            transition: margin-left 0.3s ease, width 0.3s ease;
         }
         .content.full {
             margin-left: 0;
@@ -126,9 +104,8 @@
             color: #fff;
             border: none;
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 18px;
             margin-right: 10px;
         }
         .content-toggle.show {
@@ -137,8 +114,6 @@
         .header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
         }
         .header .logo {
             width: 30px;
@@ -151,107 +126,82 @@
             color: #1e3a8a;
         }
         .receipt-container {
-            background: #fff;
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            max-width: 100%;
-            animation: fadeIn 0.5s ease;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #374151;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-        button {
-            background: #10b981;
-            color: #fff;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.3s ease;
-        }
-        button:hover {
-            background: #059669;
-        }
-        button:disabled {
-            background: #d1d5db;
-            cursor: not-allowed;
+            label {
+                display: block;
+                font-weight: 600;
+                margin-bottom: 5px;
+            }
+            input,
+            select {
+                width: 100%;
+                padding: 8px;
+                border: 5px solid #000;
+                border-radius: 5px;
+                font-size: 16px;
+            }
+            input:focus,
+            select:focus {
+                border-color: #3b82f6;
+                outline: none;
+            }
+            button {
+                background: #10b981;
+                color: #fff;
+                padding: 10px;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                width: 100%;
+            }
+            button:hover {
+                background: #059669;
+            }
+        #addItem {
+            background: #4a4a4a;
+            margin-top: 10px;
         }
         #savePdfBtn {
             background: #3b82f6;
             display: none;
         }
-        #savePdfBtn:hover {
-            background: #2563eb;
-        }
         #receiptOutput {
             margin-top: 20px;
             padding: 20px;
             background: #f9fafb;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #ddd;
+            border-radius: 5px;
             display: none;
         }
         #signatureSenderCanvas, #signatureReceiverCanvas {
-            border: 1px solid #d1d5db;
-            background: #fff;
-            width: 100%;
-            max-width: 300px;
-            height: 150px;
+            border: 1px solid #ddd;
+            background: 100%;
+            width: auto;
+            max-width: 100%;
+            height: 120px;
+            border-radius: 5px;
             margin-top: 10px;
-            border-radius: 8px;
-            touch-action: none;
         }
         #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
             max-width: 100%;
             height: auto;
             margin-top: 10px;
-            border-radius: 8px;
-        }
-        #itemList .item-row {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        @media (min-width: 600px) {
-            #itemList .item-row .item-row {
-                flex-direction:; row; }
-                .item-row #itemList .input-row input.item, #itemList .item-row .select { flex: row1; }
-            #itemList .item-group-row .itemQty { flex: 0.5; }
-            #itemList .item-row .itemUnit { flex: 0.5; }
-            #itemList .item-row .itemPrNumber { flex: 0.7; }
-            #item-row .itemList .itemPoNumber { flex: 0.7; }
+            border-radius: 5px;
         }
         #cameraPreview {
             width: 100%;
-            max-width: 100%;300px;
+            max-width: 400px;
             height: auto;
             display: none;
             margin-top: 10px;
-            border-radius: 0;px;
+            border-radius: 5px;
         }
         #capturePhoto {
             margin-top: 10px;
@@ -260,54 +210,62 @@
         .loading {
             display: none;
             justify-content: center;
-            align-items: center;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
         }
         .spinner {
-            border: 6px solid #e5e7eb;
-            border-top: 6px solid #3b82f6;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            .sidebar.closed {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .content.full {
+                margin-left: 250px;
+                width: calc(100% - 250px);
+            }
+            .content-toggle {
+                display: block;
+            }
         }
     </style>
 </head>
 <body>
     <div class="sidebar" id="sidebar">
-        <button class="toggle-btn" id="toggleSidebar" title="Toggle Sidebar">
-            <i class="fas fa-arrow-left"></i>
-        </button>
+        <button class="toggle-btn" id="toggleSidebar"><i class="fas fa-arrow-left"></i></button>
         <div class="logo-container">
-            <div class="logo">
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSJ1MC4iIHk9IjY1IiBmb250LWZhbWlsPSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="DIREC Logo" class="logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb250c2VycmF0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+DjwvdGV4dD4KPC9zdmc+" alt="Logo" class="logo">
             <span class="logo-text">DIREC</span>
         </div>
         <ul>
             <li><a href="/index.html" class="active">Input Form</a></li>
-            <li><a href="/history.html">History</a></li>
-            <li><a href="/download.html">Download Tanda Terima</a></li>
+            <li><a href="/history.html">Download Tanda Terima</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <button class="content-toggle" id="contentToggle" title="Buka Sidebar">
-                <i class="fas fa-bars"></i>
-            </button>
+            <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
             <div class="header">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSJ1MC4iIHk9IjY1IiBmb250LWZhbWlsPSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="DIREC Logo" class="logo">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="Logo" class="logo">
                 <span class="logo-text">DIREC - Input Form</span>
             </div>
         </div>
@@ -326,7 +284,7 @@
                         <option value="" disabled selected>Pilih Departemen</option>
                         <option value="PLANT">PLANT</option>
                         <option value="HCGS">HCGS</option>
-                        <option value="ENGINEERING">ENGINEERING</option>
+                        <option value="ENGINE">ENGINEERING</option>
                         <option value="SHE">SHE</option>
                         <option value="SM">SM</option>
                         <option value="FAT">FAT</option>
@@ -364,12 +322,12 @@
                 </div>
                 <div class="form-group">
                     <label>Tanda Tangan Pengirim:</label>
-                    <canvas id="signatureSenderCanvas" width="300" height="150"></canvas>
+                    <canvas id="signatureSenderCanvas" width="300" height="120"></canvas>
                     <button type="button" id="clearSenderSignature">Hapus Tanda Tangan</button>
                 </div>
                 <div class="form-group">
                     <label>Tanda Tangan Penerima:</label>
-                    <canvas id="signatureReceiverCanvas" width="300" height="150"></canvas>
+                    <canvas id="signatureReceiverCanvas" width="300" height="120"></canvas>
                     <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan</button>
                 </div>
                 <button type="submit" id="submitBtn">Buat Tanda Terima</button>
@@ -396,30 +354,19 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
-
         // Toggle Sidebar
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
-
         function toggleSidebar() {
-            if (sidebar.classList.contains('closed')) {
-                sidebar.classList.remove('closed');
-                content.classList.remove('full');
-                toggleBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
-                contentToggle.classList.remove('show');
-            } else {
-                sidebar.classList.add('closed');
-                content.classList.add('full');
-                toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                contentToggle.classList.add('show');
-            }
+            sidebar.classList.toggle('closed');
+            content.classList.toggle('full');
+            toggleBtn.innerHTML = sidebar.classList.contains('closed') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
+            contentToggle.classList.toggle('show');
         }
-
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
-
         // Lazy load jsPDF
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
@@ -436,13 +383,10 @@
                 document.head.appendChild(script);
             });
         }
-
         let itemCount = 1;
         let stream = null;
         let jsPDFInstance = null;
-
-        document.getElementById('addItem').addEventListener('click', (e) => {
-            e.preventDefault();
+        document.getElementById('addItem').addEventListener('click', () => {
             const itemList = document.getElementById('itemList');
             const newItem = document.createElement('div');
             newItem.className = 'item-row';
@@ -463,9 +407,7 @@
             itemList.appendChild(newItem);
             itemCount++;
         });
-
-        document.getElementById('recipientPhoto').addEventListener('change', function(e) {
-            e.preventDefault();
+        document.getElementById('recipientPhoto').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -477,9 +419,7 @@
                 reader.readAsDataURL(file);
             }
         });
-
-        document.getElementById('useCamera').addEventListener('click', async (e) => {
-            e.preventDefault();
+        document.getElementById('useCamera').addEventListener('click', async () => {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 document.getElementById('cameraPreview').srcObject = stream;
@@ -490,19 +430,15 @@
                 alert('Gagal mengakses kamera: ' + error.message);
             }
         });
-
-        document.getElementById('capturePhoto').addEventListener('click', (e) => {
-            e.preventDefault();
+        document.getElementById('capturePhoto').addEventListener('click', () => {
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
             tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(document.getElementById('cameraPreview'), 0, 0, tempCanvas.width, tempCanvas.height);
+            tempCanvas.getContext('2d').drawImage(document.getElementById('cameraPreview'), 0, 0, tempCanvas.width, tempCanvas.height);
             document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
             document.getElementById('photoPreview').style.display = 'block';
             stopCamera();
         });
-
         function stopCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -510,30 +446,20 @@
                 document.getElementById('capturePhoto').style.display = 'none';
             }
         }
-
         const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
         const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
         const ctxSender = signatureSenderCanvas.getContext('2d');
         const ctxReceiver = signatureReceiverCanvas.getContext('2d');
         let drawingSender = false;
         let drawingReceiver = false;
-
         function getCanvasCoordinates(event, canvas) {
             const rect = canvas.getBoundingClientRect();
             if (event.touches) {
-                return {
-                    x: event.touches[0].clientX - rect.left,
-                    y: event.touches[0].clientY - rect.top
-                };
+                return { x: event.touches[0].clientX - rect.left, y: event.touches[0].clientY - rect.top };
             }
-            return {
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top
-            };
+            return { x: event.clientX - rect.left, y: event.clientY - rect.top };
         }
-
         signatureSenderCanvas.addEventListener('mousedown', (e) => {
-            e.preventDefault();
             drawingSender = true;
             const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
             ctxSender.beginPath();
@@ -563,18 +489,11 @@
                 ctxSender.stroke();
             }
         });
-        signatureSenderCanvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            drawingSender = false;
-        });
-
-        document.getElementById('clearSenderSignature').addEventListener('click', (e) => {
-            e.preventDefault();
+        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        document.getElementById('clearSenderSignature').addEventListener('click', () => {
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
-
         signatureReceiverCanvas.addEventListener('mousedown', (e) => {
-            e.preventDefault();
             drawingReceiver = true;
             const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
             ctxReceiver.beginPath();
@@ -604,23 +523,16 @@
                 ctxReceiver.stroke();
             }
         });
-        signatureReceiverCanvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            drawingReceiver = false;
-        });
-
-        document.getElementById('clearReceiverSignature').addEventListener('click', (e) => {
-            e.preventDefault();
+        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        document.getElementById('clearReceiverSignature').addEventListener('click', () => {
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });
-
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             submitBtn.disabled = true;
             loading.style.display = 'flex';
-
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
             const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
@@ -629,8 +541,8 @@
                 unit: row.querySelector('.itemUnit').value,
                 prNumber: row.querySelector('.itemPrNumber').value,
                 poNumber: row.querySelector('.itemPoNumber').value
-            })).filter(item => item.desc && item.qty && item.unit && item.prNumber && item.poNumber);
-            const photoSrc = document.getElementById('photoPreview').src || '';
+            }));
+            const photoSrc = document.getElementById('photoPreview').src;
             const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
             const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
             const date = new Date().toLocaleString('id-ID', {
@@ -640,12 +552,10 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
-
             const formData = new FormData();
             formData.append('recipientName', recipientName);
             formData.append('department', department);
             formData.append('date', date);
-
             items.forEach((item, index) => {
                 formData.append(`items[${index}][desc]`, item.desc);
                 formData.append(`items[${index}][qty]`, item.qty);
@@ -653,7 +563,6 @@
                 formData.append(`items[${index}][prNumber]`, item.prNumber);
                 formData.append(`items[${index}][poNumber]`, item.poNumber);
             });
-
             if (photoSrc) {
                 const photoBlob = await fetch(photoSrc).then(res => res.blob());
                 formData.append('photo', photoBlob, 'photo.jpg');
@@ -662,7 +571,6 @@
             const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
             formData.append('signatureSender', signatureSenderBlob, 'sender.png');
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
-
             try {
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
@@ -671,14 +579,13 @@
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
-                alert('Tanda terima berhasil disimpan ke Google Sheets!');
+                alert('Tanda terima berhasil disimpan!');
             } catch (error) {
                 alert('Gagal menyimpan: ' + error.message);
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
                 return;
             }
-
             document.getElementById('date').textContent = date;
             document.getElementById('outputName').textContent = recipientName;
             document.getElementById('outputDepartment').textContent = department;
@@ -689,30 +596,15 @@
                 li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - No PR: ${item.prNumber} - No PO: ${item.poNumber}`;
                 outputItems.appendChild(li);
             });
-
-            const outputPhoto = document.getElementById('outputPhoto');
-            const signatureSenderPreview = document.getElementById('signatureSenderPreview');
-            const signatureReceiverPreview = document.getElementById('signatureReceiverPreview');
-            outputPhoto.src = photoSrc;
-            signatureSenderPreview.src = signatureSenderData;
-            signatureReceiverPreview.src = signatureReceiverData;
-
-            await Promise.all([
-                new Promise(resolve => outputPhoto.complete ? resolve() : outputPhoto.onload = resolve),
-                new Promise(resolve => signatureSenderPreview.complete ? resolve() : signatureSenderPreview.onload = resolve),
-                new Promise(resolve => signatureReceiverPreview.complete ? resolve() : signatureReceiverPreview.onload = resolve)
-            ]);
-
-            const output = document.getElementById('receiptOutput');
-            output.style.display = 'block';
+            document.getElementById('outputPhoto').src = photoSrc;
+            document.getElementById('signatureSenderPreview').src = signatureSenderData;
+            document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
+            document.getElementById('receiptOutput').style.display = 'block';
             document.getElementById('savePdfBtn').style.display = 'block';
-
             submitBtn.disabled = false;
             loading.style.display = 'none';
         });
-
-        document.getElementById('savePdfBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
+        document.getElementById('savePdfBtn').addEventListener('click', async () => {
             if (!jsPDFInstance) {
                 try {
                     await loadJsPDF();
@@ -723,7 +615,7 @@
                 }
             }
             const { jsPDF } = jsPDFInstance;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const doc = new jsPDF();
             const date = document.getElementById('date').textContent;
             const recipientName = document.getElementById('outputName').textContent;
             const department = document.getElementById('outputDepartment').textContent;
@@ -740,54 +632,35 @@
             const photoSrc = document.getElementById('outputPhoto').src;
             const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
             const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
-
-            const itemsPerPage = 10;
-            const totalPages = Math.ceil(items.length / itemsPerPage);
-
-            for (let page = 0; page < totalPages; page++) {
-                if (page > 0) doc.addPage();
-                doc.setFontSize(16);
-                doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
-                doc.setFontSize(12);
-                doc.text(`Tanggal: ${date}`, 20, 40);
-                doc.text(`Penerima: ${recipientName}`, 20, 50);
-                doc.text(`Departemen: ${department}`, 20, 60);
-                doc.text(`Deskripsi Barang (Halaman ${page + 1} dari ${totalPages}):`, 20, 70);
-
-                const startIdx = page * itemsPerPage;
-                const endIdx = Math.min(startIdx + itemsPerPage, items.length);
-                const pageItems = items.slice(startIdx, endIdx);
-                const tableData = pageItems.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]);
-
-                doc.autoTable({
-                    startY: 75,
-                    head: [['Deskripsi Barang', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: tableData,
-                    styles: { fontSize: 10, cellPadding: 2 },
-                    headStyles: { fillColor: [0, 128, 0] },
-                    margin: { left: 20, right: 20 }
-                });
-
-                let tableEndY = doc.lastAutoTable.finalY;
-                doc.text('Foto Penerima:', 20, tableEndY + 10);
-                try {
-                    doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 20, 60, 40);
-                } catch (error) {}
-
-                const signatureY = tableEndY + 70;
-                doc.text('Pengirim:', 20, signatureY);
-                doc.text('Penerima:', 110, signatureY);
-                try {
-                    doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 60, 20);
-                    doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 60, 20);
-                } catch (error) {}
-            }
-
+            doc.setFontSize(16);
+            doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`Tanggal: ${date}`, 20, 40);
+            doc.text(`Penerima: ${recipientName}`, 20, 50);
+            doc.text(`Departemen: ${department}`, 20, 60);
+            doc.text('Deskripsi Barang:', 20, 70);
+            doc.autoTable({
+                startY: 75,
+                head: [['Deskripsi Barang', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [0, 128, 0] }
+            });
+            let tableEndY = doc.lastAutoTable.finalY;
+            doc.text('Foto Penerima:', 20, tableEndY + 10);
+            try {
+                doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 20, 60, 40);
+            } catch (error) {}
+            const signatureY = tableEndY + 70;
+            doc.text('Pengirim:', 20, signatureY);
+            doc.text('Penerima:', 110, signatureY);
+            try {
+                doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 60, 20);
+                doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 60, 20);
+            } catch (error) {}
             doc.save('direc-tanda-terima.pdf');
         });
-
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
+        document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });

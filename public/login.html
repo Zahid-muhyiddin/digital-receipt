@@ -19,78 +19,69 @@
             align-items: center;
             min-height: 100vh;
             background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-            overflow: hidden;
         }
         .login-container {
             background: #fff;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 400px;
-            animation: fadeIn 0.5s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .header {
             text-align: center;
-            margin-bottom: 20px;
         }
         .logo-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         .logo {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             margin-right: 10px;
         }
         .logo-text {
             font-family: 'Montserrat', sans-serif;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
             color: #1e3a8a;
         }
-        .header p {
+        .login-container p {
             color: #6b7280;
+            margin-bottom: 20px;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            text-align: left;
         }
         label {
             display: block;
-            margin-bottom: 8px;
             font-weight: 600;
             color: #374151;
+            margin-bottom: 5px;
         }
         input {
             width: 100%;
             padding: 10px;
             border: 1px solid #d1d5db;
-            border-radius: 8px;
+            border-radius: 5px;
             font-size: 16px;
-            transition: border-color 0.3s ease;
         }
         input:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 5px rgba(59, 130, 246, 0.2);
         }
         button {
             background: #10b981;
             color: #fff;
             padding: 12px;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            transition: background 0.3s ease;
         }
         button:hover {
             background: #059669;
@@ -101,15 +92,13 @@
         }
         .error {
             color: #ef4444;
-            text-align: center;
+            font-size: 14px;
             margin-top: 10px;
             display: none;
-            font-size: 14px;
         }
         .loading {
             display: none;
             justify-content: center;
-            align-items: center;
             margin-top: 10px;
         }
         .spinner {
@@ -124,17 +113,28 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            .logo-text {
+                font-size: 20px;
+            }
+            .logo {
+                width: 30px;
+                height: 30px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <div class="header">
-            <div class="logo-container">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb250c2VycmF0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+DjwvdGV4dD4KPC9zdmc+" alt="DIREC Logo" class="logo">
-                <span class="logo-text">DIREC</span>
-            </div>
-            <p>Digital Receipt</p>
+        <div class="logo-container">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb250c2VycmF0LCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+DjwvdGV4dD4KPC9zdmc+" alt="DIREC Logo" class="logo">
+            <span class="logo-text">DIREC</span>
         </div>
+        <p>Digital Receipt</p>
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Username:</label>
@@ -156,7 +156,6 @@
         if (localStorage.getItem('isLoggedIn') === 'true') {
             window.location.href = '/index.html';
         }
-
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -164,31 +163,17 @@
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             const loginBtn = document.getElementById('loginBtn');
-
             errorMessage.style.display = 'none';
             loginBtn.disabled = true;
             loading.style.display = 'flex';
-
             try {
-                console.log('Sending login request:', { username });
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password }),
                     signal: AbortSignal.timeout(10000)
                 });
-
-                console.log('Login response status:', response.status);
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    throw new Error(`Server mengembalikan respons tidak valid (status: ${response.status}). Silakan coba lagi atau hubungi admin.`);
-                }
-
                 const result = await response.json();
-                console.log('Login response JSON:', result);
-
                 if (response.ok) {
                     localStorage.setItem('isLoggedIn', 'true');
                     window.location.href = '/index.html';
@@ -197,8 +182,7 @@
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
-                console.error('Error during login:', error);
-                errorMessage.textContent = error.message || 'Terjadi kesalahan saat login';
+                errorMessage.textContent = 'Terjadi kesalahan saat login';
                 errorMessage.style.display = 'block';
             } finally {
                 loginBtn.disabled = false;

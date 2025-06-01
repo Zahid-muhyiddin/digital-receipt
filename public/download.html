@@ -17,7 +17,6 @@
             display: flex;
             min-height: 100vh;
             background: #f3f4f6;
-            overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
@@ -25,12 +24,8 @@
             color: #fff;
             height: 100vh;
             position: fixed;
-            top: 0;
-            left: 0;
             padding: 20px;
-            z-index: 1000;
             transition: transform 0.3s ease;
-            transform: translateX(0);
         }
         .sidebar.closed {
             transform: translateX(-250px);
@@ -38,7 +33,6 @@
         .logo-container {
             display: flex;
             align-items: center;
-            justify-content: center;
             margin-bottom: 20px;
         }
         .logo {
@@ -53,7 +47,6 @@
         }
         .sidebar ul {
             list-style: none;
-            padding: 0;
         }
         .sidebar ul li {
             margin: 10px 0;
@@ -61,11 +54,9 @@
         .sidebar ul li a {
             color: #fff;
             text-decoration: none;
+            padding: 10px;
             display: block;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: background 0.3s ease;
+            border-radius: 5px;
         }
         .sidebar ul li a:hover, .sidebar ul li a.active {
             background: #3b82f6;
@@ -75,13 +66,206 @@
             color: #fff;
             border: none;
             padding: 10px;
+            border-radius: 5px;
             cursor: pointer;
             width: 100%;
-            border-radius: 8px;
-            font-size: 18px;
             margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-            transition: background 0.3s ease;
         }
-        .toggle-btn:hover {
+        .logout-btn {
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            width: calc(100% - 250px);
+            background: #fff;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+        .content.full {
+            margin-left: 0;
+            width: 100%;
+        }
+        .content-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .content-toggle {
+            display: none;
+            background: #1e3a8a;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .content-toggle.show {
+            display: block;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+        }
+        .header .logo {
+            width: 30px;
+            height: 30px;
+            margin-right: 8px;
+        }
+        .header-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 20px;
+            color: #1e3a8a;
+        }
+        .download-container {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background: #10b981;
+            color: #fff;
+        }
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .download-btn {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+        .loading {
+            display: none;
+            justify-content: center;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            .sidebar.closed {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .content.full {
+                margin-left: 250px;
+                width: calc(100% - 250px);
+            }
+            .content-toggle {
+                display: block;
+            }
+            table {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <button class="toggle-btn" id="toggleSidebar"><i class="fas fa-arrow-left"></i></button>
+        <div class="logo-container">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb25zZXJyYXQsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="Logo" class="logo">
+            <span class="logo-text">DIREC</span>
+        </div>
+        <ul>
+            <li><a href="/index.html">Input Form</a></li>
+            <li><a href="/history.html">History</a></li>
+            <li><a href="/download.html" class="active">Download Tanda Terima</a></li>
+        </ul>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+    <div class="content" id="content">
+        <div class="content-header">
+            <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+            <div class="header">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJNb25zZXJyYXQsIHNhbnMtc2VyaWZhIIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8L3N2Zz4+" alt="Logo" class="logo">
+                <span class="header-text">DIREC - Download PDF</span>
+            </div>
+        </div>
+        <div class="download-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+            </div>
+            <table id="downloadTable">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Nama Penerima</th>
+                        <th>Departemen</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="downloadBody"></tbody>
+            </table>
+            <p class="error" class="error" id="errorMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        if (!localStorage.getItem('isLoggedIn') === 'true') {
+            window.location.href = '/login.html';
+        }
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const content = document.querySelector('.content');
+        const toggleBtn = document.querySelector('#toggle-btn');
+        const contentToggle = document.querySelector('.content-toggle');
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+            content.classList.toggle('full-width');
+            toggleBtn.querySelector('i').classList.toggle('fa-arrow-left');
+            toggleBtn.querySelector('i').classList.toggle('fa-bars');
+            contentToggle.classList.toggle('visible');
+        }
+        toggleBtn.addEventListener('click', toggleSidebar);
+        contentToggle.addEventListener('click', toggleSidebar);
+        // Lazy load jsPDF
+        function loadJsPDF() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
