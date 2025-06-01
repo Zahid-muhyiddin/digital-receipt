@@ -19,7 +19,7 @@ const spreadsheetId = process.env.SPREADSHEET_ID;
 
 // Endpoint untuk login
 app.post('/api/login', async (req, res) => {
-    console.log('Received /api/login request:', req.body); // Logging untuk debug
+    console.log('Received /api/login request:', req.body);
     try {
         const { username, password } = req.body;
         const validUsername = process.env.LOGIN_USERNAME;
@@ -140,37 +140,14 @@ function parseItems(body) {
     return validItems;
 }
 
-// Handler utama untuk /api/receipts
-module.exports = async (req, res) => {
-    console.log(`Received request: ${req.method} ${req.path}`); // Logging untuk debug
-    if (req.method === 'POST' && req.path === '/api/login') {
-        return app(req, res); // Biarkan app menangani /api/login
-    }
-    if (req.method === 'GET' && req.path === '/api/history') {
-        return app(req, res); // Biarkan app menangani /api/history
-    }
-    if (req.method !== 'POST' || req.path !== '/api/receipts') {
-        console.log('Invalid route or method:', req.method, req.path);
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-
-    const multerMiddleware = upload.fields([
-        { name: 'photo', maxCount: 1 },
-        { name: 'signatureSender', maxCount: 1 },
-        { name: 'signatureReceiver', maxCount: 1 },
-    ]);
-
+// Endpoint untuk /api/receipts
+app.post('/api/receipts', upload.fields([
+    { name: 'photo', maxCount: 1 },
+    { name: 'signatureSender', maxCount: 1 },
+    { name: 'signatureReceiver', maxCount: 1 },
+]), async (req, res) => {
+    console.log('Received /api/receipts request:', req.body, req.files);
     try {
-        await new Promise((resolve, reject) => {
-            multerMiddleware(req, res, (err) => {
-                if (err) reject(new Error('Upload failed: ' + err.message));
-                else resolve();
-            });
-        });
-
-        console.log('Parsed request body:', req.body);
-        console.log('Uploaded files:', req.files);
-
         const { recipientName, department, date } = req.body;
         const items = parseItems(req.body);
         const photoFile = req.files && req.files['photo'] ? req.files['photo'][0] : null;
@@ -212,7 +189,7 @@ module.exports = async (req, res) => {
 
         res.status(200).json({ message: 'Tanda terima berhasil disimpan' });
     } catch (error) {
-        console.error('Server error:', error);
+        console.error('Error saving receipt:', error);
         res.status(500).json({ error: 'Server error: ' + error.message });
     } finally {
         const files = [req.files?.['photo']?.[0], req.files?.['signatureSender']?.[0], req.files?.['signatureReceiver']?.[0]];
@@ -223,4 +200,7 @@ module.exports = async (req, res) => {
             }
         });
     }
-};
+});
+
+// Handler untuk Vercel serverless
+module.exports = app;

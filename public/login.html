@@ -93,6 +93,7 @@
             loading.style.display = 'block';
 
             try {
+                console.log('Sending login request:', { username }); // Debugging
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -100,15 +101,16 @@
                     signal: AbortSignal.timeout(10000)
                 });
 
-                // Cek apakah respons adalah JSON
+                console.log('Login response status:', response.status); // Debugging
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await response.text();
                     console.error('Non-JSON response:', text);
-                    throw new Error('Server mengembalikan respons tidak valid. Silakan coba lagi atau hubungi admin.');
+                    throw new Error(`Server mengembalikan respons tidak valid (status: ${response.status}). Silakan coba lagi atau hubungi admin.`);
                 }
 
                 const result = await response.json();
+                console.log('Login response JSON:', result); // Debugging
 
                 if (response.ok) {
                     localStorage.setItem('isLoggedIn', 'true');
