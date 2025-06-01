@@ -45,7 +45,7 @@ app.get('/api/history', async (req, res) => {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: 'Sheet1!A2:I',
-        });
+        }, { timeout: 15000 }); // Timeout 15 detik
 
         const rows = response.data.values || [];
         const data = rows.map(row => ({
@@ -72,7 +72,7 @@ async function initializeSheet() {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: 'Sheet1!A1:I1',
-        });
+        }, { timeout: 10000 });
         if (!response.data.values || response.data.values.length === 0) {
             await sheets.spreadsheets.values.update({
                 spreadsheetId,
@@ -81,7 +81,7 @@ async function initializeSheet() {
                 resource: {
                     values: [['ID', 'Date', 'Recipient Name', 'Department', 'Items', 'Photo URL', 'Signature Sender URL', 'Signature Receiver URL', 'PDF URL']],
                 },
-            });
+            }, { timeout: 10000 });
             console.log('Sheet header initialized');
         }
     } catch (error) {
@@ -101,11 +101,11 @@ async function uploadToDrive(file) {
             resource: fileMetadata,
             media,
             fields: 'id, webViewLink',
-        });
+        }, { timeout: 15000 });
         await drive.permissions.create({
             fileId: response.data.id,
             requestBody: { role: 'reader', type: 'anyone' },
-        });
+        }, { timeout: 10000 });
         console.log(`Uploaded file: ${response.data.webViewLink}`);
         return response.data.webViewLink;
     } catch (error) {
@@ -195,7 +195,7 @@ module.exports = async (req, res) => {
             range: 'Sheet1!A2:I',
             valueInputOption: 'RAW',
             resource: { values },
-        });
+        }, { timeout: 10000 });
 
         res.status(200).json({ message: 'Tanda terima berhasil disimpan' });
     } catch (error) {

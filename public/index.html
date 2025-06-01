@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tanda Terima Digital</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,6 +11,8 @@
             padding: 0;
             box-sizing: border-box;
             display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
@@ -23,6 +23,7 @@
             top: 0;
             left: 0;
             padding: 20px;
+            z-index: 1000;
         }
         .sidebar h2 {
             margin: 0 0 20px;
@@ -50,6 +51,7 @@
             margin-left: 250px;
             padding: 20px;
             width: calc(100% - 250px);
+            position: relative;
         }
         .receipt-container {
             border: 1px solid #ccc;
@@ -57,6 +59,7 @@
             border-radius: 5px;
             max-width: 100%;
             background-color: #fff;
+            position: relative;
         }
         .header { text-align: center; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; }
@@ -79,6 +82,10 @@
             margin-top: 5px;
         }
         button:hover { background-color: #45a049; }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
         #savePdfBtn { background-color: #008CBA; display: none; }
         #savePdfBtn:hover { background-color: #007B9A; }
         #logoutBtn { background-color: #ff4444; }
@@ -97,6 +104,7 @@
             max-width: 300px;
             height: 150px;
             margin-top: 10px;
+            touch-action: none; /* Mencegah scroll saat tanda tangan */
         }
         #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
             max-width: 100%;
@@ -125,6 +133,15 @@
             margin-top: 10px;
         }
         #capturePhoto { margin-top: 10px; display: none; }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            font-size: 18px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -140,7 +157,7 @@
             <div class="header">
                 <h2>Tanda Terima Digital</h2>
             </div>
-            
+            <div class="loading" id="loading">Memuat...</div>
             <form id="receiptForm">
                 <div class="form-group">
                     <label for="recipientName">Nama Penerima:</label>
@@ -198,7 +215,7 @@
                     <canvas id="signatureReceiverCanvas" width="300" height="150"></canvas>
                     <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan Penerima</button>
                 </div>
-                <button type="submit">Buat Tanda Terima</button>
+                <button type="submit" id="submitBtn">Buat Tanda Terima</button>
             </form>
             
             <div id="receiptOutput">
@@ -226,14 +243,31 @@
             window.location.href = '/login.html';
         }
 
-        const { jsPDF } = window.jspdf;
+        // Lazy load jsPDF
+        function loadJsPDF() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                script.onload = () => {
+                    const autoTableScript = document.createElement('script');
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.onload = resolve;
+                    autoTableScript.onerror = reject;
+                    document.head.appendChild(autoTableScript);
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
 
         // Inisialisasi variabel
         let itemCount = 1;
         let stream = null;
+        let jsPDFInstance = null;
 
         // Tambah Barang
-        document.getElementById('addItem').addEventListener('click', () => {
+        document.getElementById('addItem').addEventListener('click', (e) => {
+            e.preventDefault();
             const itemList = document.getElementById('itemList');
             const newItem = document.createElement('div');
             newItem.className = 'item-row';
@@ -257,7 +291,8 @@
         });
 
         // Foto Penerima dari File
-        document.getElementById('recipientPhoto').addEventListener('change', function() {
+        document.getElementById('recipientPhoto').addEventListener('change', function(e) {
+            e.preventDefault();
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -271,7 +306,8 @@
         });
 
         // Foto Penerima dari Kamera
-        document.getElementById('useCamera').addEventListener('click', async () => {
+        document.getElementById('useCamera').addEventListener('click', async (e) => {
+            e.preventDefault();
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 document.getElementById('cameraPreview').srcObject = stream;
@@ -285,7 +321,8 @@
             }
         });
 
-        document.getElementById('capturePhoto').addEventListener('click', () => {
+        document.getElementById('capturePhoto').addEventListener('click', (e) => {
+            e.preventDefault();
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
             tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
@@ -329,6 +366,7 @@
         }
 
         signatureSenderCanvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
             drawingSender = true;
             const { x, y } = getCanvasCoordinates(e, signatureSenderCanvas);
             ctxSender.beginPath();
@@ -363,14 +401,19 @@
                 ctxSender.stroke();
             }
         });
-        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            drawingSender = false;
+        });
 
-        document.getElementById('clearSenderSignature').addEventListener('click', () => {
+        document.getElementById('clearSenderSignature').addEventListener('click', (e) => {
+            e.preventDefault();
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
             console.log('Sender signature cleared');
         });
 
         signatureReceiverCanvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
             drawingReceiver = true;
             const { x, y } = getCanvasCoordinates(e, signatureReceiverCanvas);
             ctxReceiver.beginPath();
@@ -405,9 +448,13 @@
                 ctxReceiver.stroke();
             }
         });
-        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            drawingReceiver = false;
+        });
 
-        document.getElementById('clearReceiverSignature').addEventListener('click', () => {
+        document.getElementById('clearReceiverSignature').addEventListener('click', (e) => {
+            e.preventDefault();
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
             console.log('Receiver signature cleared');
         });
@@ -415,6 +462,11 @@
         // Form Submission
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
             const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
@@ -466,7 +518,8 @@
             try {
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: AbortSignal.timeout(30000) // Timeout 30 detik
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
@@ -474,6 +527,8 @@
             } catch (error) {
                 console.error('Error saving receipt:', error);
                 alert('Gagal menyimpan: ' + error.message);
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
                 return;
             }
 
@@ -505,10 +560,25 @@
             const output = document.getElementById('receiptOutput');
             output.style.display = 'block';
             document.getElementById('savePdfBtn').style.display = 'block';
+
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
         });
 
         // Simpan sebagai PDF
-        document.getElementById('savePdfBtn').addEventListener('click', async function() {
+        document.getElementById('savePdfBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!jsPDFInstance) {
+                try {
+                    await loadJsPDF();
+                    jsPDFInstance = window.jspdf;
+                } catch (error) {
+                    console.error('Error loading jsPDF:', error);
+                    alert('Gagal memuat library PDF');
+                    return;
+                }
+            }
+            const { jsPDF } = jsPDFInstance;
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const date = document.getElementById('date').textContent;
             const recipientName = document.getElementById('outputName').textContent;
@@ -577,7 +647,8 @@
         });
 
         // Logout
-        document.getElementById('logoutBtn').addEventListener('click', function() {
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });
