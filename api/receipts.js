@@ -19,18 +19,22 @@ const spreadsheetId = process.env.SPREADSHEET_ID;
 
 // Endpoint untuk login
 app.post('/api/login', async (req, res) => {
+    console.log('Received /api/login request:', req.body); // Logging untuk debug
     try {
         const { username, password } = req.body;
         const validUsername = process.env.LOGIN_USERNAME;
         const validPassword = process.env.LOGIN_PASSWORD;
 
         if (!username || !password) {
+            console.log('Missing username or password');
             return res.status(400).json({ error: 'Username dan password diperlukan' });
         }
 
         if (username === validUsername && password === validPassword) {
+            console.log('Login successful for:', username);
             return res.status(200).json({ message: 'Login berhasil' });
         } else {
+            console.log('Invalid credentials for:', username);
             return res.status(401).json({ error: 'Username atau password salah' });
         }
     } catch (error) {
@@ -41,11 +45,12 @@ app.post('/api/login', async (req, res) => {
 
 // Endpoint untuk history
 app.get('/api/history', async (req, res) => {
+    console.log('Received /api/history request');
     try {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: 'Sheet1!A2:I',
-        }, { timeout: 15000 }); // Timeout 15 detik
+        }, { timeout: 15000 });
 
         const rows = response.data.values || [];
         const data = rows.map(row => ({
@@ -135,9 +140,17 @@ function parseItems(body) {
     return validItems;
 }
 
+// Handler utama untuk /api/receipts
 module.exports = async (req, res) => {
+    console.log(`Received request: ${req.method} ${req.path}`); // Logging untuk debug
+    if (req.method === 'POST' && req.path === '/api/login') {
+        return app(req, res); // Biarkan app menangani /api/login
+    }
+    if (req.method === 'GET' && req.path === '/api/history') {
+        return app(req, res); // Biarkan app menangani /api/history
+    }
     if (req.method !== 'POST' || req.path !== '/api/receipts') {
-        if (req.path === '/api/login' || req.path === '/api/history') return;
+        console.log('Invalid route or method:', req.method, req.path);
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
@@ -155,8 +168,8 @@ module.exports = async (req, res) => {
             });
         });
 
-        console.log('Full req.body:', JSON.stringify(req.body, null, 2));
-        console.log('Full req.files:', req.files);
+        console.log('Parsed request body:', req.body);
+        console.log('Uploaded files:', req.files);
 
         const { recipientName, department, date } = req.body;
         const items = parseItems(req.body);

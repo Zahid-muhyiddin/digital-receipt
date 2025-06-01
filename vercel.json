@@ -3,6 +3,14 @@
     {
       "source": "/",
       "destination": "/login.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/receipts.js"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/:path*"
     }
   ]
 }

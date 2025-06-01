@@ -44,6 +44,13 @@
         }
         button:hover { background-color: #45a049; }
         .error { color: red; text-align: center; margin-top: 10px; display: none; }
+        .loading {
+            text-align: center;
+            display: none;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -61,9 +68,10 @@
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Login</button>
+            <button type="submit" id="loginBtn">Login</button>
         </form>
         <p class="error" id="errorMessage"></p>
+        <p class="loading" id="loading">Memuat...</p>
     </div>
 
     <script>
@@ -77,14 +85,29 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
+            const loading = document.getElementById('loading');
+            const loginBtn = document.getElementById('loginBtn');
+
+            errorMessage.style.display = 'none';
+            loginBtn.disabled = true;
+            loading.style.display = 'block';
 
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password }),
-                    signal: AbortSignal.timeout(10000) // Timeout 10 detik
+                    signal: AbortSignal.timeout(10000)
                 });
+
+                // Cek apakah respons adalah JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error('Server mengembalikan respons tidak valid. Silakan coba lagi atau hubungi admin.');
+                }
+
                 const result = await response.json();
 
                 if (response.ok) {
@@ -96,8 +119,11 @@
                 }
             } catch (error) {
                 console.error('Error during login:', error);
-                errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
+                errorMessage.textContent = error.message || 'Terjadi kesalahan saat login';
                 errorMessage.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loading.style.display = 'none';
             }
         });
     </script>
