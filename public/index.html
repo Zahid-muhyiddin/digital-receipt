@@ -237,7 +237,7 @@
                 width: calc(100% - 220px);
             }
             .content-toggle {
-                display: block; /* Pastikan tombol hamburger muncul */
+                display: block;
             }
             .form-group {
                 font-size: 13px;
@@ -441,6 +441,7 @@
         document.getElementById('recipientPhoto').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
+                console.log('Foto dari input file:', file); // Debug
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('photoPreview').src = e.target.result;
@@ -466,7 +467,9 @@
             tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
             tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
             tempCanvas.getContext('2d').drawImage(document.getElementById('cameraPreview'), 0, 0);
-            document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
+            const photoData = tempCanvas.toDataURL('image/jpeg', 0.7);
+            console.log('Foto dari kamera:', photoData.substring(0, 50)); // Debug
+            document.getElementById('photoPreview').src = photoData;
             document.getElementById('photoPreview').style.display = 'block';
             stopCamera();
         });
@@ -577,7 +580,7 @@
         document.getElementById('clearReceiverSignature').addEventListener('click', () => {
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });
-        document.getElementById('receiptForm').addEventListener('submit', async function(e) {
+        document.getElementById('receiptForm').addEventListener('submit', async function(e) => {
             e.preventDefault();
             if (isCanvasBlank(signatureSenderCanvas) || isCanvasBlank(signatureReceiverCanvas)) {
                 alert('Harap isi tanda tangan pengirim dan penerima!');
@@ -619,9 +622,16 @@
                 formData.append(`items[${index}][prNumber]`, item.prNumber);
                 formData.append(`items[${index}][poNumber]`, item.poNumber);
             });
-            if (photoSrc) {
-                const photoBlob = await fetch(photoSrc).then(res => res.blob());
-                formData.append('photo', photoBlob, 'photo.jpg');
+            if (photoSrc && !photoSrc.startsWith('data:image')) {
+                try {
+                    const photoBlob = await fetch(photoSrc).then(res => res.blob());
+                    formData.append('photo', photoBlob, 'photo.jpg');
+                    console.log('Mengirim foto ke server:', photoBlob); // Debug
+                } catch (error) {
+                    console.error('Gagal memproses foto:', error);
+                }
+            } else {
+                console.warn('Tidak ada foto yang diunggah'); // Debug
             }
             const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
             const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
@@ -634,13 +644,16 @@
                     signal: AbortSignal.timeout(30000)
                 });
                 const result = await response.json();
+                console.log('API response:', result); // Debug
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
                 alert('Tanda terima berhasil disimpan!');
             } catch (error) {
                 alert('Gagal menyimpan: ' + error.message);
+                console.error('Submission error:', error); // Debug
+                return;
+            } finally {
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
-                return;
             }
             document.getElementById('outputRegNumber').textContent = regNumber;
             document.getElementById('date').textContent = date;
@@ -651,17 +664,15 @@
             items.forEach(item => {
                 const li = document.createElement('li');
                 li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
-                outputItems.appendChild(li);
+                outputItems.appendChild);
             });
             document.getElementById('outputPhoto').src = photoSrc;
             document.getElementById('signatureSenderPreview').src = signatureSenderData;
             document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
             document.getElementById('receiptOutput').style.display = 'block';
             document.getElementById('savePdfBtn').style.display = 'block';
-            submitBtn.disabled = false;
-            loading.style.display = 'none';
         });
-        document.getElementById('savePdfBtn').addEventListener('click', async () => {
+        document.getElementById('savePdfBtn.addEventListener('click', async () => {
             if (!jsPDFInstance) {
                 try {
                     await loadJsPDF();
@@ -708,15 +719,21 @@
             let tableEndY = doc.lastAutoTable.finalY;
             doc.text('Foto Penerima:', 20, tableEndY + 10);
             try {
-                doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
-            } catch (error) {}
+                if (photoSrc) {
+                    doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
+                }
+            } catch (error) {
+                console.error('Error adding photo to PDF:', error);
+            }
             const signatureY = tableEndY + 50;
             doc.text('Pengirim:', 20, signatureY);
             doc.text('Penerima:', 110, signatureY);
             try {
                 doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 50, 15);
                 doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 50, 15);
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error adding signatures to PDF:', error);
+            }
             doc.save('direc-tanda-terima.pdf');
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {

@@ -24,16 +24,17 @@
             color: #fff;
             height: 100vh;
             position: fixed;
-            padding: 15px;
-            transition: transform 0.3s ease;
+            padding: 10px;
+            transition: margin-bottom;
+transform 0.3s ease;
         }
         .sidebar.hidden {
             transform: translateX(-220px);
         }
         .logo-text {
             font-family: 'Montserrat', sans-serif;
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: bold;
             margin-bottom: 20px;
         }
         .sidebar ul {
@@ -45,7 +46,7 @@
         .sidebar ul li a {
             color: #fff;
             text-decoration: none;
-            padding: 8px;
+            padding: 10px;
             display: block;
             border-radius: 4px;
             font-size: 14px;
@@ -366,6 +367,9 @@
                 const rowCount = items.length || 1;
                 items.forEach((item, index) => {
                     const tr = document.createElement('tr');
+                    const photoCell = row.photo ? 
+                        `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : 
+                        'Tidak ada foto';
                     tr.innerHTML = `
                         ${index === 0 ? `<td rowspan="${rowCount}">${row.date || '-'}</td>` : ''}
                         ${index === 0 ? `<td rowspan="${rowCount}">${row.recipientName || '-'}</td>` : ''}
@@ -375,12 +379,15 @@
                         <td>${item ? item.unit : '-'}</td>
                         <td>${item ? item.prNumber : '-'}</td>
                         <td>${item ? item.poNumber : '-'}</td>
-                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : 'Tidak ada foto'}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${photoCell}</td>` : ''}
                     `;
                     historyBody.appendChild(tr);
                 });
                 if (items.length === 0) {
                     const tr = document.createElement('tr');
+                    const photoCell = row.photo ? 
+                        `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : 
+                        'Tidak ada foto';
                     tr.innerHTML = `
                         <td>${row.date || '-'}</td>
                         <td>${row.recipientName || '-'}</td>
@@ -390,7 +397,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : 'Tidak ada foto'}</td>
+                        <td>${photoCell}</td>
                     `;
                     historyBody.appendChild(tr);
                 }

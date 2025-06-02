@@ -123,6 +123,10 @@
             border-radius: 4px;
             font-size: 13px;
         }
+        .search-container input:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
         .search-container button {
             background: #3b82f6;
             color: #fff;
@@ -326,18 +330,22 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
+
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
+
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
             toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
             contentToggle.classList.toggle('visible');
         }
+
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
+
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -353,10 +361,15 @@
                 document.head.appendChild(script);
             });
         }
+
         function parseItems(itemsString) {
-            if (!itemsString || itemsString === 'Tidak ada barang') return [];
-            return itemsString.split('\n').map(item => {
+            if (!itemsString || itemsString === 'undefined' || itemsString === 'Tidak ada barang') {
+                console.warn('Items string kosong atau tidak valid:', itemsString); // Debug
+                return [];
+            }
+            const items = itemsString.split('\n').map(item => {
                 const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
+                console.log('Parsing item:', item, 'Match:', match); // Debug
                 return match ? {
                     desc: match[1].trim(),
                     qty: match[2],
@@ -365,37 +378,45 @@
                     poNumber: match[5]
                 } : null;
             }).filter(item => item);
+            console.log('Parsed items:', items); // Debug
+            return items;
         }
+
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
         let itemsPerPage = 10;
+
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
             downloadBody.innerHTML = '';
             const start = (page - 1) * itemsPerPage;
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
+
             pageData.forEach(row => {
                 const items = parseItems(row.items);
-                const prNumbers = items.map(item => item.prNumber).join(', ');
-                const poNumbers = items.map(item => item.poNumber).join(', ');
+                const prNumbers = items.map(item => item.prNumber).join(', ') || '-';
+                const poNumbers = items.map(item => item.poNumber).join(', ') || '-';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${row.date || '-'}</td>
                     <td>${row.department || '-'}</td>
-                    <td>${prNumbers || '-'}</td>
-                    <td>${poNumbers || '-'}</td>
+                    <td>${prNumbers}</td>
+                    <td>${poNumbers}</td>
                     <td><button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button></td>
                 `;
                 downloadBody.appendChild(tr);
             });
+
             renderPagination(data.length, page);
         }
+
         function renderPagination(totalItems, page) {
             const pagination = document.getElementById('pagination');
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
+
             const select = document.createElement('select');
             select.id = 'rowsPerPage';
             select.innerHTML = `
@@ -409,6 +430,7 @@
                 renderTable(filteredData, currentPage);
             });
             pagination.appendChild(select);
+
             const prevBtn = document.createElement('button');
             prevBtn.textContent = 'Previous';
             prevBtn.disabled = page === 1;
@@ -419,6 +441,7 @@
                 }
             });
             pagination.appendChild(prevBtn);
+
             for (let i = 1; i <= totalPages; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
@@ -429,6 +452,7 @@
                 });
                 pagination.appendChild(pageBtn);
             }
+
             const nextBtn = document.createElement('button');
             nextBtn.textContent = 'Next';
             nextBtn.disabled = page === totalPages;
@@ -440,6 +464,7 @@
             });
             pagination.appendChild(nextBtn);
         }
+
         function searchData(query) {
             query = query.toLowerCase().trim();
             filteredData = allData.filter(item => {
@@ -452,14 +477,17 @@
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
+
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
+
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
-                console.log('Data from /api/history:', result); // Debug
+                console.log('Download API response:', result); // Debug API response
+
                 if (response.ok) {
                     allData = result.data || [];
                     if (allData.length === 0) {
@@ -467,6 +495,7 @@
                         errorMessage.style.display = 'block';
                         return;
                     }
+
                     allData = allData.filter(row => {
                         if (!row.date || !row.department || !row.items) {
                             console.warn('Data tidak lengkap:', row); // Debug
@@ -474,30 +503,43 @@
                         }
                         return true;
                     });
+
                     allData.sort((a, b) => {
-                        const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        return dateB - dateA; // Urutkan terbaru ke terlama
+                        try {
+                            const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                            const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                            return dateB - dateA; // Terbaru ke terlama
+                        } catch (error) {
+                            console.error('Error sorting dates:', a.date, b.date, error);
+                            return 0;
+                        }
                     });
+
                     filteredData = [...allData];
-                    currentPage = 1; // Pastikan halaman awal
+                    currentPage = 1;
                     renderTable(filteredData, currentPage);
+
                     document.querySelectorAll('.download-btn').forEach(btn => {
                         btn.addEventListener('click', async () => {
                             const row = JSON.parse(btn.dataset.row);
+                            console.log('Generating PDF for row:', row); // Debug
+
                             let jsPDFInstance = window.jspdf;
                             if (!jsPDFInstance) {
                                 try {
                                     await loadJsPDF();
                                     jsPDFInstance = window.jspdf;
                                 } catch (error) {
-                                    alert('Gagal memuat library PDF');
+                                    alert('Gagal memuat library PDF: ' + error.message);
+                                    console.error('Error loading jsPDF:', error);
                                     return;
                                 }
                             }
+
                             const { jsPDF } = jsPDFInstance;
                             const doc = new jsPDF();
-                            const items = parseItems(row.items);
+
+                            // Header
                             doc.setFontSize(16);
                             doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
                             doc.setFontSize(12);
@@ -506,49 +548,90 @@
                             doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 50);
                             doc.text(`Departemen: ${row.department || '-'}`, 20, 60);
                             doc.text('Deskripsi Barang:', 20, 70);
+
+                            // Table
+                            const items = parseItems(row.items);
                             doc.autoTable({
                                 startY: 75,
                                 head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                                body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
+                                body: items.length ? items.map(item => [
+                                    item.desc,
+                                    item.qty,
+                                    item.unit,
+                                    item.prNumber,
+                                    item.poNumber
+                                ]) : [['-', '-', '-', '-', '-']],
                                 styles: { fontSize: 10 },
                                 headStyles: { fillColor: [16, 185, 129] }
                             });
+
                             let tableEndY = doc.lastAutoTable.finalY;
+
+                            // Foto Penerima
                             doc.text('Foto Penerima:', 20, tableEndY + 10);
                             if (row.photo) {
                                 try {
-                                    doc.addImage(row.photo, 'JPEG', 20, tableEndY + 15, 50, 30);
+                                    console.log('Menambahkan foto ke PDF:', row.photo); // Debug
+                                    const imgData = await fetch(row.photo).then(res => res.blob()).then(blob => {
+                                        return new Promise(resolve => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.readAsDataURL(blob);
+                                        });
+                                    });
+                                    doc.addImage(imgData, 'JPEG', 20, tableEndY + 15, 50, 30);
                                 } catch (error) {
-                                    console.warn('Gagal menambahkan foto:', error);
-                                    doc.text('Foto tidak tersedia', 20, tableEndY + 25);
+                                    console.error('Error adding photo to PDF:', error);
+                                    doc.text('Gagal memuat foto', 20, tableEndY + 25);
                                 }
                             } else {
-                                doc.text('Foto tidak tersedia', 20, tableEndY + 25);
+                                console.warn('Tidak ada foto untuk row:', row); // Debug
+                                doc.text('Tidak ada foto', 20, tableEndY + 25);
                             }
+
+                            // Tanda Tangan
                             const signatureY = tableEndY + 50;
                             doc.text('Pengirim:', 20, signatureY);
                             doc.text('Penerima:', 110, signatureY);
-                            if (row.signatureSender) {
-                                try {
-                                    doc.addImage(row.signatureSender, 'PNG', 20, signatureY + 5, 50, 15);
-                                } catch (error) {
-                                    console.warn('Gagal menambahkan tanda tangan pengirim:', error);
-                                    doc.text('Tanda tangan tidak tersedia', 20, signatureY + 10);
+
+                            try {
+                                if (row.signatureSender) {
+                                    console.log('Menambahkan tanda tangan pengirim:', row.signatureSender); // Debug
+                                    const senderImgData = await fetch(row.signatureSender).then(res => res.blob()).then(blob => {
+                                        return new Promise(resolve => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.readAsDataURL(blob);
+                                        });
+                                    });
+                                    doc.addImage(senderImgData, 'PNG', 20, signatureY + 5, 50, 15);
+                                } else {
+                                    console.warn('Tidak ada tanda tangan pengirim untuk row:', row); // Debug
+                                    doc.text('Tidak ada tanda tangan', 20, signatureY + 15);
                                 }
-                            } else {
-                                doc.text('Tanda tangan tidak tersedia', 20, signatureY + 10);
-                            }
-                            if (row.signatureReceiver) {
-                                try {
-                                    doc.addImage(row.signatureReceiver, 'PNG', 110, signatureY + 5, 50, 15);
-                                } catch (error) {
-                                    console.warn('Gagal menambahkan tanda tangan penerima:', error);
-                                    doc.text('Tanda tangan tidak tersedia', 110, signatureY + 10);
+
+                                if (row.signatureReceiver) {
+                                    console.log('Menambahkan tanda tangan penerima:', row.signatureReceiver); // Debug
+                                    const receiverImgData = await fetch(row.signatureReceiver).then(res => res.blob()).then(blob => {
+                                        return new Promise(resolve => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.readAsDataURL(blob);
+                                        });
+                                    });
+                                    doc.addImage(receiverImgData, 'PNG', 110, signatureY + 5, 50, 15);
+                                } else {
+                                    console.warn('Tidak ada tanda tangan penerima untuk row:', row); // Debug
+                                    doc.text('Tidak ada tanda tangan', 110, signatureY + 15);
                                 }
-                            } else {
-                                doc.text('Tanda tangan tidak tersedia', 110, signatureY + 10);
+                            } catch (error) {
+                                console.error('Error adding signatures to PDF:', error);
+                                doc.text('Gagal memuat tanda tangan', 20, signatureY + 15);
                             }
-                            doc.save(`direc-tanda-terima-${row.date.replace(/[\/, :]/g, '-')}.pdf`);
+
+                            // Simpan PDF
+                            const safeRegNumber = (row.regNumber || 'tanda-terima').replace(/[^a-zA-Z0-9-_]/g, '-');
+                            doc.save(`direc-tanda-terima-${safeRegNumber}.pdf`);
                         });
                     });
                 } else {
@@ -558,18 +641,23 @@
             } catch (error) {
                 errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
                 errorMessage.style.display = 'block';
+                console.error('Error loading download data:', error);
             } finally {
                 loading.style.display = 'none';
             }
         }
+
         loadDownloadData();
+
         document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
+
         document.getElementById('resetBtn').addEventListener('click', () => {
             document.getElementById('searchInput').value = '';
             filteredData = [...allData];
             currentPage = 1;
             renderTable(filteredData, currentPage);
         });
+
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
