@@ -90,8 +90,9 @@
         .content-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             margin-bottom: 15px;
+            position: relative;
         }
         .content-toggle {
             display: none;
@@ -102,101 +103,107 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+            position: absolute;
+            left: 10px;
+            top: 10px;
         }
         .content-toggle.visible {
             display: block;
+        }
+        .header-container {
+            text-align: center;
+            flex: 1;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
         }
-        .form-container {
+        .registration-number {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .receipt-container {
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
-        .form-group label {
+        label {
             display: block;
-            font-size: 13px;
-            color: #1e3a8a;
+            font-weight: 600;
+            font-size: 14px;
             margin-bottom: 5px;
         }
-        .form-group input, .form-group select {
+        input, select {
             width: 100%;
-            padding: 6px;
+            padding: 8px;
             border: 1px solid #d1d5db;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 14px;
         }
-        .item-container {
-            margin-bottom: 15px;
+        input:focus, select:focus {
+            border-color: #3b82f6;
+            outline: none;
         }
-        .item-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .item-row input {
-            flex: 1;
-            padding: 6px;
-            border: 1px solid #d1d5db;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .remove-item-btn {
-            background: #ef4444;
-            color: #fff;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .add-item-btn, .submit-btn {
+        button {
             background: #10b981;
             color: #fff;
+            padding: 8px;
             border: none;
-            padding: 8px 16px;
             border-radius: 4px;
+            font-size: 14px;
             cursor: pointer;
-            font-size: 13px;
+            width: 100%;
+        }
+        button:hover {
+            background: #059669;
+        }
+        #addItem {
+            background: #6b7280;
             margin-top: 10px;
         }
-        .signature-container {
-            display: flex;
-            justify-content: space-between;
+        #savePdfBtn {
+            background: #3b82f6;
+            display: none;
+        }
+        #receiptOutput {
             margin-top: 15px;
-        }
-        .signature-box {
-            width: 48%;
-        }
-        .signature-box canvas {
+            padding: 15px;
+            background: #f9fafb;
             border: 1px solid #d1d5db;
             border-radius: 4px;
-            width: 100%;
-            height: 100px;
+            display: none;
         }
-        .clear-signature {
-            background: #ef4444;
-            color: #fff;
-            border: none;
-            padding: 6px 12px;
+        #signatureSenderCanvas, #signatureReceiverCanvas {
+            border: 1px solid #d1d5db;
+            background: #fff;
+            width: 100%;
+            max-width: 280px;
+            height: 100px;
             border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
             margin-top: 5px;
         }
-        .error {
-            color: #ef4444;
-            text-align: center;
-            font-size: 12px;
+        #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        #cameraPreview {
+            width: 100%;
+            max-width: 320px;
+            height: auto;
             display: none;
             margin-top: 10px;
+            border-radius: 4px;
+        }
+        #capturePhoto {
+            margin-top: 10px;
+            display: none;
         }
         .loading {
             display: none;
@@ -236,22 +243,30 @@
             .content-toggle {
                 display: block;
             }
+            .form-group {
+                font-size: 13px;
+            }
+            input, select, button {
+                font-size: 13px;
+            }
+            #signatureSenderCanvas, #signatureReceiverCanvas {
+                max-width: 100%;
+                height: 80px;
+            }
             .header-text {
                 font-size: 18px;
             }
-            .item-row {
-                flex-direction: column;
-                align-items: stretch;
+            .registration-number {
+                font-size: 13px;
             }
-            .item-row input {
-                width: 100%;
+        }
+        @media (max-width: 480px) {
+            .receipt-container {
+                padding: 10px;
             }
-            .signature-container {
-                flex-direction: column;
-                gap: 15px;
-            }
-            .signature-box {
-                width: 100%;
+            .content-toggle {
+                padding: 5px;
+                font-size: 11px;
             }
         }
     </style>
@@ -269,59 +284,93 @@
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <div>
-                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-                <span class="header-text">DIREC - Input Form</span>
+            <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+            <div class="header-container">
+                <div class="header-text">DIREC - Input Form</div>
+                <div class="registration-number" id="registrationNumber"></div>
             </div>
         </div>
-        <div class="form-container">
-            <form id="receiptForm">
-                <div class="form-group">
-                    <label for="recipientName">Nama Penerima</label>
-                    <input type="text" id="recipientName" required>
-                </div>
-                <div class="form-group">
-                    <label for="department">Departemen</label>
-                    <select id="department" required>
-                        <option value="">Pilih Departemen</option>
-                        <option value="MD">MD</option>
-                        <option value="IT">IT</option>
-                        <option value="HR">HR</option>
-                    </select>
-                </div>
-                <div class="item-container" id="itemContainer">
-                    <div class="item-row">
-                        <input type="text" class="item-desc" placeholder="Deskripsi Barang" required>
-                        <input type="number" class="item-qty" placeholder="Qty" min="1" required>
-                        <input type="text" class="item-unit" placeholder="Satuan" required>
-                        <input type="text" class="item-pr" placeholder="No PR" required>
-                        <input type="text" class="item-po" placeholder="No PO" required>
-                        <button type="button" class="remove-item-btn">Hapus</button>
-                    </div>
-                </div>
-                <button type="button" class="add-item-btn" id="addItemBtn">Tambah Barang</button>
-                <div class="form-group">
-                    <label for="photo">Foto Penerima</label>
-                    <input type="file" id="photo" accept="image/*" required>
-                </div>
-                <div class="signature-container">
-                    <div class="signature-box">
-                        <label>Tanda Tangan Pengirim</label>
-                        <canvas id="signatureSender" width="300" height="100"></canvas>
-                        <button type="button" class="clear-signature" data-target="signatureSender">Hapus Tanda Tangan</button>
-                    </div>
-                    <div class="signature-box">
-                        <label>Tanda Tangan Penerima</label>
-                        <canvas id="signatureReceiver" width="300" height="100"></canvas>
-                        <button type="button" class="clear-signature" data-target="signatureReceiver">Hapus Tanda Tangan</button>
-                    </div>
-                </div>
-                <button type="submit" class="submit-btn">Simpan</button>
-            </form>
+        <div class="receipt-container">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
             </div>
-            <p class="error" id="errorMessage"></p>
+            <form id="receiptForm">
+                <div class="form-group">
+                    <label for="recipientName">Nama Penerima:</label>
+                    <input type="text" id="recipientName" name="recipientName" required>
+                </div>
+                <div class="form-group">
+                    <label for="department">Departemen:</label>
+                    <select id="department" name="department" required>
+                        <option value="" disabled selected>Pilih Departemen</option>
+                        <option value="PLANT">PLANT</option>
+                        <option value="HCGS">HCGS</option>
+                        <option value="ENGINE">ENGINEERING</option>
+                        <option value="SHE">SHE</option>
+                        <option value="SM">SM</option>
+                        <option value="FAT">FAT</option>
+                        <option value="PRODUKSI">PRODUKSI</option>
+                        <option value="ICT">ICT</option>
+                        <option value="MD">MD</option>
+                        <option value="Kalipers">Kalipers</option>
+                        <option value="TC">TC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Deskripsi Barang:</label>
+                    <div id="itemList">
+                        <div class="item-row">
+                            <input type="text" class="itemDesc" name="items[0][desc]" placeholder="Deskripsi Barang" required>
+                            <input type="number" class="itemQty" name="items[0][qty]" placeholder="Qty" required>
+                            <select class="itemUnit" name="items[0][unit]" required>
+                                <option value="" disabled selected>Pilih Satuan</option>
+                                <option value="Assy">Assy</option>
+                                <option value="Each">Each</option>
+                                <option value="Set">Set</option>
+                                <option value="Pcs">Pcs</option>
+                                <option value="Colly">Colly</option>
+                            </select>
+                            <input type="number" class="itemPrNumber" name="items[0][prNumber]" placeholder="No PR" required>
+                            <input type="text" class="itemPoNumber" name="items[0][poNumber]" placeholder="No PO" required>
+                        </div>
+                    </div>
+                    <button type="button" id="addItem">Tambah Barang</button>
+                </div>
+                <div class="form-group">
+                    <label for="recipientPhoto">Foto Penerima:</label>
+                    <input type="file" id="recipientPhoto" name="photo" accept="image/*">
+                    <button type="button" id="useCamera">Gunakan Kamera</button>
+                    <video id="cameraPreview" autoplay playsinline></video>
+                    <button type="button" id="capturePhoto">Ambil Foto</button>
+                    <img id="photoPreview" src="" alt="Preview Foto" style="display: none;">
+                </div>
+                <div class="form-group">
+                    <label>Tanda Tangan Pengirim:</label>
+                    <canvas id="signatureSenderCanvas"></canvas>
+                    <button type="button" id="clearSenderSignature">Hapus Tanda Tangan</button>
+                </div>
+                <div class="form-group">
+                    <label>Tanda Tangan Penerima:</label>
+                    <canvas id="signatureReceiverCanvas"></canvas>
+                    <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan</button>
+                </div>
+                <button type="submit" id="submitBtn">Buat Tanda Terima</button>
+            </form>
+            <div id="receiptOutput">
+                <h3>Tanda Terima</h3>
+                <p><strong>Tanggal:</strong> <span id="date"></span></p>
+                <p><strong>Penerima:</strong> <span id="outputName"></span></p>
+                <p><strong>Departemen:</strong> <span id="outputDepartment"></span></p>
+                <p><strong>Deskripsi Barang:</strong></p>
+                <ul id="outputItems"></ul>
+                <p><strong>Foto Penerima:</strong></p>
+                <img id="outputPhoto" src="" alt="Foto Penerima">
+                <p><strong>Tanda Tangan Pengirim:</strong></p>
+                <img id="signatureSenderPreview" src="" alt="Tanda Tangan Pengirim">
+                <p><strong>Tanda Tangan Penerima:</strong></p>
+                <img id="signatureReceiverPreview" src="" alt="Tanda Tangan Penerima">
+                <button id="savePdfBtn">Simpan sebagai PDF</button>
+            </div>
         </div>
     </div>
 
@@ -341,76 +390,6 @@
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
-        const addItemBtn = document.getElementById('addItemBtn');
-        const itemContainer = document.getElementById('itemContainer');
-        addItemBtn.addEventListener('click', () => {
-            const itemRow = document.createElement('div');
-            itemRow.className = 'item-row';
-            itemRow.innerHTML = `
-                <input type="text" class="item-desc" placeholder="Deskripsi Barang" required>
-                <input type="number" class="item-qty" placeholder="Qty" min="1" required>
-                <input type="text" class="item-unit" placeholder="Satuan" required>
-                <input type="text" class="item-pr" placeholder="No PR" required>
-                <input type="text" class="item-po" placeholder="No PO" required>
-                <button type="button" class="remove-item-btn">Hapus</button>
-            `;
-            itemContainer.appendChild(itemRow);
-        });
-        itemContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-item-btn')) {
-                if (itemContainer.children.length > 1) {
-                    e.target.parentElement.remove();
-                } else {
-                    alert('Minimal satu barang harus diisi');
-                }
-            }
-        });
-        const signatureSender = document.getElementById('signatureSender');
-        const signatureReceiver = document.getElementById('signatureReceiver');
-        let ctxSender = signatureSender.getContext('2d');
-        let ctxReceiver = signatureReceiver.getContext('2d');
-        let drawing = false;
-        function startDrawing(e, ctx, canvas) {
-            drawing = true;
-            ctx.beginPath();
-            const rect = canvas.getBoundingClientRect();
-            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-        }
-        function draw(e, ctx, canvas) {
-            if (!drawing) return;
-            const rect = canvas.getBoundingClientRect();
-            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            ctx.stroke();
-        }
-        function stopDrawing() {
-            drawing = false;
-            ctx.closePath();
-        }
-        [signatureSender, signatureReceiver].forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            canvas.addEventListener('mousedown', (e) => startDrawing(e, ctx, canvas));
-            canvas.addEventListener('mousemove', (e) => draw(e, ctx, canvas));
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                startDrawing(touch, ctx, canvas);
-            });
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                draw(touch, ctx, canvas);
-            });
-            canvas.addEventListener('touchend', stopDrawing);
-        });
-        document.querySelectorAll('.clear-signature').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const canvas = document.getElementById(btn.dataset.target);
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            });
-        });
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -426,145 +405,289 @@
                 document.head.appendChild(script);
             });
         }
-        async function uploadImage(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            if (response.ok) {
-                return result.url;
-            } else {
-                throw new Error(result.error || 'Gagal mengunggah gambar');
+        async function generateRegistrationNumber() {
+            try {
+                const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
+                const result = await response.json();
+                const data = result.data || [];
+                const count = data.length + 1;
+                const now = new Date();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const sequence = String(count).padStart(3, '0');
+                const regNumber = `TT-RANT-${month}-${year}-${sequence}`;
+                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
+            } catch (error) {
+                document.getElementById('registrationNumber').textContent = 'No. Registrasi: Gagal memuat';
             }
         }
-        function getItems() {
-            const items = [];
-            document.querySelectorAll('.item-row').forEach(row => {
-                const desc = row.querySelector('.item-desc').value.trim();
-                const qty = row.querySelector('.item-qty').value;
-                const unit = row.querySelector('.item-unit').value.trim();
-                const prNumber = row.querySelector('.item-pr').value.trim();
-                const poNumber = row.querySelector('.item-po').value.trim();
-                if (desc && qty && unit && prNumber && poNumber) {
-                    items.push({ desc, qty, unit, prNumber, poNumber });
-                }
-            });
-            return items;
-        }
-        function generateRegistrationNumber(date, count) {
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const sequence = String(count).padStart(3, '0');
-            return `TT-RANT-${month}-${year}-${sequence}`;
-        }
-        function getCurrentDateTime() {
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            return `${day}/${month}/${year}, ${hours}:${minutes}`;
-        }
-        document.getElementById('receiptForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const errorMessage = document.getElementById('errorMessage');
-            const loading = document.getElementById('loading');
-            errorMessage.style.display = 'none';
-            loading.style.display = 'flex';
+        generateRegistrationNumber();
+        let itemCount = 1;
+        let stream = null;
+        let jsPDFInstance = null;
+        document.getElementById('addItem').addEventListener('click', () => {
+            const itemList = document.getElementById('itemList');
+            const newItem = document.createElement('div');
+            newItem.className = 'item-row';
+            newItem.innerHTML = `
+                <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
+                <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
+                <select class="itemUnit" name="items[${itemCount}][unit]" required>
+                    <option value="" disabled selected>Pilih Satuan</option>
+                    <option value="Assy">Assy</option>
+                    <option value="Each">Each</option>
+                    <option value="Set">Set</option>
+                    <option value="Pcs">Pcs</option>
+                    <option value="Colly">Colly</option>
+                </select>
+                <input type="number" class="itemPrNumber" name="items[${itemCount}][prNumber]" placeholder="No PR" required>
+                <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
+            `;
+            itemList.appendChild(newItem);
+            itemCount++;
+        });
+        document.getElementById('recipientPhoto').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('photoPreview').src = e.target.result;
+                    document.getElementById('photoPreview').style.display = 'block';
+                    stopCamera();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        document.getElementById('useCamera').addEventListener('click', async () => {
             try {
-                const recipientName = document.getElementById('recipientName').value.trim();
-                const department = document.getElementById('department').value;
-                const items = getItems();
-                const photo = document.getElementById('photo').files[0];
-                if (!recipientName || !department || items.length === 0 || !photo) {
-                    throw new Error('Semua kolom wajib diisi');
-                }
-                const signatureSenderData = signatureSender.toDataURL('image/png');
-                const signatureReceiverData = signatureReceiver.toDataURL('image/png');
-                if (signatureSenderData === signatureSender.toDataURL() || signatureReceiverData === signatureReceiver.toDataURL()) {
-                    throw new Error('Tanda tangan pengirim dan penerima wajib diisi');
-                }
-                let jsPDFInstance = window.jspdf;
-                if (!jsPDFInstance) {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('cameraPreview').srcObject = stream;
+                document.getElementById('cameraPreview').style.display = 'block';
+                document.getElementById('capturePhoto').style.display = 'block';
+                document.getElementById('photoPreview').style.display = 'none';
+            } catch (error) {
+                alert('Gagal mengakses kamera: ' + error.message);
+            }
+        });
+        document.getElementById('capturePhoto').addEventListener('click', () => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
+            tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
+            tempCanvas.getContext('2d').drawImage(document.getElementById('cameraPreview'), 0, 0);
+            document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
+            document.getElementById('photoPreview').style.display = 'block';
+            stopCamera();
+        });
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('cameraPreview').style.display = 'none';
+                document.getElementById('capturePhoto').style.display = 'none';
+            }
+        }
+        const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
+        const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
+        const ctxSender = signatureSenderCanvas.getContext('2d');
+        const ctxReceiver = signatureReceiverCanvas.getContext('2d');
+        let drawingSender = false;
+        let drawingReceiver = false;
+        function getCanvasCoordinates(event, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            if (event.touches) {
+                return {
+                    x: (event.touches[0].clientX - rect.left) * scaleX,
+                    y: (event.touches[0].clientY - rect.top) * scaleY
+                };
+            }
+            return {
+                x: (event.clientX - rect.left) * scaleX,
+                y: (event.clientY - rect.top) * scaleY
+            };
+        }
+        function startDrawing(e, canvas, ctx, drawingFlag) {
+            drawingFlag = true;
+            const { x, y } = getCanvasCoordinates(e, canvas);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            return drawingFlag;
+        }
+        function draw(e, canvas, ctx, drawingFlag) {
+            if (!drawingFlag) return;
+            const { x, y } = getCanvasCoordinates(e, canvas);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+        signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        document.getElementById('clearSenderSignature').addEventListener('click', () => {
+            ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
+        });
+        signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        document.getElementById('clearReceiverSignature').addEventListener('click', () => {
+            ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
+        });
+        document.getElementById('receiptForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            submitBtn.disabled = true;
+            loading.style.display = 'flex';
+            const recipientName = document.getElementById('recipientName').value;
+            const department = document.getElementById('department').value;
+            const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
+                desc: row.querySelector('.itemDesc').value,
+                qty: row.querySelector('.itemQty').value,
+                unit: row.querySelector('.itemUnit').value,
+                prNumber: row.querySelector('.itemPrNumber').value,
+                poNumber: row.querySelector('.itemPoNumber').value
+            }));
+            const photoSrc = document.getElementById('photoPreview').src;
+            const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
+            const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
+            const date = new Date().toLocaleString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+            const formData = new FormData();
+            formData.append('recipientName', recipientName);
+            formData.append('department', department);
+            formData.append('date', date);
+            formData.append('registrationNumber', registrationNumber);
+            items.forEach((item, index) => {
+                formData.append(`items[${index}][desc]`, item.desc);
+                formData.append(`items[${index}][qty]`, item.qty);
+                formData.append(`items[${index}][unit]`, item.unit);
+                formData.append(`items[${index}][prNumber]`, item.prNumber);
+                formData.append(`items[${index}][poNumber]`, item.poNumber);
+            });
+            if (photoSrc) {
+                const photoBlob = await fetch(photoSrc).then(res => res.blob());
+                formData.append('photo', photoBlob, 'photo.jpg');
+            }
+            const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
+            const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
+            formData.append('signatureSender', signatureSenderBlob, 'sender.png');
+            formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+            try {
+                const response = await fetch('/api/receipts', {
+                    method: 'POST',
+                    body: formData,
+                    signal: AbortSignal.timeout(30000)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
+                alert('Tanda terima berhasil disimpan!');
+            } catch (error) {
+                alert('Gagal menyimpan: ' + error.message);
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+                return;
+            }
+            document.getElementById('date').textContent = date;
+            document.getElementById('outputName').textContent = recipientName;
+            document.getElementById('outputDepartment').textContent = department;
+            const outputItems = document.getElementById('outputItems');
+            outputItems.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
+                outputItems.appendChild(li);
+            });
+            document.getElementById('outputPhoto').src = photoSrc;
+            document.getElementById('signatureSenderPreview').src = signatureSenderData;
+            document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
+            document.getElementById('receiptOutput').style.display = 'block';
+            document.getElementById('savePdfBtn').style.display = 'block';
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
+        });
+        document.getElementById('savePdfBtn').addEventListener('click', async () => {
+            if (!jsPDFInstance) {
+                try {
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
+                } catch (error) {
+                    alert('Gagal memuat library PDF');
+                    return;
                 }
-                const { jsPDF } = jsPDFInstance;
-                const doc = new jsPDF();
-                const date = new Date();
-                const response = await fetch('/api/history');
-                const history = await response.json();
-                const count = history.data.filter(entry => {
-                    const match = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                    if (!match) return false;
-                    const [, , month, year] = match;
-                    return `${year}-${month}` === `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                }).length + 1;
-                const registrationNumber = generateRegistrationNumber(date, count);
-                const photoUrl = await uploadImage(photo);
-                const dateStr = getCurrentDateTime();
-                const itemsString = items.map(item => `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`).join('\n');
-                doc.setFontSize(16);
-                doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
-                doc.setFontSize(10);
-                doc.text(`No. Registrasi: ${registrationNumber}`, 105, 15, { align: 'center' });
-                doc.setFontSize(12);
-                doc.text(`Tanggal: ${dateStr}`, 20, 25);
-                doc.text(`Penerima: ${recipientName}`, 20, 35);
-                doc.text(`Departemen: ${department}`, 20, 45);
-                doc.text('Deskripsi Barang:', 20, 55);
-                doc.autoTable({
-                    startY: 60,
-                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
-                    styles: { fontSize: 10 },
-                    headStyles: { fillColor: [16, 185, 129] }
-                });
-                let tableEndY = doc.lastAutoTable.finalY;
-                doc.text('Foto Penerima:', 20, tableEndY + 10);
-                const img = new Image();
-                img.src = URL.createObjectURL(photo);
-                await new Promise(resolve => img.onload = resolve);
-                doc.addImage(img, 'JPEG', 20, tableEndY + 15, 50, 30);
-                const signatureY = tableEndY + 50;
-                doc.text('Pengirim:', 20, signatureY);
-                doc.text('Penerima:', 110, signatureY);
-                doc.addImage(signatureSenderData, 'PNG', 20, signatureY + 5, 50, 15);
-                doc.addImage(signatureReceiverData, 'PNG', 110, signatureY + 5, 50, 15);
-                doc.setFontSize(10);
-                doc.text(recipientName, 110, signatureY + 25, { align: 'left' });
-                doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
-                const formData = new FormData();
-                formData.append('recipientName', recipientName);
-                formData.append('department', department);
-                formData.append('items', itemsString);
-                formData.append('photo', photo);
-                formData.append('signatureSender', new File([await (await fetch(signatureSenderData)).blob()], 'signatureSender.png'));
-                formData.append('signatureReceiver', new File([await (await fetch(signatureReceiverData)).blob()], 'signatureReceiver.png'));
-                formData.append('date', dateStr);
-                formData.append('registrationNumber', registrationNumber);
-                const submitResponse = await fetch('/api/receipts', {
-                    method: 'POST',
-                    body: formData
-                });
-                const submitResult = await submitResponse.json();
-                if (!submitResponse.ok) {
-                    throw new Error(submitResult.error || 'Gagal menyimpan data');
-                }
-                alert('Data berhasil disimpan');
-                document.getElementById('receiptForm').reset();
-                ctxSender.clearRect(0, 0, signatureSender.width, signatureSender.height);
-                ctxReceiver.clearRect(0, 0, signatureReceiver.width, signatureReceiver.height);
-            } catch (error) {
-                errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
-                errorMessage.style.display = 'block';
-            } finally {
-                loading.style.display = 'none';
             }
+            const { jsPDF } = jsPDFInstance;
+            const doc = new jsPDF();
+            const date = document.getElementById('date').textContent;
+            const recipientName = document.getElementById('outputName').textContent;
+            const department = document.getElementById('outputDepartment').textContent;
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+            const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
+                const parts = li.textContent.split(' ');
+                return {
+                    desc: parts[0],
+                    qty: parts[2],
+                    unit: parts[3],
+                    prNumber: parts[5],
+                    poNumber: parts[7]
+                };
+            });
+            const photoSrc = document.getElementById('outputPhoto').src;
+            const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
+            const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
+            doc.setFontSize(16);
+            doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`No. Registrasi: ${registrationNumber}`, 105, 15, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`Tanggal: ${date}`, 20, 25);
+            doc.text(`Penerima: ${recipientName}`, 20, 35);
+            doc.text(`Departemen: ${department}`, 20, 45);
+            doc.text('Deskripsi Barang:', 20, 55);
+            doc.autoTable({
+                startY: 60,
+                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [16, 185, 129] }
+            });
+            let tableEndY = doc.lastAutoTable.finalY;
+            doc.text('Foto Penerima:', 20, tableEndY + 10);
+            try {
+                doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
+            } catch (error) {}
+            const signatureY = tableEndY + 50;
+            doc.text('Pengirim:', 20, signatureY);
+            doc.text('Penerima:', 110, signatureY);
+            try {
+                doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 50, 15);
+                doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 50, 15);
+            } catch (error) {}
+            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
