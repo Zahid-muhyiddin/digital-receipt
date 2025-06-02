@@ -361,6 +361,7 @@
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
             pageData.forEach(row => {
+                console.log('Row data:', row); // Debug row data
                 const items = parseItems(row.items);
                 const rowCount = items.length || 1;
                 items.forEach((item, index) => {
@@ -374,7 +375,7 @@
                         <td>${item ? item.unit : '-'}</td>
                         <td>${item ? item.prNumber : '-'}</td>
                         <td>${item ? item.poNumber : '-'}</td>
-                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : '-'}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : 'Tidak ada foto'}</td>` : ''}
                     `;
                     historyBody.appendChild(tr);
                 });
@@ -389,7 +390,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : '-'}</td>
+                        <td>${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : 'Tidak ada foto'}</td>
                     `;
                     historyBody.appendChild(tr);
                 }
@@ -451,6 +452,7 @@
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
+                console.log('History API response:', result); // Debug API response
                 if (response.ok) {
                     allData = result.data || [];
                     if (allData.length === 0) {
@@ -459,12 +461,17 @@
                         return;
                     }
                     allData.sort((a, b) => {
-                        const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        return dateB - dateA; // Urutkan terbaru ke terlama
+                        try {
+                            const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                            const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+                            return dateB - dateA; // Terbaru ke terlama
+                        } catch (error) {
+                            console.error('Error sorting dates:', a.date, b.date, error);
+                            return 0;
+                        }
                     });
                     filteredData = [...allData];
-                    currentPage = 1; // Pastikan halaman awal
+                    currentPage = 1;
                     renderTable(filteredData, currentPage);
                 } else {
                     errorMessage.textContent = result.error || 'Gagal memuat data';

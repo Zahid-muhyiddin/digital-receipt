@@ -89,29 +89,31 @@
         }
         .content-header {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
             margin-bottom: 15px;
-            position: relative;
         }
         .content-toggle {
             display: none;
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 4px 6px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
-            margin-right: 10px;
+            font-size: 14px;
+            position: absolute;
+            left: 15px;
+            top: 15px;
         }
         .content-toggle.visible {
-            display: inline-block;
+            display: block;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
+            text-align: center;
         }
         .registration-number {
             font-size: 14px;
@@ -235,7 +237,7 @@
                 width: calc(100% - 220px);
             }
             .content-toggle {
-                display: inline-block;
+                display: block; /* Pastikan tombol hamburger muncul */
             }
             .form-group {
                 font-size: 13px;
@@ -274,10 +276,8 @@
     </div>
     <div class="content" id="content">
         <div class="content-header">
-            <div style="display: flex; align-items: center;">
-                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-                <span class="header-text">DIREC - Input Form</span>
-            </div>
+            <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+            <div class="header-text">DIREC - Input Form</div>
             <div class="registration-number" id="registrationNumber">No Registrasi-TT-RANT-001-MM-YYYY</div>
         </div>
         <div class="receipt-container">
@@ -377,7 +377,7 @@
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
             toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
-            contentToggle.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
+            contentToggle.classList.toggle('visible');
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
@@ -481,8 +481,19 @@
         const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
         const ctxSender = signatureSenderCanvas.getContext('2d');
         const ctxReceiver = signatureReceiverCanvas.getContext('2d');
+        ctxSender.lineWidth = 2;
+        ctxSender.strokeStyle = '#000';
+        ctxReceiver.lineWidth = 2;
+        ctxReceiver.strokeStyle = '#000';
         let drawingSender = false;
         let drawingReceiver = false;
+        function isCanvasBlank(canvas) {
+            const context = canvas.getContext('2d');
+            const pixelBuffer = new Uint32Array(
+                context.getImageData(0, 0, canvas.width, canvas.height).data.buffer
+            );
+            return !pixelBuffer.some(color => color !== 0);
+        }
         function getCanvasCoordinates(event, canvas) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -568,6 +579,10 @@
         });
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            if (isCanvasBlank(signatureSenderCanvas) || isCanvasBlank(signatureReceiverCanvas)) {
+                alert('Harap isi tanda tangan pengirim dan penerima!');
+                return;
+            }
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             submitBtn.disabled = true;
@@ -676,15 +691,15 @@
             const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
             const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
             doc.setFontSize(16);
-            doc.text('DIREC - Tanda Terima', 105, 15, { align: 'center' });
+            doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
             doc.setFontSize(12);
             doc.text(`No Registrasi: ${regNumber}`, 20, 30);
-            doc.text(`Tanggal: ${date}`, 20, 35);
-            doc.text(`Penerima: ${recipientName}`, 20, 40);
-            doc.text(`Departemen: ${department}`, 20, 45);
-            doc.text('Deskripsi Barang:', 20, 55);
+            doc.text(`Tanggal: ${date}`, 20, 40);
+            doc.text(`Penerima: ${recipientName}`, 20, 50);
+            doc.text(`Departemen: ${department}`, 20, 60);
+            doc.text('Deskripsi Barang:', 20, 70);
             doc.autoTable({
-                startY: 60,
+                startY: 75,
                 head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
                 body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
                 styles: { fontSize: 10 },
@@ -694,20 +709,14 @@
             doc.text('Foto Penerima:', 20, tableEndY + 10);
             try {
                 doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
-            } catch (error) {
-                console.error('Gagal menambahkan foto:', error);
-            }
+            } catch (error) {}
             const signatureY = tableEndY + 50;
             doc.text('Pengirim:', 20, signatureY);
             doc.text('Penerima:', 110, signatureY);
             try {
                 doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 50, 15);
                 doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 50, 15);
-                doc.setFontSize(10);
-                doc.text(recipientName, 110, signatureY + 25, { align: 'left' });
-            } catch (error) {
-                console.error('Gagal menambahkan tanda tangan:', error);
-            }
+            } catch (error) {}
             doc.save('direc-tanda-terima.pdf');
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
