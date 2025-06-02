@@ -427,7 +427,7 @@
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
-        function generateRegistrationNumber(dateStr, count, allData) {
+        function generateRegistrationNumber(dateStr, count) {
             try {
                 const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                 if (!match) throw new Error('Invalid date format');
@@ -465,7 +465,7 @@
         }
         async function attachDownloadEvents() {
             const buttons = document.querySelectorAll('.download-btn');
-            buttons.forEach((btn, index) => {
+            buttons.forEach((btn) => {
                 btn.addEventListener('click', async () => {
                     const row = JSON.parse(btn.dataset.row);
                     let jsPDFInstance = window.jspdf;
@@ -483,27 +483,31 @@
                     const items = parseItems(row.items);
                     let registrationNumber = row.registrationNumber;
                     if (!registrationNumber) {
-                        // Hitung jumlah entri di bulan dan tahun yang sama
-                        let count = 1;
+                        // Hitung jumlah entri di bulan dan tahun yang sama dari semua data
+                        let count = 0;
                         try {
                             const match = row.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                             if (!match) throw new Error('Invalid date format');
                             const [, , month, year] = match;
                             const targetMonthYear = `${year}-${month}`;
+                            const rowDate = new Date(`${year}-${month}-${match[1]}T${match[4]}:${match[5]}:00`);
                             allData.forEach((entry) => {
                                 const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                                 if (entryMatch) {
                                     const [, , entryMonth, entryYear] = entryMatch;
                                     const entryMonthYear = `${entryYear}-${entryMonth}`;
                                     if (entryMonthYear === targetMonthYear) {
-                                        count++;
+                                        const entryDate = new Date(`${entryYear}-${entryMonth}-${entryMatch[1]}T${entryMatch[4]}:${entryMatch[5]}:00`);
+                                        if (entryDate <= rowDate) {
+                                            count++;
+                                        }
                                     }
                                 }
                             });
-                            registrationNumber = generateRegistrationNumber(row.date, count, allData);
+                            registrationNumber = generateRegistrationNumber(row.date, count);
                         } catch (error) {
                             console.error('Error calculating registration number:', error);
-                            registrationNumber = generateRegistrationNumber(row.date, index + 1, allData);
+                            registrationNumber = generateRegistrationNumber(row.date, 1); // Fallback
                         }
                     }
                     const photoData = await fetchImage(row.photoUrl);
