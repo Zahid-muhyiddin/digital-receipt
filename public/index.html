@@ -90,7 +90,9 @@
         .content-header {
             display: flex;
             align-items: center;
+            justify-content: center;
             margin-bottom: 15px;
+            position: relative;
         }
         .content-toggle {
             display: none;
@@ -101,94 +103,106 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
-            margin-right: 10px;
+            position: absolute;
+            left: 10px;
+            top: 10px;
         }
         .content-toggle.visible {
             display: block;
+        }
+        .header-container {
+            text-align: center;
+            flex: 1;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
         }
-        .form-container {
-            max-width: 600px;
+        .registration-number {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .receipt-container {
             padding: 15px;
-            background: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         label {
             display: block;
-            font-size: 13px;
-            color: #1e3a8a;
+            font-weight: 600;
+            font-size: 14px;
             margin-bottom: 5px;
         }
-        input[type="text"], input[type="file"], select {
+        input, select {
             width: 100%;
             padding: 8px;
             border: 1px solid #d1d5db;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 14px;
         }
-        .item-group {
-            border: 1px solid #d1d5db;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            position: relative;
+        input:focus, select:focus {
+            border-color: #3b82f6;
+            outline: none;
         }
-        .item-group-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .remove-item-btn {
-            background: #ef4444;
-            color: #fff;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .add-item-btn, .submit-btn {
+        button {
             background: #10b981;
             color: #fff;
+            padding: 8px;
             border: none;
-            padding: 8px 15px;
             border-radius: 4px;
+            font-size: 14px;
             cursor: pointer;
-            font-size: 13px;
+            width: 100%;
+        }
+        button:hover {
+            background: #059669;
+        }
+        #addItem {
+            background: #6b7280;
             margin-top: 10px;
         }
-        .canvas-container {
-            margin-top: 10px;
+        #savePdfBtn {
+            background: #3b82f6;
+            display: none;
         }
-        canvas {
+        #receiptOutput {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9fafb;
             border: 1px solid #d1d5db;
             border-radius: 4px;
+            display: none;
+        }
+        #signatureSenderCanvas, #signatureReceiverCanvas {
+            border: 1px solid #d1d5db;
+            background: #fff;
             width: 100%;
-            max-width: 300px;
-        }
-        .clear-canvas-btn {
-            background: #f59e0b;
-            color: #fff;
-            border: none;
-            padding: 5px 10px;
+            max-width: 280px;
+            height: 100px;
             border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
             margin-top: 5px;
         }
-        .error {
-            color: #ef4444;
-            font-size: 12px;
-            margin-top: 5px;
+        #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        #cameraPreview {
+            width: 100%;
+            max-width: 320px;
+            height: auto;
+            display: none;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        #capturePhoto {
+            margin-top: 10px;
             display: none;
         }
         .loading {
@@ -229,22 +243,30 @@
             .content-toggle {
                 display: block;
             }
+            .form-group {
+                font-size: 13px;
+            }
+            input, select, button {
+                font-size: 13px;
+            }
+            #signatureSenderCanvas, #signatureReceiverCanvas {
+                max-width: 100%;
+                height: 80px;
+            }
             .header-text {
                 font-size: 18px;
             }
-            .form-container {
+            .registration-number {
+                font-size: 13px;
+            }
+        }
+        @media (max-width: 480px) {
+            .receipt-container {
                 padding: 10px;
             }
-            input[type="text"], input[type="file"], select {
-                font-size: 12px;
-                padding: 6px;
-            }
-            .add-item-btn, .submit-btn {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-            canvas {
-                max-width: 100%;
+            .content-toggle {
+                padding: 5px;
+                font-size: 11px;
             }
         }
     </style>
@@ -263,75 +285,92 @@
     <div class="content" id="content">
         <div class="content-header">
             <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-            <span class="header-text">DIREC - Input Form</span>
+            <div class="header-container">
+                <div class="header-text">DIREC - Input Form</div>
+                <div class="registration-number" id="registrationNumber"></div>
+            </div>
         </div>
-        <div class="form-container">
+        <div class="receipt-container">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
             </div>
             <form id="receiptForm">
                 <div class="form-group">
-                    <label for="recipientName">Nama Penerima</label>
-                    <input type="text" id="recipientName" required>
+                    <label for="recipientName">Nama Penerima:</label>
+                    <input type="text" id="recipientName" name="recipientName" required>
                 </div>
                 <div class="form-group">
-                    <label for="department">Departemen</label>
-                    <select id="department" required>
+                    <label for="department">Departemen:</label>
+                    <select id="department" name="department" required>
+                        <option value="" disabled selected>Pilih Departemen</option>
+                        <option value="PLANT">PLANT</option>
+                        <option value="HCGS">HCGS</option>
+                        <option value="ENGINE">ENGINEERING</option>
+                        <option value="SHE">SHE</option>
+                        <option value="SM">SM</option>
+                        <option value="FAT">FAT</option>
+                        <option value="PRODUKSI">PRODUKSI</option>
+                        <option value="ICT">ICT</option>
                         <option value="MD">MD</option>
-                        <option value="KSA">KSA</option>
-                        <option value="DSD">DSD</option>
+                        <option value="Kalipers">Kalipers</option>
+                        <option value="TC">TC</option>
                     </select>
                 </div>
-                <div id="itemsContainer">
-                    <div class="item-group" id="item-0">
-                        <div class="item-group-header">
-                            <span>Barang 1</span>
-                            <button type="button" class="remove-item-btn" data-index="0" disabled>Hapus</button>
-                        </div>
-                        <div class="form-group">
-                            <label for="description-0">Deskripsi</label>
-                            <input type="text" id="description-0" class="item-description" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="qty-0">Kuantitas</label>
-                            <input type="number" id="qty-0" class="item-qty" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="unit-0">Satuan</label>
-                            <input type="text" id="unit-0" class="item-unit" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="prNumber-0">No PR</label>
-                            <input type="text" id="prNumber-0" class="item-prNumber" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="poNumber-0">No PO</label>
-                            <input type="text" id="poNumber-0" class="item-poNumber" required>
+                <div class="form-group">
+                    <label>Deskripsi Barang:</label>
+                    <div id="itemList">
+                        <div class="item-row">
+                            <input type="text" class="itemDesc" name="items[0][desc]" placeholder="Deskripsi Barang" required>
+                            <input type="number" class="itemQty" name="items[0][qty]" placeholder="Qty" required>
+                            <select class="itemUnit" name="items[0][unit]" required>
+                                <option value="" disabled selected>Pilih Satuan</option>
+                                <option value="Assy">Assy</option>
+                                <option value="Each">Each</option>
+                                <option value="Set">Set</option>
+                                <option value="Pcs">Pcs</option>
+                                <option value="Colly">Colly</option>
+                            </select>
+                            <input type="number" class="itemPrNumber" name="items[0][prNumber]" placeholder="No PR" required>
+                            <input type="text" class="itemPoNumber" name="items[0][poNumber]" placeholder="No PO" required>
                         </div>
                     </div>
-                </div>
-                <button type="button" class="add-item-btn" id="addItemBtn">Tambah Barang</button>
-                <div class="form-group">
-                    <label for="photo">Foto Penerima</label>
-                    <input type="file" id="photo" accept="image/*" required>
+                    <button type="button" id="addItem">Tambah Barang</button>
                 </div>
                 <div class="form-group">
-                    <label>Tanda Tangan Pengirim</label>
-                    <div class="canvas-container">
-                        <canvas id="signatureSenderCanvas" width="300" height="100"></canvas>
-                        <button type="button" class="clear-canvas-btn" data-canvas="signatureSenderCanvas">Hapus Tanda Tangan</button>
-                    </div>
+                    <label for="recipientPhoto">Foto Penerima:</label>
+                    <input type="file" id="recipientPhoto" name="photo" accept="image/*">
+                    <button type="button" id="useCamera">Gunakan Kamera</button>
+                    <video id="cameraPreview" autoplay playsinline></video>
+                    <button type="button" id="capturePhoto">Ambil Foto</button>
+                    <img id="photoPreview" src="" alt="Preview Foto" style="display: none;">
                 </div>
                 <div class="form-group">
-                    <label>Tanda Tangan Penerima</label>
-                    <div class="canvas-container">
-                        <canvas id="signatureReceiverCanvas" width="300" height="100"></canvas>
-                        <button type="button" class="clear-canvas-btn" data-canvas="signatureReceiverCanvas">Hapus Tanda Tangan</button>
-                    </div>
+                    <label>Tanda Tangan Pengirim:</label>
+                    <canvas id="signatureSenderCanvas"></canvas>
+                    <button type="button" id="clearSenderSignature">Hapus Tanda Tangan</button>
                 </div>
-                <button type="submit" class="submit-btn">Simpan</button>
-                <p class="error" id="errorMessage"></p>
+                <div class="form-group">
+                    <label>Tanda Tangan Penerima:</label>
+                    <canvas id="signatureReceiverCanvas"></canvas>
+                    <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan</button>
+                </div>
+                <button type="submit" id="submitBtn">Buat Tanda Terima</button>
             </form>
+            <div id="receiptOutput">
+                <h3>Tanda Terima</h3>
+                <p><strong>Tanggal:</strong> <span id="date"></span></p>
+                <p><strong>Penerima:</strong> <span id="outputName"></span></p>
+                <p><strong>Departemen:</strong> <span id="outputDepartment"></span></p>
+                <p><strong>Deskripsi Barang:</strong></p>
+                <ul id="outputItems"></ul>
+                <p><strong>Foto Penerima:</strong></p>
+                <img id="outputPhoto" src="" alt="Foto Penerima">
+                <p><strong>Tanda Tangan Pengirim:</strong></p>
+                <img id="signatureSenderPreview" src="" alt="Tanda Tangan Pengirim">
+                <p><strong>Tanda Tangan Penerima:</strong></p>
+                <img id="signatureReceiverPreview" src="" alt="Tanda Tangan Penerima">
+                <button id="savePdfBtn">Simpan sebagai PDF</button>
+            </div>
         </div>
     </div>
 
@@ -366,242 +405,289 @@
                 document.head.appendChild(script);
             });
         }
-        function generateRegistrationNumber() {
-            const now = new Date();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const sequence = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-            return `TT-RANT-${month}-${year}-${sequence}`;
-        }
-        let itemIndex = 0;
-        function addItem() {
-            itemIndex++;
-            const itemsContainer = document.getElementById('itemsContainer');
-            const itemGroup = document.createElement('div');
-            itemGroup.className = 'item-group';
-            itemGroup.id = `item-${itemIndex}`;
-            itemGroup.innerHTML = `
-                <div class="item-group-header">
-                    <span>Barang ${itemIndex + 1}</span>
-                    <button type="button" class="remove-item-btn" data-index="${itemIndex}">Hapus</button>
-                </div>
-                <div class="form-group">
-                    <label for="description-${itemIndex}">Deskripsi</label>
-                    <input type="text" id="description-${itemIndex}" class="item-description" required>
-                </div>
-                <div class="form-group">
-                    <label for="qty-${itemIndex}">Kuantitas</label>
-                    <input type="number" id="qty-${itemIndex}" class="item-qty" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="unit-${itemIndex}">Satuan</label>
-                    <input type="text" id="unit-${itemIndex}" class="item-unit" required>
-                </div>
-                <div class="form-group">
-                    <label for="prNumber-${itemIndex}">No PR</label>
-                    <input type="text" id="prNumber-${itemIndex}" class="item-prNumber" required>
-                </div>
-                <div class="form-group">
-                    <label for="poNumber-${itemIndex}">No PO</label>
-                    <input type="text" id="poNumber-${itemIndex}" class="item-poNumber" required>
-                </div>
-            `;
-            itemsContainer.appendChild(itemGroup);
-            updateRemoveButtons();
-        }
-        function updateRemoveButtons() {
-            const removeButtons = document.querySelectorAll('.remove-item-btn');
-            removeButtons.forEach(btn => {
-                btn.disabled = removeButtons.length === 1;
-                btn.addEventListener('click', () => {
-                    const index = btn.dataset.index;
-                    document.getElementById(`item-${index}`).remove();
-                    updateItemHeaders();
-                    updateRemoveButtons();
-                });
-            });
-        }
-        function updateItemHeaders() {
-            const itemGroups = document.querySelectorAll('.item-group');
-            itemGroups.forEach((group, index) => {
-                group.querySelector('.item-group-header span').textContent = `Barang ${index + 1}`;
-            });
-        }
-        function setupCanvas(canvasId) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = '#000';
-            canvas.addEventListener('mousedown', (e) => {
-                isDrawing = true;
-                ctx.beginPath();
-                ctx.moveTo(e.offsetX, e.offsetY);
-            });
-            canvas.addEventListener('mousemove', (e) => {
-                if (isDrawing) {
-                    ctx.lineTo(e.offsetX, e.offsetY);
-                    ctx.stroke();
-                }
-            });
-            canvas.addEventListener('mouseup', () => isDrawing = false);
-            canvas.addEventListener('mouseout', () => isDrawing = false);
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                isDrawing = true;
-                const rect = canvas.getBoundingClientRect();
-                ctx.beginPath();
-                ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-            });
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (isDrawing) {
-                    const rect = canvas.getBoundingClientRect();
-                    ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-                    ctx.stroke();
-                }
-            });
-            canvas.addEventListener('touchend', () => isDrawing = false);
-        }
-        document.querySelectorAll('.clear-canvas-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const canvas = document.getElementById(btn.dataset.canvas);
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            });
-        });
-        document.getElementById('addItemBtn').addEventListener('click', addItem);
-        setupCanvas('signatureSenderCanvas');
-        setupCanvas('signatureReceiverCanvas');
-        updateRemoveButtons();
-        document.getElementById('receiptForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const errorMessage = document.getElementById('errorMessage');
-            const loading = document.getElementById('loading');
-            errorMessage.style.display = 'none';
-            loading.style.display = 'flex';
+        async function generateRegistrationNumber() {
             try {
-                const recipientName = document.getElementById('recipientName').value;
-                const department = document.getElementById('department').value;
-                const photo = document.getElementById('photo').files[0];
-                const items = [];
-                document.querySelectorAll('.item-group').forEach(group => {
-                    const index = group.id.split('-')[1];
-                    items.push({
-                        description: document.getElementById(`description-${index}`).value,
-                        qty: document.getElementById(`qty-${index}`).value,
-                        unit: document.getElementById(`unit-${index}`).value,
-                        prNumber: document.getElementById(`prNumber-${index}`).value,
-                        poNumber: document.getElementById(`poNumber-${index}`).value
-                    });
-                });
-                const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
-                const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
-                const signatureSenderUrl = signatureSenderCanvas.toDataURL('image/png');
-                const signatureReceiverUrl = signatureReceiverCanvas.toDataURL('image/png');
-                if (!photo) throw new Error('Foto penerima diperlukan');
+                const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
+                const result = await response.json();
+                const data = result.data || [];
+                const count = data.length + 1;
                 const now = new Date();
-                const date = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                const registrationNumber = generateRegistrationNumber();
-                const formData = new FormData();
-                formData.append('date', date);
-                formData.append('recipientName', recipientName);
-                formData.append('department', department);
-                formData.append('items', items.map(item => `${item.description} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`).join('\n'));
-                formData.append('photo', photo);
-                formData.append('signatureSender', await (await fetch(signatureSenderUrl)).blob(), 'signatureSender.png');
-                formData.append('signatureReceiver', await (await fetch(signatureReceiverUrl)).blob(), 'signatureReceiver.png');
-                formData.append('registrationNumber', registrationNumber);
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const sequence = String(count).padStart(3, '0');
+                const regNumber = `TT-RANT-${month}-${year}-${sequence}`;
+                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
+            } catch (error) {
+                document.getElementById('registrationNumber').textContent = 'No. Registrasi: Gagal memuat';
+            }
+        }
+        generateRegistrationNumber();
+        let itemCount = 1;
+        let stream = null;
+        let jsPDFInstance = null;
+        document.getElementById('addItem').addEventListener('click', () => {
+            const itemList = document.getElementById('itemList');
+            const newItem = document.createElement('div');
+            newItem.className = 'item-row';
+            newItem.innerHTML = `
+                <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
+                <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
+                <select class="itemUnit" name="items[${itemCount}][unit]" required>
+                    <option value="" disabled selected>Pilih Satuan</option>
+                    <option value="Assy">Assy</option>
+                    <option value="Each">Each</option>
+                    <option value="Set">Set</option>
+                    <option value="Pcs">Pcs</option>
+                    <option value="Colly">Colly</option>
+                </select>
+                <input type="number" class="itemPrNumber" name="items[${itemCount}][prNumber]" placeholder="No PR" required>
+                <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
+            `;
+            itemList.appendChild(newItem);
+            itemCount++;
+        });
+        document.getElementById('recipientPhoto').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('photoPreview').src = e.target.result;
+                    document.getElementById('photoPreview').style.display = 'block';
+                    stopCamera();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        document.getElementById('useCamera').addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('cameraPreview').srcObject = stream;
+                document.getElementById('cameraPreview').style.display = 'block';
+                document.getElementById('capturePhoto').style.display = 'block';
+                document.getElementById('photoPreview').style.display = 'none';
+            } catch (error) {
+                alert('Gagal mengakses kamera: ' + error.message);
+            }
+        });
+        document.getElementById('capturePhoto').addEventListener('click', () => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
+            tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
+            tempCanvas.getContext('2d').drawImage(document.getElementById('cameraPreview'), 0, 0);
+            document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
+            document.getElementById('photoPreview').style.display = 'block';
+            stopCamera();
+        });
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('cameraPreview').style.display = 'none';
+                document.getElementById('capturePhoto').style.display = 'none';
+            }
+        }
+        const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
+        const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
+        const ctxSender = signatureSenderCanvas.getContext('2d');
+        const ctxReceiver = signatureReceiverCanvas.getContext('2d');
+        let drawingSender = false;
+        let drawingReceiver = false;
+        function getCanvasCoordinates(event, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            if (event.touches) {
+                return {
+                    x: (event.touches[0].clientX - rect.left) * scaleX,
+                    y: (event.touches[0].clientY - rect.top) * scaleY
+                };
+            }
+            return {
+                x: (event.clientX - rect.left) * scaleX,
+                y: (event.clientY - rect.top) * scaleY
+            };
+        }
+        function startDrawing(e, canvas, ctx, drawingFlag) {
+            drawingFlag = true;
+            const { x, y } = getCanvasCoordinates(e, canvas);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            return drawingFlag;
+        }
+        function draw(e, canvas, ctx, drawingFlag) {
+            if (!drawingFlag) return;
+            const { x, y } = getCanvasCoordinates(e, canvas);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+        signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        document.getElementById('clearSenderSignature').addEventListener('click', () => {
+            ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
+        });
+        signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        document.getElementById('clearReceiverSignature').addEventListener('click', () => {
+            ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
+        });
+        document.getElementById('receiptForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            submitBtn.disabled = true;
+            loading.style.display = 'flex';
+            const recipientName = document.getElementById('recipientName').value;
+            const department = document.getElementById('department').value;
+            const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
+                desc: row.querySelector('.itemDesc').value,
+                qty: row.querySelector('.itemQty').value,
+                unit: row.querySelector('.itemUnit').value,
+                prNumber: row.querySelector('.itemPrNumber').value,
+                poNumber: row.querySelector('.itemPoNumber').value
+            }));
+            const photoSrc = document.getElementById('photoPreview').src;
+            const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
+            const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
+            const date = new Date().toLocaleString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+            const formData = new FormData();
+            formData.append('recipientName', recipientName);
+            formData.append('department', department);
+            formData.append('date', date);
+            formData.append('registrationNumber', registrationNumber);
+            items.forEach((item, index) => {
+                formData.append(`items[${index}][desc]`, item.desc);
+                formData.append(`items[${index}][qty]`, item.qty);
+                formData.append(`items[${index}][unit]`, item.unit);
+                formData.append(`items[${index}][prNumber]`, item.prNumber);
+                formData.append(`items[${index}][poNumber]`, item.poNumber);
+            });
+            if (photoSrc) {
+                const photoBlob = await fetch(photoSrc).then(res => res.blob());
+                formData.append('photo', photoBlob, 'photo.jpg');
+            }
+            const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
+            const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
+            formData.append('signatureSender', signatureSenderBlob, 'sender.png');
+            formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+            try {
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
                     body: formData,
                     signal: AbortSignal.timeout(30000)
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Gagal menyimpan data');
-                let jsPDFInstance = window.jspdf;
-                if (!jsPDFInstance) {
+                if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
+                alert('Tanda terima berhasil disimpan!');
+            } catch (error) {
+                alert('Gagal menyimpan: ' + error.message);
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+                return;
+            }
+            document.getElementById('date').textContent = date;
+            document.getElementById('outputName').textContent = recipientName;
+            document.getElementById('outputDepartment').textContent = department;
+            const outputItems = document.getElementById('outputItems');
+            outputItems.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
+                outputItems.appendChild(li);
+            });
+            document.getElementById('outputPhoto').src = photoSrc;
+            document.getElementById('signatureSenderPreview').src = signatureSenderData;
+            document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
+            document.getElementById('receiptOutput').style.display = 'block';
+            document.getElementById('savePdfBtn').style.display = 'block';
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
+        });
+        document.getElementById('savePdfBtn').addEventListener('click', async () => {
+            if (!jsPDFInstance) {
+                try {
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
+                } catch (error) {
+                    alert('Gagal memuat library PDF');
+                    return;
                 }
-                const { jsPDF } = jsPDFInstance;
-                const doc = new jsPDF();
-                const pageWidth = doc.internal.pageSize.width;
-                const margin = 20;
-                doc.setFontSize(16);
-                doc.text('DIREC - Tanda Terima', pageWidth / 2, 10, { align: 'center' });
-                doc.setFontSize(10);
-                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, 18, { align: 'center' });
-                doc.setFontSize(12);
-                doc.text(`Tanggal: ${date}`, margin, 30);
-                doc.text(`Penerima: ${recipientName}`, margin, 38);
-                doc.text(`Departemen: ${department}`, margin, 46);
-                doc.setFontSize(12);
-                doc.text('Deskripsi Barang:', margin, 54);
-                doc.autoTable({
-                    startY: 60,
-                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: items.length ? items.map(item => [item.description, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                    styles: { fontSize: 10, cellPadding: 2, halign: 'center' },
-                    headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], halign: 'center' },
-                    columnStyles: {
-                        0: { cellWidth: pageWidth * 0.4 - margin }, // Deskripsi
-                        1: { cellWidth: pageWidth * 0.15 - margin / 2 }, // Qty
-                        2: { cellWidth: pageWidth * 0.15 - margin / 2 }, // Satuan
-                        3: { cellWidth: pageWidth * 0.15 - margin / 2 }, // No PR
-                        4: { cellWidth: pageWidth * 0.15 - margin / 2 }  // No PO
-                    },
-                    margin: { left: margin, right: margin }
-                });
-                let tableEndY = doc.lastAutoTable.finalY;
-                doc.setFontSize(12);
-                doc.text('Foto Penerima:', margin, tableEndY + 10);
-                if (photo) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        try {
-                            doc.addImage(reader.result, 'JPEG', margin, tableEndY + 15, 50, 30);
-                            const signatureY = tableEndY + 55;
-                            doc.setFontSize(12);
-                            doc.text('Pengirim:', margin, signatureY);
-                            doc.text('Penerima:', pageWidth - margin - 50, signatureY, { align: 'center' });
-                            doc.setLineWidth(0.5);
-                            doc.line(margin, signatureY + 17, margin + 50, signatureY + 17); // Garis bawah pengirim
-                            doc.line(pageWidth - margin - 50, signatureY + 17, pageWidth - margin, signatureY + 17); // Garis bawah penerima
-                            try {
-                                doc.addImage(signatureSenderUrl, 'PNG', margin, signatureY + 2, 50, 15);
-                            } catch (error) {}
-                            try {
-                                doc.addImage(signatureReceiverUrl, 'PNG', pageWidth - margin - 50, signatureY + 2, 50, 15);
-                            } catch (error) {}
-                            doc.setFontSize(10);
-                            doc.text(`(${recipientName})`, pageWidth - margin - 25, signatureY + 22, { align: 'center' });
-                            const footerY = doc.internal.pageSize.height - 10;
-                            doc.setFontSize(8);
-                            doc.text('Generated by DIREC', pageWidth / 2, footerY, { align: 'center' });
-                            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
-                        } catch (error) {
-                            errorMessage.textContent = 'Gagal menghasilkan PDF: ' + error.message;
-                            errorMessage.style.display = 'block';
-                        }
-                    };
-                    reader.readAsDataURL(photo);
-                }
-                document.getElementById('receiptForm').reset();
-                document.getElementById('signatureSenderCanvas').getContext('2d').clearRect(0, 0, 300, 100);
-                document.getElementById('signatureReceiverCanvas').getContext('2d').clearRect(0, 0, 300, 100);
-                while (itemIndex > 0) {
-                    document.getElementById(`item-${itemIndex}`).remove();
-                    itemIndex--;
-                }
-                addItem();
-            } catch (error) {
-                errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
-            } finally {
-                loading.style.display = 'none';
             }
+            const { jsPDF } = jsPDFInstance;
+            const doc = new jsPDF();
+            const date = document.getElementById('date').textContent;
+            const recipientName = document.getElementById('outputName').textContent;
+            const department = document.getElementById('outputDepartment').textContent;
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+            const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
+                const parts = li.textContent.split(' ');
+                return {
+                    desc: parts[0],
+                    qty: parts[2],
+                    unit: parts[3],
+                    prNumber: parts[5],
+                    poNumber: parts[7]
+                };
+            });
+            const photoSrc = document.getElementById('outputPhoto').src;
+            const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
+            const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
+            doc.setFontSize(16);
+            doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`No. Registrasi: ${registrationNumber}`, 105, 15, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`Tanggal: ${date}`, 20, 25);
+            doc.text(`Penerima: ${recipientName}`, 20, 35);
+            doc.text(`Departemen: ${department}`, 20, 45);
+            doc.text('Deskripsi Barang:', 20, 55);
+            doc.autoTable({
+                startY: 60,
+                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [16, 185, 129] }
+            });
+            let tableEndY = doc.lastAutoTable.finalY;
+            doc.text('Foto Penerima:', 20, tableEndY + 10);
+            try {
+                doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
+            } catch (error) {}
+            const signatureY = tableEndY + 50;
+            doc.text('Pengirim:', 20, signatureY);
+            doc.text('Penerima:', 110, signatureY);
+            try {
+                doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 50, 15);
+                doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 50, 15);
+            } catch (error) {}
+            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
