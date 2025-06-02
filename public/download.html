@@ -427,8 +427,15 @@
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
+        function generateRegistrationNumber(index, dateStr) {
+            const date = new Date(dateStr.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const sequence = String(index + 1).padStart(3, '0');
+            return `TT-RANT-${month}-${year}-${sequence}`;
+        }
         function attachDownloadEvents() {
-            document.querySelectorAll('.download-btn').forEach(btn => {
+            document.querySelectorAll('.download-btn').forEach((btn, index) => {
                 btn.addEventListener('click', async () => {
                     const row = JSON.parse(btn.dataset.row);
                     let jsPDFInstance = window.jspdf;
@@ -444,14 +451,18 @@
                     const { jsPDF } = jsPDFInstance;
                     const doc = new jsPDF();
                     const items = parseItems(row.items);
+                    const registrationNumber = row.registrationNumber || generateRegistrationNumber(index, row.date);
                     doc.setFontSize(16);
-                    doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
+                    doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
+                    doc.setFontSize(10);
+                    doc.text(`No. Registrasi: ${registrationNumber}`, 105, 15, { align: 'center' });
                     doc.setFontSize(12);
-                    doc.text(`Tanggal: ${row.date || '-'}`, 20, 40);
-                    doc.text(`Departemen: ${row.department || '-'}`, 20, 50);
-                    doc.text('Deskripsi Barang:', 20, 60);
+                    doc.text(`Tanggal: ${row.date || '-'}`, 20, 25);
+                    doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 35);
+                    doc.text(`Departemen: ${row.department || '-'}`, 20, 45);
+                    doc.text('Deskripsi Barang:', 20, 55);
                     doc.autoTable({
-                        startY: 65,
+                        startY: 60,
                         head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
                         body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
                         styles: { fontSize: 10 },
@@ -477,7 +488,7 @@
                             doc.addImage(row.signatureReceiverUrl, 'PNG', 110, signatureY + 5, 50, 15);
                         } catch (error) {}
                     }
-                    doc.save(`direc-tanda-terima-${row.date.replace(/[\/, :]/g, '-')}.pdf`);
+                    doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
                 });
             });
         }
@@ -498,7 +509,7 @@
                     allData.sort((a, b) => {
                         const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
                         const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        return dateB - dateA;
+                        return dateB - dateA; // Urutkan dari terbaru
                     });
                     filteredData = [...allData];
                     renderTable(filteredData, currentPage);
