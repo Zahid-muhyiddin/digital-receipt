@@ -428,14 +428,43 @@
             renderTable(filteredData, currentPage);
         }
         function generateRegistrationNumber(index, dateStr) {
-            const date = new Date(dateStr.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const sequence = String(index + 1).padStart(3, '0');
-            return `TT-RANT-${month}-${year}-${sequence}`;
+            try {
+                const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                if (!match) throw new Error('Invalid date format');
+                const [, day, month, year, hour, minute] = match;
+                const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+                if (isNaN(date.getTime())) throw new Error('Invalid date');
+                const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+                const yearStr = date.getFullYear();
+                const sequence = String(index + 1).padStart(3, '0');
+                return `TT-RANT-${monthStr}-${yearStr}-${sequence}`;
+            } catch (error) {
+                const now = new Date();
+                const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+                const yearStr = now.getFullYear();
+                const sequence = String(index + 1).padStart(3, '0');
+                return `TT-RANT-${monthStr}-${yearStr}-${sequence}`;
+            }
         }
-        function attachDownloadEvents() {
-            document.querySelectorAll('.download-btn').forEach((btn, index) => {
+        async function fetchImage(url) {
+            if (!url) return null;
+            try {
+                const response = await fetch(url, { mode: 'cors' });
+                if (!response.ok) throw new Error('Failed to fetch image');
+                const blob = await response.blob();
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Error fetching image:', error);
+                return null;
+            }
+        }
+        async function attachDownloadEvents() {
+            const buttons = document.querySelectorAll('.download-btn');
+            buttons.forEach((btn, index) => {
                 btn.addEventListener('click', async () => {
                     const row = JSON.parse(btn.dataset.row);
                     let jsPDFInstance = window.jspdf;
@@ -444,7 +473,7 @@
                             await loadJsPDF();
                             jsPDFInstance = window.jspdf;
                         } catch (error) {
-                            alert('Gagal memuat library PDF');
+                            alert('Gagal memuat library PDF: ' + error.message);
                             return;
                         }
                     }
@@ -452,6 +481,9 @@
                     const doc = new jsPDF();
                     const items = parseItems(row.items);
                     const registrationNumber = row.registrationNumber || generateRegistrationNumber(index, row.date);
+                    const photoData = await fetchImage(row.photoUrl);
+                    const signatureSenderData = await fetchImage(row.signatureSenderUrl);
+                    const signatureReceiverData = await fetchImage(row.signatureReceiverUrl);
                     doc.setFontSize(16);
                     doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
                     doc.setFontSize(10);
@@ -470,23 +502,29 @@
                     });
                     let tableEndY = doc.lastAutoTable.finalY;
                     doc.text('Foto Penerima:', 20, tableEndY + 10);
-                    if (row.photoUrl) {
+                    if (photoData) {
                         try {
-                            doc.addImage(row.photoUrl, 'JPEG', 20, tableEndY + 15, 50, 30);
-                        } catch (error) {}
+                            doc.addImage(photoData, 'JPEG', 20, tableEndY + 15, 50, 30);
+                        } catch (error) {
+                            console.error('Error adding photo:', error);
+                        }
                     }
                     const signatureY = tableEndY + 50;
                     doc.text('Pengirim:', 20, signatureY);
                     doc.text('Penerima:', 110, signatureY);
-                    if (row.signatureSenderUrl) {
+                    if (signatureSenderData) {
                         try {
-                            doc.addImage(row.signatureSenderUrl, 'PNG', 20, signatureY + 5, 50, 15);
-                        } catch (error) {}
+                            doc.addImage(signatureSenderData, 'PNG', 20, signatureY + 5, 50, 15);
+                        } catch (error) {
+                            console.error('Error adding sender signature:', error);
+                        }
                     }
-                    if (row.signatureReceiverUrl) {
+                    if (signatureReceiverData) {
                         try {
-                            doc.addImage(row.signatureReceiverUrl, 'PNG', 110, signatureY + 5, 50, 15);
-                        } catch (error) {}
+                            doc.addImage(signatureReceiverData, 'PNG', 110, signatureY + 5, 50, 15);
+                        } catch (error) {
+                            console.error('Error adding receiver signature:', error);
+                        }
                     }
                     doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
                 });
@@ -507,9 +545,20 @@
                         return;
                     }
                     allData.sort((a, b) => {
-                        const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        return dateB - dateA; // Urutkan dari terbaru
+                        try {
+                            const matchA = a.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                            const matchB = b.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                            if (!matchA || !matchB) throw new Error('Invalid date format');
+                            const [, dayA, monthA, yearA, hourA, minuteA] = matchA;
+                            const [, dayB, monthB, yearB, hourB, minuteB] = matchB;
+                            const dateA = new Date(`${yearA}-${monthA}-${dayA}T${hourA}:${minuteA}:00`);
+                            const dateB = new Date(`${yearB}-${monthB}-${dayB}T${hourB}:${minuteB}:00`);
+                            if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) throw new Error('Invalid date');
+                            return dateB - dateA; // Urutkan dari terbaru
+                        } catch (error) {
+                            console.error('Error parsing date:', error);
+                            return 0; // Jaga posisi jika parsing gagal
+                        }
                     });
                     filteredData = [...allData];
                     renderTable(filteredData, currentPage);
