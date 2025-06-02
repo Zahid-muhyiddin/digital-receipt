@@ -57,7 +57,7 @@
             background: #10b981;
             color: #fff;
             border: none;
-            padding: 6px;
+            padding: 8px;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
@@ -89,9 +89,10 @@
         }
         .content-header {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
             margin-bottom: 15px;
+            position: relative;
         }
         .content-toggle {
             display: none;
@@ -101,19 +102,22 @@
             padding: 6px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             position: absolute;
-            left: 15px;
-            top: 15px;
+            left: 10px;
+            top: 10px;
         }
         .content-toggle.visible {
             display: block;
+        }
+        .header-container {
+            text-align: center;
+            flex: 1;
         }
         .header-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 20px;
             color: #1e3a8a;
-            text-align: center;
         }
         .registration-number {
             font-size: 14px;
@@ -249,16 +253,20 @@
                 max-width: 100%;
                 height: 80px;
             }
+            .header-text {
+                font-size: 18px;
+            }
+            .registration-number {
+                font-size: 13px;
+            }
         }
         @media (max-width: 480px) {
             .receipt-container {
                 padding: 10px;
             }
-            .header-text {
-                font-size: 18px;
-            }
-            .registration-number {
-                font-size: 12px;
+            .content-toggle {
+                padding: 5px;
+                font-size: 11px;
             }
         }
     </style>
@@ -277,8 +285,10 @@
     <div class="content" id="content">
         <div class="content-header">
             <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
-            <div class="header-text">DIREC - Input Form</div>
-            <div class="registration-number" id="registrationNumber">No Registrasi-TT-RANT-001-MM-YYYY</div>
+            <div class="header-container">
+                <div class="header-text">DIREC - Input Form</div>
+                <div class="registration-number" id="registrationNumber"></div>
+            </div>
         </div>
         <div class="receipt-container">
             <div class="loading" id="loading">
@@ -348,7 +358,6 @@
             </form>
             <div id="receiptOutput">
                 <h3>Tanda Terima</h3>
-                <p><strong>No Registrasi:</strong> <span id="outputRegNumber"></span></p>
                 <p><strong>Tanggal:</strong> <span id="date"></span></p>
                 <p><strong>Penerima:</strong> <span id="outputName"></span></p>
                 <p><strong>Departemen:</strong> <span id="outputDepartment"></span></p>
@@ -398,19 +407,18 @@
         }
         async function generateRegistrationNumber() {
             try {
-                const response = await fetch('/api/history', { signal: AbortSignal.timeout(5000) });
+                const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
                 const data = result.data || [];
                 const count = data.length + 1;
                 const now = new Date();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
-                const regNumber = `No Registrasi-TT-RANT-${String(count).padStart(3, '0')}-${month}-${year}`;
-                document.getElementById('registrationNumber').textContent = regNumber;
-                return regNumber;
+                const sequence = String(count).padStart(3, '0');
+                const regNumber = `TT-RANT-${month}-${year}-${sequence}`;
+                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
             } catch (error) {
-                console.error('Gagal menghitung nomor registrasi:', error);
-                return 'No Registrasi-TT-RANT-001-MM-YYYY';
+                document.getElementById('registrationNumber').textContent = 'No. Registrasi: Gagal memuat';
             }
         }
         generateRegistrationNumber();
@@ -425,7 +433,7 @@
                 <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
                 <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
                 <select class="itemUnit" name="items[${itemCount}][unit]" required>
-                    <option value="" disabled selected>Pilih</option>
+                    <option value="" disabled selected>Pilih Satuan</option>
                     <option value="Assy">Assy</option>
                     <option value="Each">Each</option>
                     <option value="Set">Set</option>
@@ -441,7 +449,6 @@
         document.getElementById('recipientPhoto').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
-                console.log('Foto dari input file:', file); // Debug
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('photoPreview').src = e.target.result;
@@ -467,9 +474,7 @@
             tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
             tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
             tempCanvas.getContext('2d').drawImage(document.getElementById('cameraPreview'), 0, 0);
-            const photoData = tempCanvas.toDataURL('image/jpeg', 0.7);
-            console.log('Foto dari kamera:', photoData.substring(0, 50)); // Debug
-            document.getElementById('photoPreview').src = photoData;
+            document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
             document.getElementById('photoPreview').style.display = 'block';
             stopCamera();
         });
@@ -484,19 +489,8 @@
         const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
         const ctxSender = signatureSenderCanvas.getContext('2d');
         const ctxReceiver = signatureReceiverCanvas.getContext('2d');
-        ctxSender.lineWidth = 2;
-        ctxSender.strokeStyle = '#000';
-        ctxReceiver.lineWidth = 2;
-        ctxReceiver.strokeStyle = '#000';
         let drawingSender = false;
         let drawingReceiver = false;
-        function isCanvasBlank(canvas) {
-            const context = canvas.getContext('2d');
-            const pixelBuffer = new Uint32Array(
-                context.getImageData(0, 0, canvas.width, canvas.height).data.buffer
-            );
-            return !pixelBuffer.some(color => color !== 0);
-        }
         function getCanvasCoordinates(event, canvas) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -525,21 +519,10 @@
             ctx.lineTo(x, y);
             ctx.stroke();
         }
-        function stopDrawing() {
-            return false;
-        }
-        signatureSenderCanvas.addEventListener('mousedown', (e) => {
-            drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
-        });
-        signatureSenderCanvas.addEventListener('mousemove', (e) => {
-            draw(e, signatureSenderCanvas, ctxSender, drawingSender);
-        });
-        signatureSenderCanvas.addEventListener('mouseup', () => {
-            drawingSender = stopDrawing();
-        });
-        signatureSenderCanvas.addEventListener('mouseout', () => {
-            drawingSender = stopDrawing();
-        });
+        signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
         signatureSenderCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
@@ -548,24 +531,14 @@
             e.preventDefault();
             draw(e, signatureSenderCanvas, ctxSender, drawingSender);
         });
-        signatureSenderCanvas.addEventListener('touchend', () => {
-            drawingSender = stopDrawing();
-        });
+        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
         document.getElementById('clearSenderSignature').addEventListener('click', () => {
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
-        signatureReceiverCanvas.addEventListener('mousedown', (e) => {
-            drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
-        });
-        signatureReceiverCanvas.addEventListener('mousemove', (e) => {
-            draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
-        });
-        signatureReceiverCanvas.addEventListener('mouseup', () => {
-            drawingReceiver = stopDrawing();
-        });
-        signatureReceiverCanvas.addEventListener('mouseout', () => {
-            drawingReceiver = stopDrawing();
-        });
+        signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
         signatureReceiverCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
@@ -574,18 +547,12 @@
             e.preventDefault();
             draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
         });
-        signatureReceiverCanvas.addEventListener('touchend', () => {
-            drawingReceiver = stopDrawing();
-        });
+        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
         document.getElementById('clearReceiverSignature').addEventListener('click', () => {
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });
-        document.getElementById('receiptForm').addEventListener('submit', async function(e) => {
+        document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            if (isCanvasBlank(signatureSenderCanvas) || isCanvasBlank(signatureReceiverCanvas)) {
-                alert('Harap isi tanda tangan pengirim dan penerima!');
-                return;
-            }
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             submitBtn.disabled = true;
@@ -609,12 +576,12 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            const regNumber = await generateRegistrationNumber();
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
             const formData = new FormData();
             formData.append('recipientName', recipientName);
             formData.append('department', department);
             formData.append('date', date);
-            formData.append('regNumber', regNumber);
+            formData.append('registrationNumber', registrationNumber);
             items.forEach((item, index) => {
                 formData.append(`items[${index}][desc]`, item.desc);
                 formData.append(`items[${index}][qty]`, item.qty);
@@ -622,16 +589,9 @@
                 formData.append(`items[${index}][prNumber]`, item.prNumber);
                 formData.append(`items[${index}][poNumber]`, item.poNumber);
             });
-            if (photoSrc && !photoSrc.startsWith('data:image')) {
-                try {
-                    const photoBlob = await fetch(photoSrc).then(res => res.blob());
-                    formData.append('photo', photoBlob, 'photo.jpg');
-                    console.log('Mengirim foto ke server:', photoBlob); // Debug
-                } catch (error) {
-                    console.error('Gagal memproses foto:', error);
-                }
-            } else {
-                console.warn('Tidak ada foto yang diunggah'); // Debug
+            if (photoSrc) {
+                const photoBlob = await fetch(photoSrc).then(res => res.blob());
+                formData.append('photo', photoBlob, 'photo.jpg');
             }
             const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
             const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
@@ -644,18 +604,14 @@
                     signal: AbortSignal.timeout(30000)
                 });
                 const result = await response.json();
-                console.log('API response:', result); // Debug
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
                 alert('Tanda terima berhasil disimpan!');
             } catch (error) {
                 alert('Gagal menyimpan: ' + error.message);
-                console.error('Submission error:', error); // Debug
-                return;
-            } finally {
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
+                return;
             }
-            document.getElementById('outputRegNumber').textContent = regNumber;
             document.getElementById('date').textContent = date;
             document.getElementById('outputName').textContent = recipientName;
             document.getElementById('outputDepartment').textContent = department;
@@ -664,15 +620,17 @@
             items.forEach(item => {
                 const li = document.createElement('li');
                 li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
-                outputItems.appendChild);
+                outputItems.appendChild(li);
             });
             document.getElementById('outputPhoto').src = photoSrc;
             document.getElementById('signatureSenderPreview').src = signatureSenderData;
             document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
             document.getElementById('receiptOutput').style.display = 'block';
             document.getElementById('savePdfBtn').style.display = 'block';
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
         });
-        document.getElementById('savePdfBtn.addEventListener('click', async () => {
+        document.getElementById('savePdfBtn').addEventListener('click', async () => {
             if (!jsPDFInstance) {
                 try {
                     await loadJsPDF();
@@ -684,33 +642,34 @@
             }
             const { jsPDF } = jsPDFInstance;
             const doc = new jsPDF();
-            const regNumber = document.getElementById('outputRegNumber').textContent;
             const date = document.getElementById('date').textContent;
             const recipientName = document.getElementById('outputName').textContent;
             const department = document.getElementById('outputDepartment').textContent;
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
             const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
-                const parts = li.textContent.split(' - ');
+                const parts = li.textContent.split(' ');
                 return {
                     desc: parts[0],
-                    qty: parts[1].replace('Qty: ', '').split(' ')[0],
-                    unit: parts[1].replace('Qty: ', '').split(' ')[1],
-                    prNumber: parts[2].replace('PR: ', ''),
-                    poNumber: parts[3].replace('PO: ', '')
+                    qty: parts[2],
+                    unit: parts[3],
+                    prNumber: parts[5],
+                    poNumber: parts[7]
                 };
             });
             const photoSrc = document.getElementById('outputPhoto').src;
             const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
             const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
             doc.setFontSize(16);
-            doc.text('DIREC - Tanda Terima', 105, 20, { align: 'center' });
+            doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`No. Registrasi: ${registrationNumber}`, 105, 15, { align: 'center' });
             doc.setFontSize(12);
-            doc.text(`No Registrasi: ${regNumber}`, 20, 30);
-            doc.text(`Tanggal: ${date}`, 20, 40);
-            doc.text(`Penerima: ${recipientName}`, 20, 50);
-            doc.text(`Departemen: ${department}`, 20, 60);
-            doc.text('Deskripsi Barang:', 20, 70);
+            doc.text(`Tanggal: ${date}`, 20, 25);
+            doc.text(`Penerima: ${recipientName}`, 20, 35);
+            doc.text(`Departemen: ${department}`, 20, 45);
+            doc.text('Deskripsi Barang:', 20, 55);
             doc.autoTable({
-                startY: 75,
+                startY: 60,
                 head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
                 body: items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]),
                 styles: { fontSize: 10 },
@@ -719,22 +678,16 @@
             let tableEndY = doc.lastAutoTable.finalY;
             doc.text('Foto Penerima:', 20, tableEndY + 10);
             try {
-                if (photoSrc) {
-                    doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
-                }
-            } catch (error) {
-                console.error('Error adding photo to PDF:', error);
-            }
+                doc.addImage(photoSrc, 'JPEG', 20, tableEndY + 15, 50, 30);
+            } catch (error) {}
             const signatureY = tableEndY + 50;
             doc.text('Pengirim:', 20, signatureY);
             doc.text('Penerima:', 110, signatureY);
             try {
                 doc.addImage(signatureSenderSrc, 'PNG', 20, signatureY + 5, 50, 15);
                 doc.addImage(signatureReceiverSrc, 'PNG', 110, signatureY + 5, 50, 15);
-            } catch (error) {
-                console.error('Error adding signatures to PDF:', error);
-            }
-            doc.save('direc-tanda-terima.pdf');
+            } catch (error) {}
+            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
