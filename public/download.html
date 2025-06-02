@@ -481,9 +481,10 @@
                     const { jsPDF } = jsPDFInstance;
                     const doc = new jsPDF();
                     const items = parseItems(row.items);
+
+                    // Nomor registrasi
                     let registrationNumber = row.registrationNumber;
                     if (!registrationNumber) {
-                        // Hitung jumlah entri di bulan dan tahun yang sama dari semua data
                         let count = 0;
                         try {
                             const match = row.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
@@ -507,54 +508,106 @@
                             registrationNumber = generateRegistrationNumber(row.date, count);
                         } catch (error) {
                             console.error('Error calculating registration number:', error);
-                            registrationNumber = generateRegistrationNumber(row.date, 1); // Fallback
+                            registrationNumber = generateRegistrationNumber(row.date, 1);
                         }
                     }
+
+                    // Fetch gambar
                     const photoData = await fetchImage(row.photoUrl);
                     const signatureSenderData = await fetchImage(row.signatureSenderUrl);
                     const signatureReceiverData = await fetchImage(row.signatureReceiverUrl);
+
+                    // Margin dan posisi awal
+                    const margin = 15;
+                    const pageWidth = 210; // A4 width in mm
+                    const contentWidth = pageWidth - 2 * margin;
+                    let yPosition = margin;
+
+                    // Judul
+                    doc.setFont('Poppins', 'bold');
                     doc.setFontSize(16);
-                    doc.text('DIREC - Tanda Terima', 105, 10, { align: 'center' });
+                    doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
+                    yPosition += 7; // Jarak setelah judul
+
+                    // Nomor Registrasi
+                    doc.setFont('Poppins', 'normal');
                     doc.setFontSize(10);
-                    doc.text(`No. Registrasi: ${registrationNumber}`, 105, 15, { align: 'center' });
+                    doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
+                    yPosition += 10; // Jarak setelah nomor registrasi
+
+                    // Informasi (Tanggal, Penerima, Departemen)
                     doc.setFontSize(12);
-                    doc.text(`Tanggal: ${row.date || '-'}`, 20, 25);
-                    doc.text(`Penerima: ${row.recipientName || '-'}`, 20, 35);
-                    doc.text(`Departemen: ${row.department || '-'}`, 20, 45);
-                    doc.text('Deskripsi Barang:', 20, 55);
+                    const labelWidth = 30;
+                    doc.text('Tanggal', margin, yPosition);
+                    doc.text(`: ${row.date || '-'}`, margin + labelWidth, yPosition);
+                    yPosition += 5;
+                    doc.text('Penerima', margin, yPosition);
+                    doc.text(`: ${row.recipientName || '-'}`, margin + labelWidth, yPosition);
+                    yPosition += 5;
+                    doc.text('Departemen', margin, yPosition);
+                    doc.text(`: ${row.department || '-'}`, margin + labelWidth, yPosition);
+                    yPosition += 10; // Jarak setelah informasi
+
+                    // Tabel Barang
+                    doc.setFontSize(12);
+                    doc.text('Deskripsi Barang:', margin, yPosition);
+                    yPosition += 5;
+
                     doc.autoTable({
-                        startY: 60,
+                        startY: yPosition,
                         head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
                         body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                        styles: { fontSize: 10 },
-                        headStyles: { fillColor: [16, 185, 129] }
+                        styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
+                        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        columnStyles: {
+                            0: { cellWidth: 70 }, // Deskripsi
+                            1: { cellWidth: 20 }, // Qty
+                            2: { cellWidth: 25 }, // Satuan
+                            3: { cellWidth: 30 }, // No PR
+                            4: { cellWidth: 35 }  // No PO
+                        },
+                        margin: { left: margin, right: margin }
                     });
-                    let tableEndY = doc.lastAutoTable.finalY;
-                    doc.text('Foto Penerima:', 20, tableEndY + 10);
+
+                    yPosition = doc.lastAutoTable.finalY + 10; // Jarak setelah tabel
+
+                    // Foto Penerima
+                    doc.setFontSize(12);
+                    doc.text('Foto Penerima:', margin, yPosition);
+                    yPosition += 5;
                     if (photoData) {
                         try {
-                            doc.addImage(photoData, 'JPEG', 20, tableEndY + 15, 50, 30);
+                            doc.addImage(photoData, 'JPEG', margin, yPosition, 50, 30);
                         } catch (error) {
                             console.error('Error adding photo:', error);
                         }
                     }
-                    const signatureY = tableEndY + 50;
-                    doc.text('Pengirim:', 20, signatureY);
-                    doc.text('Penerima:', 110, signatureY);
+                    yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
+
+                    // Tanda Tangan
+                    doc.setFontSize(12);
+                    const signatureWidth = 50;
+                    const signatureHeight = 15;
+                    const signatureSpacing = 40; // Jarak antar tanda tangan
+                    doc.text('Pengirim:', margin, yPosition);
+                    doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
+                    yPosition += 5;
                     if (signatureSenderData) {
                         try {
-                            doc.addImage(signatureSenderData, 'PNG', 20, signatureY + 5, 50, 15);
+                            doc.addImage(signatureSenderData, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
                         } catch (error) {
                             console.error('Error adding sender signature:', error);
                         }
                     }
                     if (signatureReceiverData) {
                         try {
-                            doc.addImage(signatureReceiverData, 'PNG', 110, signatureY + 5, 50, 15);
+                            doc.addImage(signatureReceiverData, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
                         } catch (error) {
                             console.error('Error adding receiver signature:', error);
                         }
                     }
+
+                    // Simpan PDF
                     doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
                 });
             });
