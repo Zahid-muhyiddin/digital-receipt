@@ -98,10 +98,10 @@
             background: #1e3a8a;
             color: #fff;
             border: none;
-            padding: 4px 6px;
+            padding: 6px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             margin-right: 10px;
         }
         .content-toggle.visible {
@@ -115,6 +115,7 @@
         .search-container {
             display: flex;
             gap: 8px;
+            padding: 5px 0;
         }
         .search-container input {
             width: 150px;
@@ -122,6 +123,10 @@
             border: 1px solid #d1d5db;
             border-radius: 4px;
             font-size: 13px;
+        }
+        .search-container input:focus {
+            border-color: #3b82f6;
+            outline: none;
         }
         .search-container button {
             background: #3b82f6;
@@ -168,7 +173,7 @@
         .error {
             color: #ef4444;
             text-align: center;
-            font-size: 14px;
+            font-size: 12px;
             display: none;
             margin-top: 10px;
         }
@@ -270,7 +275,7 @@
         <div class="logo-text">DIREC</div>
         <ul>
             <li><a href="/index.html">Input Form</a></li>
-            <li><a href="#" class="active">History</a></li>
+            <li><a href="/history.html" class="active">History</a></li>
             <li><a href="/download.html">Download Tanda Terima</a></li>
         </ul>
         <button class="logout-btn" id="logoutBtn">Logout</button>
@@ -283,7 +288,7 @@
             </div>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Cari No PO, PR, atau Barang">
-                <button id="resetBtn">Reset</button>
+                <button type="button" id="resetBtn">Reset</button>
             </div>
         </div>
         <div class="history-container">
@@ -308,8 +313,8 @@
                     <tbody id="historyBody"></tbody>
                 </table>
             </div>
-            <div id="pagination" class="pagination"></div>
-            <p id="error" class="error"></p>
+            <div class="pagination" id="pagination"></div>
+            <p class="error" id="errorMessage"></p>
         </div>
     </div>
 
@@ -317,63 +322,49 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
-
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
-
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
             toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
-            contentToggle.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
+            contentToggle.classList.toggle('visible');
         }
-
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
-
-        function parseItems(items) {
-            if (!items || typeof items !== 'string' || items === 'undefined') return [];
-            try {
-                return items.split('\n').map(item => {
-                    const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
-                    return match ? {
-                        desc: match[1].trim(),
-                        qty: match[2],
-                        unit: match[3],
-                        prNumber: match[4],
-                        poNumber: match[5]
-                    } : null;
-                }).filter(item => item);
-            } catch (error) {
-                console.error('Error parsing items:', error, 'Raw items:', items);
-                return [];
-            }
+        function parseItems(itemsString) {
+            if (!itemsString || itemsString === 'undefined') return [];
+            const items = itemsString.split('\n').map(item => {
+                const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
+                console.log('Parsing item:', item, 'Match:', match); // Debug
+                return match ? {
+                    desc: match[1].trim(),
+                    qty: match[2],
+                    unit: match[3],
+                    prNumber: match[4],
+                    poNumber: match[5]
+                } : null;
+            }).filter(item => item);
+            console.log('Parsed items:', items); // Debug
+            return items;
         }
-
         let currentPage = 1;
         const itemsPerPage = 10;
         let allData = [];
         let filteredData = [];
-
         function renderTable(data, page) {
             const historyBody = document.getElementById('historyBody');
             historyBody.innerHTML = '';
             const start = (page - 1) * itemsPerPage;
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
-            if (pageData.length === 0) {
-                historyBody.innerHTML = '<tr><td colspan="9">Tidak ada data</td></tr>';
-                renderPagination(0, 1);
-                return;
-            }
             pageData.forEach(row => {
                 const items = parseItems(row.items);
                 const rowCount = items.length || 1;
                 items.forEach((item, index) => {
                     const tr = document.createElement('tr');
-                    const photoCell = row.photo ? `<a href="${row.photo}" target="_blank"><img src="${row.photo}" alt="Foto"></a>` : '-';
                     tr.innerHTML = `
                         ${index === 0 ? `<td rowspan="${rowCount}">${row.date || '-'}</td>` : ''}
                         ${index === 0 ? `<td rowspan="${rowCount}">${row.recipientName || '-'}</td>` : ''}
@@ -383,13 +374,12 @@
                         <td>${item ? item.unit : '-'}</td>
                         <td>${item ? item.prNumber : '-'}</td>
                         <td>${item ? item.poNumber : '-'}</td>
-                        ${index === 0 ? `<td rowspan="${rowCount}">${photoCell}</td>` : ''}
+                        ${index === 0 ? `<td rowspan="${rowCount}">${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : '-'}</td>` : ''}
                     `;
                     historyBody.appendChild(tr);
                 });
                 if (items.length === 0) {
                     const tr = document.createElement('tr');
-                    const photoCell = row.photo ? `<a href="${row.photo}" target="_blank"><img src="${row.photo}" alt="Foto"></a>` : '-';
                     tr.innerHTML = `
                         <td>${row.date || '-'}</td>
                         <td>${row.recipientName || '-'}</td>
@@ -399,22 +389,20 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>${photoCell}</td>
+                        <td>${row.photo ? `<a href="${row.photo}" download="photo-${row.date.replace(/[\/, :]/g, '-')}.jpg"><img src="${row.photo}" alt="Foto Penerima"></a>` : '-'}</td>
                     `;
                     historyBody.appendChild(tr);
                 }
             });
             renderPagination(data.length, page);
         }
-
-        function renderPagination(totalItems, currentPage) {
+        function renderPagination(totalItems, page) {
             const pagination = document.getElementById('pagination');
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
-
             const prevBtn = document.createElement('button');
             prevBtn.textContent = 'Previous';
-            prevBtn.disabled = currentPage === 1;
+            prevBtn.disabled = page === 1;
             prevBtn.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
@@ -422,21 +410,19 @@
                 }
             });
             pagination.appendChild(prevBtn);
-
             for (let i = 1; i <= totalPages; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
-                pageBtn.disabled = i === currentPage;
+                pageBtn.disabled = i === page;
                 pageBtn.addEventListener('click', () => {
                     currentPage = i;
                     renderTable(filteredData, currentPage);
                 });
                 pagination.appendChild(pageBtn);
             }
-
             const nextBtn = document.createElement('button');
             nextBtn.textContent = 'Next';
-            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.disabled = page === totalPages;
             nextBtn.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
@@ -445,76 +431,60 @@
             });
             pagination.appendChild(nextBtn);
         }
-
         function searchData(query) {
             query = query.toLowerCase().trim();
             filteredData = allData.filter(item => {
                 const items = parseItems(item.items);
                 return items.some(i => 
                     i.desc.toLowerCase().includes(query) ||
-                    i.prNumber?.toString().includes(query) ||
-                    i.poNumber?.toLowerCase().includes(query)
-                ) || item.recipientName?.toLowerCase().includes(query) ||
-                   item.department?.toLowerCase().includes(query);
+                    i.prNumber.toString().includes(query) ||
+                    i.poNumber.toLowerCase().includes(query)
+                );
             });
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
-
-        function resetSearch() {
-            document.getElementById('searchInput').value = '';
-            filteredData = [...allData];
-            currentPage = 1;
-            renderTable(filteredData, currentPage);
-        }
-
         async function loadHistory() {
-            const errorMessage = document.getElementById('error');
+            const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
-            errorMessage.style.display = 'none';
             try {
-                const response = await fetch('/api/history', {
-                    signal: AbortSignal.timeout(15000)
-                });
+                const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
-                console.log('History API response:', result);
                 if (response.ok) {
-                    allData = Array.isArray(result.data) ? result.data : [];
+                    allData = result.data || [];
                     if (allData.length === 0) {
                         errorMessage.textContent = 'Belum ada data tanda terima';
                         errorMessage.style.display = 'block';
-                        renderTable([], 1);
-                        loading.style.display = 'none';
                         return;
                     }
                     allData.sort((a, b) => {
                         const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
                         const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1 $4:$5'));
-                        return dateB - dateA;
+                        return dateB - dateA; // Urutkan terbaru ke terlama
                     });
                     filteredData = [...allData];
+                    currentPage = 1; // Pastikan halaman awal
                     renderTable(filteredData, currentPage);
                 } else {
                     errorMessage.textContent = result.error || 'Gagal memuat data';
                     errorMessage.style.display = 'block';
-                    renderTable([], 1);
                 }
             } catch (error) {
-                console.error('Error loading history:', error);
                 errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
                 errorMessage.style.display = 'block';
-                renderTable([], 1);
             } finally {
                 loading.style.display = 'none';
             }
         }
-
         loadHistory();
-
         document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
-        document.getElementById('resetBtn').addEventListener('click', resetSearch);
-
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            filteredData = [...allData];
+            currentPage = 1;
+            renderTable(filteredData, currentPage);
+        });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
