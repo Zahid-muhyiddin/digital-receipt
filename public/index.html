@@ -1014,10 +1014,10 @@
             yPosition += signatureHeight + 8;
             
             // Signature names/lines
-            yPosition += signatureHeight + 3; // Jarak setelah tanda tangan
+            doc.setFont('Helvetica', 'normal');
             doc.setFontSize(10);
-            doc.text('(Team Warehouse)', margin, yPosition);
-            doc.text(`(${recipientName || '_________________'})`, margin + signatureWidth + signatureSpacing, yPosition);
+            doc.text('(TEAM WAREHOUSE)', margin, yPosition);
+            doc.text(`(${recipientName || '_____________________'})`, margin + signatureSpacing, yPosition);
 
             // Save PDF
             const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
