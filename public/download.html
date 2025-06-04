@@ -167,6 +167,16 @@
             cursor: pointer;
             font-size: 13px;
         }
+        .preview-btn {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 5px;
+        }
         .error {
             color: #ef4444;
             text-align: center;
@@ -181,6 +191,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            z-index: 1000;
         }
         .spinner {
             border: 3px solid #e5e7eb;
@@ -209,6 +220,146 @@
             background: #d1d5db;
             cursor: not-allowed;
         }
+        
+        /* Preview Modal Styles */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+        .preview-content {
+            background: #fff;
+            margin: 20px auto;
+            padding: 20px;
+            max-width: 800px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .preview-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .preview-receipt {
+            font-family: 'Poppins', sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .preview-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .preview-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+        }
+        .preview-reg-number {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        .preview-info {
+            margin-bottom: 20px;
+        }
+        .preview-info-row {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .preview-info-label {
+            font-weight: 600;
+            width: 120px;
+            color: #374151;
+        }
+        .preview-info-value {
+            color: #1f2937;
+        }
+        .preview-items {
+            margin-bottom: 20px;
+        }
+        .preview-items-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .preview-table th {
+            background: #10b981;
+            color: #fff;
+            font-weight: 600;
+        }
+        .preview-table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .preview-photo-section {
+            margin-bottom: 20px;
+        }
+        .preview-photo-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+        .preview-photo {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+        .preview-signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .preview-signature {
+            text-align: center;
+            width: 45%;
+        }
+        .preview-signature-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+        .preview-signature-img {
+            width: 200px;
+            height: 80px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .preview-signature-name {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -249,9 +400,20 @@
                 font-size: 12px;
                 padding: 4px;
             }
-            .download-btn {
+            .download-btn, .preview-btn {
                 padding: 5px 10px;
                 font-size: 12px;
+            }
+            .preview-content {
+                margin: 10px;
+                padding: 15px;
+            }
+            .preview-signatures {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .preview-signature {
+                width: 100%;
             }
         }
         @media (max-width: 480px) {
@@ -310,14 +472,32 @@
         </div>
     </div>
 
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <button class="preview-close" id="previewClose">&times;</button>
+            <div class="preview-receipt" id="previewReceipt">
+                <!-- Preview content will be dynamically generated here -->
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="download-btn" id="downloadFromPreview">Download PDF</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
+
+        // Global variables
+        let currentPreviewData = null;
+        
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
+        
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
@@ -326,6 +506,7 @@
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
+        
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -341,6 +522,7 @@
                 document.head.appendChild(script);
             });
         }
+
         function parseItems(itemsString) {
             if (!itemsString || itemsString === 'Tidak ada barang') return [];
             return itemsString.split('\n').map(item => {
@@ -354,16 +536,19 @@
                 } : null;
             }).filter(item => item);
         }
+
         let currentPage = 1;
         const itemsPerPage = 10;
         let allData = [];
         let filteredData = [];
+
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
             downloadBody.innerHTML = '';
             const start = (page - 1) * itemsPerPage;
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
+            
             pageData.forEach(row => {
                 const items = parseItems(row.items);
                 const firstItem = items[0] || { prNumber: '-', poNumber: '-' };
@@ -373,17 +558,23 @@
                     <td>${row.department || '-'}</td>
                     <td>${firstItem.prNumber}</td>
                     <td>${firstItem.poNumber}</td>
-                    <td><button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button></td>
+                    <td>
+                        <button class="preview-btn" data-row='${JSON.stringify(row)}'>Preview</button>
+                        <button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button>
+                    </td>
                 `;
                 downloadBody.appendChild(tr);
             });
+            
             renderPagination(data.length, page);
-            attachDownloadEvents();
+            attachEvents();
         }
+
         function renderPagination(totalItems, currentPage) {
             const pagination = document.getElementById('pagination');
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
+            
             const prevBtn = document.createElement('button');
             prevBtn.textContent = 'Previous';
             prevBtn.disabled = currentPage === 1;
@@ -394,6 +585,7 @@
                 }
             });
             pagination.appendChild(prevBtn);
+            
             for (let i = 1; i <= totalPages; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
@@ -404,6 +596,7 @@
                 });
                 pagination.appendChild(pageBtn);
             }
+            
             const nextBtn = document.createElement('button');
             nextBtn.textContent = 'Next';
             nextBtn.disabled = currentPage === totalPages;
@@ -415,6 +608,7 @@
             });
             pagination.appendChild(nextBtn);
         }
+
         function searchData(query) {
             query = query.toLowerCase();
             filteredData = allData.filter(item => {
@@ -427,6 +621,7 @@
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
+
         function generateRegistrationNumber(dateStr, count) {
             try {
                 const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
@@ -447,6 +642,7 @@
                 return `TT-RANT-${monthStr}-${yearStr}-${sequence}`;
             }
         }
+
         async function fetchImage(url) {
             if (!url) return null;
             try {
@@ -463,162 +659,395 @@
                 return null;
             }
         }
-        async function attachDownloadEvents() {
-            const buttons = document.querySelectorAll('.download-btn');
-            buttons.forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const row = JSON.parse(btn.dataset.row);
-                    let jsPDFInstance = window.jspdf;
-                    if (!jsPDFInstance) {
-                        try {
-                            await loadJsPDF();
-                            jsPDFInstance = window.jspdf;
-                        } catch (error) {
-                            alert('Gagal memuat library PDF: ' + error.message);
-                            return;
-                        }
-                    }
-                    const { jsPDF } = jsPDFInstance;
-                    const doc = new jsPDF();
-                    const items = parseItems(row.items);
 
-                    // Nomor registrasi
-                    let registrationNumber = row.registrationNumber;
-                    if (!registrationNumber) {
-                        let count = 0;
-                        try {
-                            const match = row.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                            if (!match) throw new Error('Invalid date format');
-                            const [, , month, year] = match;
-                            const targetMonthYear = `${year}-${month}`;
-                            const rowDate = new Date(`${year}-${month}-${match[1]}T${match[4]}:${match[5]}:00`);
-                            allData.forEach((entry) => {
-                                const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                                if (entryMatch) {
-                                    const [, , entryMonth, entryYear] = entryMatch;
-                                    const entryMonthYear = `${entryYear}-${entryMonth}`;
-                                    if (entryMonthYear === targetMonthYear) {
-                                        const entryDate = new Date(`${entryYear}-${entryMonth}-${entryMatch[1]}T${entryMatch[4]}:${entryMatch[5]}:00`);
-                                        if (entryDate <= rowDate) {
-                                            count++;
-                                        }
+        // Enhanced Preview Function
+        function showPreview(row) {
+            const items = parseItems(row.items);
+            let registrationNumber = row.registrationNumber;
+            
+            if (!registrationNumber) {
+                let count = 0;
+                try {
+                    const match = row.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                    if (!match) throw new Error('Invalid date format');
+                    const [, , month, year] = match;
+                    const targetMonthYear = `${year}-${month}`;
+                    const rowDate = new Date(`${year}-${month}-${match[1]}T${match[4]}:${match[5]}:00`);
+                    
+                    allData.forEach((entry) => {
+                        const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                        if (entryMatch) {
+                            const [, , entryMonth, entryYear] = entryMatch;
+                            const entryMonthYear = `${entryYear}-${entryMonth}`;
+                            if (entryMonthYear === targetMonthYear) {
+                                const entryDate = new Date(`${entryYear}-${entryMonth}-${entryMatch[1]}T${entryMatch[4]}:${entryMatch[5]}:00`);
+                                if (entryDate <= rowDate) {
+                                    count++;
+                                }
+                            }
+                        }
+                    });
+                    registrationNumber = generateRegistrationNumber(row.date, count);
+                } catch (error) {
+                    console.error('Error calculating registration number:', error);
+                    registrationNumber = generateRegistrationNumber(row.date, 1);
+                }
+            }
+
+            const previewReceipt = document.getElementById('previewReceipt');
+            previewReceipt.innerHTML = `
+                <div class="preview-header">
+                    <div class="preview-title">DIREC - Input Form</div>
+                    <div class="preview-reg-number">No. Registrasi: ${registrationNumber}</div>
+                </div>
+                
+                <div class="preview-info">
+                    <div class="preview-info-row">
+                        <span class="preview-info-label">Tanggal:</span>
+                        <span class="preview-info-value">${row.date || '-'}</span>
+                    </div>
+                    <div class="preview-info-row">
+                        <span class="preview-info-label">Nama Penerima:</span>
+                        <span class="preview-info-value">${row.recipientName || '-'}</span>
+                    </div>
+                    <div class="preview-info-row">
+                        <span class="preview-info-label">Departemen:</span>
+                        <span class="preview-info-value">${row.department || '-'}</span>
+                    </div>
+                </div>
+                
+                <div class="preview-items">
+                    <div class="preview-items-title">Deskripsi Barang:</div>
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Deskripsi</th>
+                                <th>Qty</th>
+                                <th>Satuan</th>
+                                <th>No PR</th>
+                                <th>No PO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.length ? items.map(item => `
+                                <tr>
+                                    <td style="text-align: left;">${item.desc}</td>
+                                    <td>${item.qty}</td>
+                                    <td>${item.unit}</td>
+                                    <td>${item.prNumber}</td>
+                                    <td>${item.poNumber}</td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="5">Tidak ada barang</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="preview-photo-section">
+                    <div class="preview-photo-title">Foto Penerima:</div>
+                    ${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto Penerima" class="preview-photo">` : '<p style="color: #6b7280; font-style: italic;">Tidak ada foto</p>'}
+                </div>
+                
+                <div class="preview-signatures">
+                    <div class="preview-signature">
+                        <div class="preview-signature-title">Tanda Tangan Pengirim:</div>
+                        ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" class="preview-signature-img">` : '<div class="preview-signature-img" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #6b7280;">Tidak ada tanda tangan</div>'}
+                        <div class="preview-signature-name">(_________________)</div>
+                        <div class="preview-signature-name">Pengirim</div>
+                    </div>
+                    <div class="preview-signature">
+                        <div class="preview-signature-title">Tanda Tangan Penerima:</div>
+                        ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" class="preview-signature-img">` : '<div class="preview-signature-img" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #6b7280;">Tidak ada tanda tangan</div>'}
+                        <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
+                        <div class="preview-signature-name">Penerima</div>
+                    </div>
+                </div>
+            `;
+
+            currentPreviewData = row;
+            document.getElementById('previewModal').style.display = 'block';
+        }
+
+        // Enhanced PDF Generation Function
+        async function generateEnhancedPDF(row) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+
+            try {
+                let jsPDFInstance = window.jspdf;
+                if (!jsPDFInstance) {
+                    await loadJsPDF();
+                    jsPDFInstance = window.jspdf;
+                }
+
+                const { jsPDF } = jsPDFInstance;
+                const doc = new jsPDF();
+                const items = parseItems(row.items);
+
+                // Calculate registration number
+                let registrationNumber = row.registrationNumber;
+                if (!registrationNumber) {
+                    let count = 0;
+                    try {
+                        const match = row.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                        if (!match) throw new Error('Invalid date format');
+                        const [, , month, year] = match;
+                        const targetMonthYear = `${year}-${month}`;
+                        const rowDate = new Date(`${year}-${month}-${match[1]}T${match[4]}:${match[5]}:00`);
+                        
+                        allData.forEach((entry) => {
+                            const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                            if (entryMatch) {
+                                const [, , entryMonth, entryYear] = entryMatch;
+                                const entryMonthYear = `${entryYear}-${entryMonth}`;
+                                if (entryMonthYear === targetMonthYear) {
+                                    const entryDate = new Date(`${entryYear}-${entryMonth}-${entryMatch[1]}T${entryMatch[4]}:${entryMatch[5]}:00`);
+                                    if (entryDate <= rowDate) {
+                                        count++;
                                     }
                                 }
-                            });
-                            registrationNumber = generateRegistrationNumber(row.date, count);
-                        } catch (error) {
-                            console.error('Error calculating registration number:', error);
-                            registrationNumber = generateRegistrationNumber(row.date, 1);
-                        }
+                            }
+                        });
+                        registrationNumber = generateRegistrationNumber(row.date, count);
+                    } catch (error) {
+                        console.error('Error calculating registration number:', error);
+                        registrationNumber = generateRegistrationNumber(row.date, 1);
                     }
+                }
 
-                    // Fetch gambar
-                    const photoData = await fetchImage(row.photoUrl);
-                    const signatureSenderData = await fetchImage(row.signatureSenderUrl);
-                    const signatureReceiverData = await fetchImage(row.signatureReceiverUrl);
+                // Fetch images
+                const photoData = await fetchImage(row.photoUrl);
+                const signatureSenderData = await fetchImage(row.signatureSenderUrl);
+                const signatureReceiverData = await fetchImage(row.signatureReceiverUrl);
 
-                    // Margin dan posisi awal
-                    const margin = 15;
-                    const pageWidth = 210; // A4 width in mm
-                    const contentWidth = pageWidth - 2 * margin;
-                    let yPosition = margin;
+                // PDF Layout - Matching HTML exactly
+                const margin = 15;
+                const pageWidth = 210; // A4 width in mm
+                let yPosition = margin;
 
-                    // Judul
-                    doc.setFont('Poppins', 'bold');
-                    doc.setFontSize(16);
-                    doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
-                    yPosition += 7; // Jarak setelah judul
+                // Header - Exact match to HTML
+                doc.setFont('Helvetica', 'bold'); // Using Helvetica as fallback for Montserrat
+                doc.setFontSize(20);
+                doc.setTextColor(30, 58, 138); // #1e3a8a
+                doc.text('DIREC - Input Form', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 12;
 
-                    // Nomor Registrasi
-                    doc.setFont('Poppins', 'normal');
-                    doc.setFontSize(10);
-                    doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-                    yPosition += 10; // Jarak setelah nomor registrasi
+                // Registration Number - Exact match
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(14);
+                doc.setTextColor(107, 114, 128); // #6b7280
+                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 20;
 
-                    // Informasi (Tanggal, Penerima, Departemen)
-                    doc.setFontSize(12);
-                    const labelWidth = 30;
-                    doc.text('Tanggal', margin, yPosition);
-                    doc.text(`: ${row.date || '-'}`, margin + labelWidth, yPosition);
-                    yPosition += 5;
-                    doc.text('Penerima', margin, yPosition);
-                    doc.text(`: ${row.recipientName || '-'}`, margin + labelWidth, yPosition);
-                    yPosition += 5;
-                    doc.text('Departemen', margin, yPosition);
-                    doc.text(`: ${row.department || '-'}`, margin + labelWidth, yPosition);
-                    yPosition += 10; // Jarak setelah informasi
+                // Information Section - Matching HTML layout
+                doc.setFontSize(14);
+                doc.setTextColor(55, 65, 81); // #374151
+                const labelWidth = 40;
+                
+                // Date
+                doc.setFont('Helvetica', 'bold');
+                doc.text('Tanggal:', margin, yPosition);
+                doc.setFont('Helvetica', 'normal');
+                doc.setTextColor(31, 41, 55); // #1f2937
+                doc.text(row.date || '-', margin + labelWidth, yPosition);
+                yPosition += 8;
+                
+                // Recipient Name
+                doc.setFont('Helvetica', 'bold');
+                doc.setTextColor(55, 65, 81);
+                doc.text('Nama Penerima:', margin, yPosition);
+                doc.setFont('Helvetica', 'normal');
+                doc.setTextColor(31, 41, 55);
+                doc.text(row.recipientName || '-', margin + labelWidth, yPosition);
+                yPosition += 8;
+                
+                // Department
+                doc.setFont('Helvetica', 'bold');
+                doc.setTextColor(55, 65, 81);
+                doc.text('Departemen:', margin, yPosition);
+                doc.setFont('Helvetica', 'normal');
+                doc.setTextColor(31, 41, 55);
+                doc.text(row.department || '-', margin + labelWidth, yPosition);
+                yPosition += 20;
 
-                    // Tabel Barang
-                    doc.setFontSize(12);
-                    doc.text('Deskripsi Barang:', margin, yPosition);
-                    yPosition += 5;
+                // Items Section - Exact table styling
+                doc.setFont('Helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.setTextColor(55, 65, 81);
+                doc.text('Deskripsi Barang:', margin, yPosition);
+                yPosition += 10;
 
-                    doc.autoTable({
-                        startY: yPosition,
-                        head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                        body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                        styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
-                        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
-                        columnStyles: {
-                            0: { cellWidth: 70 }, // Deskripsi
-                            1: { cellWidth: 20 }, // Qty
-                            2: { cellWidth: 25 }, // Satuan
-                            3: { cellWidth: 30 }, // No PR
-                            4: { cellWidth: 35 }  // No PO
-                        },
-                        margin: { left: margin, right: margin }
-                    });
+                // Enhanced table with exact styling
+                doc.autoTable({
+                    startY: yPosition,
+                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                    body: items.length ? items.map(item => [
+                        item.desc, 
+                        item.qty, 
+                        item.unit, 
+                        item.prNumber, 
+                        item.poNumber
+                    ]) : [['Tidak ada barang', '-', '-', '-', '-']],
+                    styles: { 
+                        fontSize: 12, 
+                        cellPadding: 8,
+                        lineColor: [209, 213, 219], // #d1d5db
+                        lineWidth: 0.5,
+                        textColor: [31, 41, 55], // #1f2937
+                        font: 'Helvetica'
+                    },
+                    headStyles: { 
+                        fillColor: [16, 185, 129], // #10b981 - exact match
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        fontSize: 12
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 70, halign: 'left' }, // Deskripsi
+                        1: { cellWidth: 20, halign: 'center' }, // Qty
+                        2: { cellWidth: 25, halign: 'center' }, // Satuan
+                        3: { cellWidth: 30, halign: 'center' }, // No PR
+                        4: { cellWidth: 35, halign: 'center' }  // No PO
+                    },
+                    alternateRowStyles: {
+                        fillColor: [249, 250, 251] // #f9fafb - exact match
+                    },
+                    margin: { left: margin, right: margin }
+                });
 
-                    yPosition = doc.lastAutoTable.finalY + 10; // Jarak setelah tabel
+                yPosition = doc.lastAutoTable.finalY + 20;
 
-                    // Foto Penerima
-                    doc.setFontSize(12);
-                    doc.text('Foto Penerima:', margin, yPosition);
-                    yPosition += 5;
-                    if (photoData) {
-                        try {
-                            doc.addImage(photoData, 'JPEG', margin, yPosition, 50, 30);
-                        } catch (error) {
-                            console.error('Error adding photo:', error);
-                        }
+                // Photo Section - Exact positioning
+                doc.setFont('Helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.setTextColor(55, 65, 81);
+                doc.text('Foto Penerima:', margin, yPosition);
+                yPosition += 10;
+                
+                if (photoData) {
+                    try {
+                        // Exact photo sizing to match HTML
+                        doc.addImage(photoData, 'JPEG', margin, yPosition, 60, 45);
+                    } catch (error) {
+                        console.error('Error adding photo:', error);
+                        doc.setFont('Helvetica', 'italic');
+                        doc.setFontSize(12);
+                        doc.setTextColor(107, 114, 128);
+                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 20);
                     }
-                    yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
-
-                    // Tanda Tangan
+                } else {
+                    doc.setFont('Helvetica', 'italic');
                     doc.setFontSize(12);
-                    const signatureWidth = 50;
-                    const signatureHeight = 15;
-                    const signatureSpacing = 40; // Jarak antar tanda tangan
-                    doc.text('Pengirim:', margin, yPosition);
-                    doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
-                    yPosition += 5;
-                    if (signatureSenderData) {
-                        try {
-                            doc.addImage(signatureSenderData, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
-                        } catch (error) {
-                            console.error('Error adding sender signature:', error);
-                        }
-                    }
-                    if (signatureReceiverData) {
-                        try {
-                            doc.addImage(signatureReceiverData, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
-                        } catch (error) {
-                            console.error('Error adding receiver signature:', error);
-                        }
-                    }
+                    doc.setTextColor(107, 114, 128);
+                    doc.text('(Tidak ada foto)', margin, yPosition + 20);
+                }
+                yPosition += 60;
 
-                    // Simpan PDF
-                    doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
+                // Signature Section - Exact layout match
+                doc.setFont('Helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.setTextColor(55, 65, 81);
+                
+                const signatureWidth = 70;
+                const signatureHeight = 25;
+                const signatureSpacing = 70;
+                
+                // Signature titles
+                doc.text('Tanda Tangan Pengirim:', margin, yPosition);
+                doc.text('Tanda Tangan Penerima:', margin + signatureSpacing, yPosition);
+                yPosition += 10;
+                
+                // Signature images with exact sizing
+                if (signatureSenderData) {
+                    try {
+                        doc.addImage(signatureSenderData, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
+                    } catch (error) {
+                        console.error('Error adding sender signature:', error);
+                    }
+                }
+                
+                if (signatureReceiverData) {
+                    try {
+                        doc.addImage(signatureReceiverData, 'PNG', margin + signatureSpacing, yPosition, signatureWidth, signatureHeight);
+                    } catch (error) {
+                        console.error('Error adding receiver signature:', error);
+                    }
+                }
+                
+                yPosition += signatureHeight + 10;
+                
+                // Signature names - exact styling
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(12);
+                doc.setTextColor(107, 114, 128);
+                doc.text('(_________________)', margin + 10, yPosition);
+                doc.text(`(${row.recipientName || '_________________'})`, margin + signatureSpacing + 10, yPosition);
+                
+                yPosition += 8;
+                doc.text('Pengirim', margin + 25, yPosition);
+                doc.text('Penerima', margin + signatureSpacing + 25, yPosition);
+
+                // Save PDF with exact filename format
+                const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+                doc.save(fileName);
+                
+                console.log('Enhanced PDF generated successfully:', fileName);
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Gagal membuat PDF: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function attachEvents() {
+            // Preview buttons
+            const previewButtons = document.querySelectorAll('.preview-btn');
+            previewButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const row = JSON.parse(btn.dataset.row);
+                    showPreview(row);
+                });
+            });
+
+            // Download buttons
+            const downloadButtons = document.querySelectorAll('.download-btn');
+            downloadButtons.forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const row = JSON.parse(btn.dataset.row);
+                    await generateEnhancedPDF(row);
                 });
             });
         }
+
+        // Modal event listeners
+        document.getElementById('previewClose').addEventListener('click', () => {
+            document.getElementById('previewModal').style.display = 'none';
+        });
+
+        document.getElementById('downloadFromPreview').addEventListener('click', async () => {
+            if (currentPreviewData) {
+                document.getElementById('previewModal').style.display = 'none';
+                await generateEnhancedPDF(currentPreviewData);
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'previewModal') {
+                document.getElementById('previewModal').style.display = 'none';
+            }
+        });
+
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
+            
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
+                
                 if (response.ok) {
                     allData = result.data || [];
                     if (allData.length === 0) {
@@ -626,6 +1055,8 @@
                         errorMessage.style.display = 'block';
                         return;
                     }
+                    
+                    // Sort by date (newest first)
                     allData.sort((a, b) => {
                         try {
                             const matchA = a.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
@@ -636,12 +1067,13 @@
                             const dateA = new Date(`${yearA}-${monthA}-${dayA}T${hourA}:${minuteA}:00`);
                             const dateB = new Date(`${yearB}-${monthB}-${dayB}T${hourB}:${minuteB}:00`);
                             if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) throw new Error('Invalid date');
-                            return dateB - dateA; // Urutkan dari terbaru
+                            return dateB - dateA;
                         } catch (error) {
                             console.error('Error parsing date:', error);
-                            return 0; // Jaga posisi jika parsing gagal
+                            return 0;
                         }
                     });
+                    
                     filteredData = [...allData];
                     renderTable(filteredData, currentPage);
                 } else {
@@ -655,7 +1087,11 @@
                 loading.style.display = 'none';
             }
         }
+
+        // Initialize
         loadDownloadData();
+
+        // Search functionality
         document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
         document.getElementById('resetBtn').addEventListener('click', () => {
             document.getElementById('searchInput').value = '';
@@ -663,6 +1099,8 @@
             currentPage = 1;
             renderTable(filteredData, currentPage);
         });
+
+        // Logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
