@@ -574,11 +574,12 @@
             });
         }
 
-        // Enhanced Data Synchronization Manager
+        // Enhanced Data Synchronization Manager with Registration Number Manager Integration
         class DataSyncManager {
             constructor() {
                 this.storageKey = 'direc_receipts';
                 this.lastUpdateKey = 'direc_last_update';
+                this.registrationCountersKey = 'direc_registration_counters';
                 this.setupEventListeners();
             }
 
@@ -596,6 +597,12 @@
                         this.handleDataSync();
                     }
                 });
+
+                // Listen for form submissions from registration number manager
+                window.addEventListener('receiptSubmitted', (event) => {
+                    console.log('Receipt submitted event received:', event.detail);
+                    this.handleFormSubmission(event.detail);
+                });
             }
 
             async handleDataSync() {
@@ -609,6 +616,65 @@
                     console.log('Data synchronized successfully');
                 } catch (error) {
                     console.error('Error during data sync:', error);
+                }
+            }
+
+            handleFormSubmission(submissionData) {
+                console.log('Processing form submission data:', submissionData);
+                
+                // Ensure the data includes all necessary image and signature information
+                if (submissionData) {
+                    this.saveReceiptWithImages(submissionData);
+                }
+            }
+
+            saveReceiptWithImages(receiptData) {
+                try {
+                    const receipts = this.getAllReceipts();
+                    
+                    // Enhanced receipt data structure with complete image integration
+                    const enhancedReceiptData = {
+                        ...receiptData,
+                        id: this.generateUniqueId(),
+                        createdAt: new Date().toISOString(),
+                        lastModified: new Date().toISOString(),
+                        version: '2.0',
+                        dataIntegrity: this.calculateDataHash(receiptData),
+                        
+                        // Ensure image data is properly structured
+                        imageData: {
+                            photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
+                            signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
+                            signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
+                            hasPhoto: !!(receiptData.photoUrl || receiptData.photoSrc),
+                            hasSenderSignature: !!(receiptData.signatureSenderUrl || receiptData.signatureSenderData),
+                            hasReceiverSignature: !!(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData)
+                        },
+                        
+                        // Maintain backward compatibility
+                        photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
+                        signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
+                        signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
+                        
+                        // Form integration flags
+                        fromRegistrationManager: true,
+                        pdfReady: true,
+                        imagesProcessed: true
+                    };
+                    
+                    receipts.push(enhancedReceiptData);
+                    localStorage.setItem(this.storageKey, JSON.stringify(receipts));
+                    localStorage.setItem(this.lastUpdateKey, new Date().toISOString());
+                    
+                    console.log('Receipt saved with enhanced image data:', enhancedReceiptData.id);
+                    
+                    // Trigger data sync for download interface
+                    this.triggerDataSync();
+                    
+                    return enhancedReceiptData;
+                } catch (error) {
+                    console.error('Error saving receipt with images:', error);
+                    throw error;
                 }
             }
 
@@ -640,6 +706,27 @@
 
             getLastUpdate() {
                 return localStorage.getItem(this.lastUpdateKey);
+            }
+
+            generateUniqueId() {
+                return 'receipt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            calculateDataHash(data) {
+                const str = JSON.stringify(data);
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return hash.toString();
+            }
+
+            triggerDataSync() {
+                window.dispatchEvent(new CustomEvent('direcDataSync', {
+                    detail: { timestamp: new Date().toISOString() }
+                }));
             }
         }
 
@@ -720,7 +807,7 @@
             return [];
         }
 
-        // Registration Number System
+        // Registration Number System Integration
         function buildRegistrationCounters(data) {
             registrationCounters = {};
             
@@ -799,6 +886,48 @@
             }
         }
 
+        // Enhanced Image Data Extraction from Registration Manager
+        function extractImageDataFromEntry(entry) {
+            console.log('Extracting image data from entry:', entry);
+            
+            // Multiple possible sources for image data
+            const imageData = {
+                photoUrl: null,
+                signatureSenderUrl: null,
+                signatureReceiverUrl: null
+            };
+            
+            // Check various possible property names for photo
+            imageData.photoUrl = entry.photoUrl || 
+                                 entry.photoSrc || 
+                                 entry.photo || 
+                                 entry.recipientPhoto ||
+                                 (entry.imageData && entry.imageData.photoUrl) ||
+                                 null;
+            
+            // Check various possible property names for sender signature
+            imageData.signatureSenderUrl = entry.signatureSenderUrl || 
+                                          entry.signatureSenderData || 
+                                          entry.senderSignature ||
+                                          (entry.imageData && entry.imageData.signatureSenderUrl) ||
+                                          null;
+            
+            // Check various possible property names for receiver signature
+            imageData.signatureReceiverUrl = entry.signatureReceiverUrl || 
+                                            entry.signatureReceiverData || 
+                                            entry.receiverSignature ||
+                                            (entry.imageData && entry.imageData.signatureReceiverUrl) ||
+                                            null;
+            
+            // Validate image URLs
+            if (imageData.photoUrl && (imageData.photoUrl.includes('placeholder.svg') || imageData.photoUrl === 'undefined')) {
+                imageData.photoUrl = null;
+            }
+            
+            console.log('Extracted image data:', imageData);
+            return imageData;
+        }
+
         // Fixed function to render table with proper data serialization
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
@@ -822,15 +951,6 @@
                     
                     // Create table row
                     const tr = document.createElement('tr');
-                    
-                    // Safely serialize row data by removing circular references and handling special characters
-                    const safeRowData = JSON.stringify(row, (key, value) => {
-                        // Skip functions and DOM elements
-                        if (typeof value === 'function' || (value && value.nodeType)) {
-                            return undefined;
-                        }
-                        return value;
-                    }).replace(/'/g, "&#39;");
                     
                     tr.innerHTML = `
                         <td>${row.date || '-'}</td>
@@ -1002,7 +1122,7 @@
                         const index = parseInt(btn.dataset.index);
                         const row = filteredData[index];
                         if (row) {
-                            await generateEnhancedPDF(row);
+                            await generateIntegratedPDF(row);
                         } else {
                             throw new Error('Data not found');
                         }
@@ -1014,12 +1134,23 @@
             });
         }
 
-        // Enhanced Preview Function with complete form data integration
+        // Enhanced Preview Function with Registration Manager Integration
         async function showPreview(row) {
             try {
                 console.log('Showing preview for:', row);
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
+                const imageData = extractImageDataFromEntry(row);
+                
+                // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
+                let formattedDate = row.date;
+                if (formattedDate && formattedDate.includes(',')) {
+                    const [datePart, timePart] = formattedDate.split(',');
+                    if (timePart && timePart.includes(':')) {
+                        const trimmedTime = timePart.trim().replace(':', '.');
+                        formattedDate = `${datePart}, ${trimmedTime}`;
+                    }
+                }
 
                 const previewReceipt = document.getElementById('previewReceipt');
                 previewReceipt.innerHTML = `
@@ -1031,7 +1162,7 @@
                     <div class="preview-info">
                         <div class="preview-info-row">
                             <span class="preview-info-label">Tanggal</span>
-                            <span class="preview-info-value">: ${row.date || '-'}</span>
+                            <span class="preview-info-value">: ${formattedDate || '-'}</span>
                         </div>
                         <div class="preview-info-row">
                             <span class="preview-info-label">Nama Penerima</span>
@@ -1072,7 +1203,7 @@
                     <div class="preview-photo-section">
                         <div class="preview-photo-title">Foto Penerima:</div>
                         <div id="photoContainer">
-                            ${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            ${imageData.photoUrl ? `<img src="${imageData.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                             <p style="color: #6b7280; font-style: italic; display: none;">Foto tidak dapat dimuat</p>` : '<p style="color: #6b7280; font-style: italic;">Tidak ada foto</p>'}
                         </div>
                     </div>
@@ -1081,14 +1212,14 @@
                         <div class="preview-signature">
                             <div class="preview-signature-title">Pengirim:</div>
                             <div class="preview-signature-img">
-                                ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                                ${imageData.signatureSenderUrl ? `<img src="${imageData.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                             </div>
                             <div class="preview-signature-name">(${row.senderName || 'TEAM WAREHOUSE'})</div>
                         </div>
                         <div class="preview-signature">
                             <div class="preview-signature-title">Penerima:</div>
                             <div class="preview-signature-img">
-                                ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                                ${imageData.signatureReceiverUrl ? `<img src="${imageData.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                             </div>
                             <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
                         </div>
@@ -1103,8 +1234,224 @@
             }
         }
 
-        // Enhanced PDF Generation with perfect form data integration and correct table formatting
-        async function generateEnhancedPDF(row) {
+        // Comprehensive Image Processing System for Registration Manager Integration
+        class RegistrationManagerImageProcessor {
+            static async validateAndProcessImage(imageUrl, imageName = 'image') {
+                console.log(`Processing ${imageName} from Registration Manager:`, imageUrl ? 'URL provided' : 'No URL');
+                
+                if (!imageUrl || imageUrl.includes('placeholder.svg') || imageUrl === 'undefined' || imageUrl === 'null') {
+                    return { 
+                        isValid: false, 
+                        data: null, 
+                        error: 'No valid image URL provided',
+                        imageName 
+                    };
+                }
+
+                try {
+                    // Handle data URLs (base64 encoded images) - Primary format from Registration Manager
+                    if (imageUrl.startsWith('data:image/')) {
+                        return await this.processDataURL(imageUrl, imageName);
+                    }
+                    
+                    // Handle blob URLs
+                    if (imageUrl.startsWith('blob:')) {
+                        return await this.processBlobURL(imageUrl, imageName);
+                    }
+                    
+                    // Handle regular HTTP/HTTPS URLs
+                    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                        return await this.processHTTPURL(imageUrl, imageName);
+                    }
+                    
+                    // Handle relative URLs or other formats
+                    return await this.processOtherURL(imageUrl, imageName);
+                    
+                } catch (error) {
+                    console.error(`Error processing ${imageName}:`, error);
+                    return { 
+                        isValid: false, 
+                        data: null, 
+                        error: error.message,
+                        imageName 
+                    };
+                }
+            }
+
+            static async processDataURL(dataURL, imageName) {
+                try {
+                    // Validate data URL format
+                    const [header, base64Data] = dataURL.split(',');
+                    if (!header || !base64Data) {
+                        throw new Error('Invalid data URL format');
+                    }
+
+                    // Check if base64 data is substantial (not just a tiny placeholder)
+                    if (base64Data.length < 100) {
+                        throw new Error('Base64 data too small, likely invalid');
+                    }
+
+                    // Determine image format
+                    const format = header.includes('png') ? 'PNG' : 
+                                  header.includes('jpeg') || header.includes('jpg') ? 'JPEG' : 
+                                  'PNG'; // Default to PNG
+
+                    // Validate base64 encoding
+                    try {
+                        atob(base64Data);
+                    } catch (e) {
+                        throw new Error('Invalid base64 encoding');
+                    }
+
+                    console.log(`${imageName} processed successfully as ${format}, size: ${base64Data.length} chars`);
+                    
+                    return {
+                        isValid: true,
+                        data: dataURL,
+                        format: format,
+                        size: base64Data.length,
+                        imageName,
+                        source: 'registration_manager'
+                    };
+                } catch (error) {
+                    throw new Error(`Data URL processing failed: ${error.message}`);
+                }
+            }
+
+            static async processBlobURL(blobURL, imageName) {
+                try {
+                    const response = await fetch(blobURL);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch blob: ${response.status}`);
+                    }
+
+                    const blob = await response.blob();
+                    if (blob.size === 0) {
+                        throw new Error('Empty blob received');
+                    }
+
+                    // Convert blob to data URL
+                    const dataURL = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => reject(new Error('FileReader error'));
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
+                    
+                    console.log(`${imageName} blob converted successfully, size: ${blob.size} bytes`);
+                    
+                    return {
+                        isValid: true,
+                        data: dataURL,
+                        format: format,
+                        size: blob.size,
+                        imageName,
+                        source: 'registration_manager'
+                    };
+                } catch (error) {
+                    throw new Error(`Blob processing failed: ${error.message}`);
+                }
+            }
+
+            static async processHTTPURL(httpURL, imageName) {
+                try {
+                    // Create a promise that will timeout after 10 seconds
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Image fetch timeout')), 10000);
+                    });
+
+                    const fetchPromise = fetch(httpURL, {
+                        mode: 'cors',
+                        cache: 'no-cache'
+                    });
+
+                    const response = await Promise.race([fetchPromise, timeoutPromise]);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const blob = await response.blob();
+                    if (blob.size === 0) {
+                        throw new Error('Empty image received');
+                    }
+
+                    // Convert to data URL
+                    const dataURL = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => reject(new Error('FileReader error'));
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
+                    
+                    console.log(`${imageName} HTTP image processed successfully, size: ${blob.size} bytes`);
+                    
+                    return {
+                        isValid: true,
+                        data: dataURL,
+                        format: format,
+                        size: blob.size,
+                        imageName,
+                        source: 'registration_manager'
+                    };
+                } catch (error) {
+                    throw new Error(`HTTP URL processing failed: ${error.message}`);
+                }
+            }
+
+            static async processOtherURL(url, imageName) {
+                try {
+                    // Try to load as a regular image element first
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    const loadPromise = new Promise((resolve, reject) => {
+                        img.onload = () => {
+                            try {
+                                // Create canvas to convert to data URL
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                ctx.drawImage(img, 0, 0);
+                                
+                                const dataURL = canvas.toDataURL('image/png');
+                                resolve(dataURL);
+                            } catch (canvasError) {
+                                reject(new Error(`Canvas conversion failed: ${canvasError.message}`));
+                            }
+                        };
+                        img.onerror = () => reject(new Error('Image load failed'));
+                    });
+
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Image load timeout')), 10000);
+                    });
+
+                    img.src = url;
+                    const dataURL = await Promise.race([loadPromise, timeoutPromise]);
+                    
+                    console.log(`${imageName} other URL processed successfully via canvas`);
+                    
+                    return {
+                        isValid: true,
+                        data: dataURL,
+                        format: 'PNG',
+                        imageName,
+                        source: 'registration_manager'
+                    };
+                } catch (error) {
+                    throw new Error(`Other URL processing failed: ${error.message}`);
+                }
+            }
+        }
+
+        // Integrated PDF Generation with Registration Manager Data
+        async function generateIntegratedPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
 
@@ -1116,234 +1463,271 @@
                 }
 
                 const { jsPDF } = jsPDFInstance;
-                const doc = new jsPDF();
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
                 
                 // Parse and validate form data
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
+                const imageData = extractImageDataFromEntry(row);
 
-                console.log('Generating PDF with complete form data:', {
+                console.log('Starting integrated PDF generation with Registration Manager data:', {
                     recipientName: row.recipientName,
                     department: row.department,
                     date: row.date,
                     registrationNumber: registrationNumber,
                     items: items,
                     itemsCount: items.length,
-                    hasPhoto: !!row.photoUrl,
-                    hasSenderSignature: !!row.signatureSenderUrl,
-                    hasReceiverSignature: !!row.signatureReceiverUrl
+                    imageData: imageData
                 });
 
-                // Validate and prepare image data
-                const photoData = row.photoUrl && !row.photoUrl.includes('placeholder.svg') ? row.photoUrl : null;
-                const signatureSenderData = row.signatureSenderUrl;
-                const signatureReceiverData = row.signatureReceiverUrl;
+                // Process all images with Registration Manager integration
+                console.log('Processing images from Registration Manager...');
+                const [photoResult, senderSigResult, receiverSigResult] = await Promise.allSettled([
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.photoUrl, 'Photo'),
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureSenderUrl, 'Sender Signature'),
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureReceiverUrl, 'Receiver Signature')
+                ]);
 
-                // PDF Layout Configuration
-                const margin = 20;
+                // Extract results and handle rejections
+                const processedPhoto = photoResult.status === 'fulfilled' ? photoResult.value : 
+                    { isValid: false, error: photoResult.reason?.message || 'Processing failed', imageName: 'Photo' };
+                
+                const processedSenderSig = senderSigResult.status === 'fulfilled' ? senderSigResult.value : 
+                    { isValid: false, error: senderSigResult.reason?.message || 'Processing failed', imageName: 'Sender Signature' };
+                
+                const processedReceiverSig = receiverSigResult.status === 'fulfilled' ? receiverSigResult.value : 
+                    { isValid: false, error: receiverSigResult.reason?.message || 'Processing failed', imageName: 'Receiver Signature' };
+
+                console.log('Registration Manager image processing results:', {
+                    photo: processedPhoto.isValid ? '✓ Success' : `✗ Failed: ${processedPhoto.error}`,
+                    senderSig: processedSenderSig.isValid ? '✓ Success' : `✗ Failed: ${processedSenderSig.error}`,
+                    receiverSig: processedReceiverSig.isValid ? '✓ Success' : `✗ Failed: ${processedReceiverSig.error}`
+                });
+
+                // PDF Layout Configuration - Exact match to the provided image
                 const pageWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
-                let yPosition = margin;
+                const margin = 20;
 
-                // Header Section
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.setTextColor(0, 0, 0);
-                doc.text('DIREC - TANDA TERIMA', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 12;
+                // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
+                let formattedDate = row.date;
+                if (formattedDate && formattedDate.includes(',')) {
+                    const [datePart, timePart] = formattedDate.split(',');
+                    if (timePart && timePart.includes(':')) {
+                        const trimmedTime = timePart.trim().replace(':', '.');
+                        formattedDate = `${datePart}, ${trimmedTime}`;
+                    }
+                }
 
-                // Registration Number
-                doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(12);
-                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 20;
-
-                // Information Section with proper spacing
-                doc.setFontSize(12);
-                const labelWidth = 35;
+                // 1. Title and Registration Number (centered)
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.text('DIREC - TANDA TERIMA', pageWidth / 2, 25, { align: 'center' });
                 
-                // Date
-                doc.setFont('Helvetica', 'normal');
-                doc.text('Tanggal', margin, yPosition);
-                doc.text(`: ${row.date || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 8;
-                
-                // Recipient Name
-                doc.text('Nama Penerima', margin, yPosition);
-                doc.text(`: ${row.recipientName || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 8;
-                
-                // Department
-                doc.text('Departemen', margin, yPosition);
-                doc.text(`: ${row.department || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 20;
-
-                // Items Section Header
-                doc.setFont('Helvetica', 'normal');
+                doc.setFont('helvetica', 'normal');
                 doc.setFontSize(12);
-                doc.text('Deskripsi Barang:', margin, yPosition);
-                yPosition += 10;
-
-                // Enhanced Table Generation with proper formatting
-                const tableData = items.length > 0 ? items.map(item => [
-                    item.desc || '-',
-                    item.qty || '-',
-                    item.unit || '-',
-                    item.prNumber || '-',
-                    item.poNumber || '-'
-                ]) : [['Tidak ada barang', '-', '-', '-', '-']];
-
+                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, 35, { align: 'center' });
+                
+                // 2. Basic Information (left-aligned with labels)
+                let yPos = 50;
+                doc.setFontSize(11);
+                
+                // Tanggal
+                doc.text('Tanggal', margin, yPos);
+                doc.text(`: ${formattedDate || '-'}`, margin + 30, yPos);
+                yPos += 8;
+                
+                // Nama Penerima
+                doc.text('Nama Penerima', margin, yPos);
+                doc.text(`: ${row.recipientName || '-'}`, margin + 30, yPos);
+                yPos += 8;
+                
+                // Departemen
+                doc.text('Departemen', margin, yPos);
+                doc.text(`: ${row.department || '-'}`, margin + 30, yPos);
+                yPos += 15;
+                
+                // 3. Items Table Section
+                doc.setFont('helvetica', 'bold');
+                doc.text('Deskripsi Barang:', margin, yPos);
+                yPos += 8;
+                
+                const tableData = items.map(item => ({
+                    desc: item.desc || '-',
+                    qty: item.qty || '-',
+                    satuan: item.unit || '-',
+                    pr: item.prNumber || '-',
+                    po: item.poNumber || '-'
+                }));
+                
+                // If no items, add a placeholder row
+                if (tableData.length === 0) {
+                    tableData.push({
+                        desc: '-',
+                        qty: '-',
+                        satuan: '-',
+                        pr: '-',
+                        po: '-'
+                    });
+                }
+                
+                // Generate table with exact styling from the image
                 doc.autoTable({
-                    startY: yPosition,
+                    startY: yPos,
                     head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: tableData,
+                    body: tableData.map(row => [row.desc, row.qty, row.satuan, row.pr, row.po]),
                     theme: 'grid',
-                    styles: { 
-                        fontSize: 11,
-                        cellPadding: 5,
-                        lineColor: [0, 0, 0],
-                        lineWidth: 0.5,
-                        textColor: [0, 0, 0],
-                        font: 'Helvetica',
-                        halign: 'center',
-                        valign: 'middle'
-                    },
-                    headStyles: { 
-                        fillColor: [26, 188, 156], // Teal color matching the image
+                    headStyles: {
+                        fillColor: [0, 184, 148], // Teal color from the image
                         textColor: [255, 255, 255],
                         fontStyle: 'normal',
-                        fontSize: 11,
-                        halign: 'center'
+                        halign: 'center',
+                        valign: 'middle',
+                        fontSize: 11
+                    },
+                    styles: {
+                        lineColor: [0, 0, 0],
+                        lineWidth: 0.5,
+                        fontSize: 10
                     },
                     columnStyles: {
-                        0: { 
-                            cellWidth: 70, 
-                            halign: 'left',
-                            fontSize: 10
-                        },
-                        1: { 
-                            cellWidth: 25, 
-                            halign: 'center',
-                            fontSize: 10
-                        },
-                        2: { 
-                            cellWidth: 30, 
-                            halign: 'center',
-                            fontSize: 10
-                        },
-                        3: { 
-                            cellWidth: 25, 
-                            halign: 'center',
-                            fontSize: 10
-                        },
-                        4: { 
-                            cellWidth: 30, 
-                            halign: 'center',
-                            fontSize: 10
-                        }
+                        0: { cellWidth: 65, halign: 'left' },
+                        1: { cellWidth: 20, halign: 'center' },
+                        2: { cellWidth: 30, halign: 'center' },
+                        3: { cellWidth: 30, halign: 'center' },
+                        4: { cellWidth: 30, halign: 'center' }
                     },
-                    margin: { left: margin, right: margin },
-                    tableWidth: 'wrap'
+                    margin: { left: margin, right: margin }
                 });
-
-                yPosition = doc.lastAutoTable.finalY + 20;
-
-                // Photo Section
-                doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(12);
-                doc.text('Foto Penerima:', margin, yPosition);
-                yPosition += 10;
                 
-                if (photoData) {
+                yPos = doc.lastAutoTable.finalY + 15;
+                
+                // 4. Photo Section with Registration Manager Integration
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('Foto Penerima:', margin, yPos);
+                yPos += 8;
+                
+                if (processedPhoto.isValid) {
                     try {
-                        // Validate image data before adding
-                        if (photoData.startsWith('data:image/')) {
-                            const imageType = photoData.includes('data:image/png') ? 'PNG' : 'JPEG';
-                            doc.addImage(photoData, imageType, margin, yPosition, 80, 60);
-                            console.log('Photo added successfully to PDF');
-                        } else {
-                            throw new Error('Invalid image format');
-                        }
-                        yPosition += 70;
+                        // Add photo with exact dimensions from the image
+                        doc.addImage(
+                            processedPhoto.data, 
+                            processedPhoto.format, 
+                            margin, 
+                            yPos, 
+                            50, // Width as in the image
+                            40  // Height as in the image
+                        );
+                        console.log('✓ Photo from Registration Manager added successfully to PDF');
+                        yPos += 45; // Photo height + margin
                     } catch (error) {
-                        console.error('Error adding photo to PDF:', error);
-                        doc.setFont('Helvetica', 'italic');
+                        console.error('✗ Error adding photo from Registration Manager to PDF:', error);
+                        doc.setFont('helvetica', 'italic');
                         doc.setFontSize(10);
-                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 10);
-                        yPosition += 25;
+                        doc.text('(Foto tidak tersedia)', margin, yPos + 10);
+                        yPos += 15;
                     }
                 } else {
-                    doc.setFont('Helvetica', 'italic');
+                    doc.setFont('helvetica', 'italic');
                     doc.setFontSize(10);
-                    doc.text('(Tidak ada foto)', margin, yPosition + 10);
-                    yPosition += 25;
+                    doc.text('(Foto tidak tersedia)', margin, yPos + 10);
+                    yPos += 15;
                 }
-
-                // Check if we need a new page
-                if (yPosition > pageHeight - 80) {
-                    doc.addPage();
-                    yPosition = margin;
-                }
-
-                // Signature Section with proper spacing
-                const signatureY = yPosition;
-                const leftSignatureX = margin;
-                const rightSignatureX = pageWidth - margin - 80;
-                const signatureWidth = 70;
-                const signatureHeight = 40;
                 
-                // Signature labels
-                doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(12);
-                doc.text('Pengirim:', leftSignatureX, signatureY);
-                doc.text('Penerima:', rightSignatureX, signatureY);
+                // 5. Signatures Section with Registration Manager Integration - Exact layout from the image
+                yPos += 15; // Add space before signatures
                 
-                const signatureImageY = signatureY + 10;
+                // Signature titles
+                const leftSignatureX = margin + 20;
+                const rightSignatureX = pageWidth - margin - 70;
                 
-                // Add signature images with validation
-                if (signatureSenderData) {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+                doc.text('Pengirim:', leftSignatureX, yPos, { align: 'center' });
+                doc.text('Penerima:', rightSignatureX, yPos, { align: 'center' });
+                
+                yPos += 10;
+                
+                // Add signatures with exact dimensions from the image
+                const signatureWidth = 40;
+                const signatureHeight = 25;
+                
+                // Sender signature from Registration Manager
+                if (processedSenderSig.isValid) {
                     try {
-                        if (signatureSenderData.startsWith('data:image/')) {
-                            doc.addImage(signatureSenderData, 'PNG', leftSignatureX, signatureImageY, signatureWidth, signatureHeight);
-                            console.log('Sender signature added successfully to PDF');
-                        }
+                        doc.addImage(
+                            processedSenderSig.data,
+                            processedSenderSig.format,
+                            leftSignatureX - signatureWidth/2,
+                            yPos,
+                            signatureWidth,
+                            signatureHeight
+                        );
+                        console.log('✓ Sender signature from Registration Manager added successfully to PDF');
                     } catch (error) {
-                        console.error('Error adding sender signature to PDF:', error);
+                        console.error('✗ Error adding sender signature from Registration Manager:', error);
                     }
                 }
                 
-                if (signatureReceiverData) {
+                // Receiver signature from Registration Manager
+                if (processedReceiverSig.isValid) {
                     try {
-                        if (signatureReceiverData.startsWith('data:image/')) {
-                            doc.addImage(signatureReceiverData, 'PNG', rightSignatureX, signatureImageY, signatureWidth, signatureHeight);
-                            console.log('Receiver signature added successfully to PDF');
-                        }
+                        doc.addImage(
+                            processedReceiverSig.data,
+                            processedReceiverSig.format,
+                            rightSignatureX - signatureWidth/2,
+                            yPos,
+                            signatureWidth,
+                            signatureHeight
+                        );
+                        console.log('✓ Receiver signature from Registration Manager added successfully to PDF');
                     } catch (error) {
-                        console.error('Error adding receiver signature to PDF:', error);
+                        console.error('✗ Error adding receiver signature from Registration Manager:', error);
                     }
                 }
                 
-                // Signature names
-                const nameY = signatureImageY + signatureHeight + 10;
-                doc.setFont('Helvetica', 'normal');
+                yPos += signatureHeight + 5;
+                
+                // Signature names - Exact format from the image
+                doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
-                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, leftSignatureX + (signatureWidth / 2), nameY, { align: 'center' });
-                doc.text(`(${row.recipientName || 'PENERIMA'})`, rightSignatureX + (signatureWidth / 2), nameY, { align: 'center' });
-
+                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, leftSignatureX, yPos, { align: 'center' });
+                doc.text(`(${row.recipientName || row.recipientName})`, rightSignatureX, yPos, { align: 'center' });
+                
                 // Generate filename and save
                 const cleanRegNumber = registrationNumber.replace(/[^a-zA-Z0-9]/g, '-');
                 const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
                 doc.save(fileName);
                 
-                console.log('Enhanced PDF generated successfully with complete form data:', fileName);
+                console.log('Integrated PDF generated successfully with Registration Manager data:', fileName);
                 
-                // Show success message
+                // Show detailed success message with Registration Manager integration status
+                const imageStatus = [
+                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`,
+                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`,
+                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`
+                ].join('\n');
+
+                const successDetails = [
+                    `PDF berhasil diunduh dengan integrasi Registration Manager!`,
+                    `File: ${fileName}`,
+                    `Data: ${items.length} item(s)`,
+                    `Sumber: Registration Manager Form`,
+                    ``,
+                    `Status Gambar:`,
+                    imageStatus
+                ].join('\n');
+                
                 setTimeout(() => {
-                    alert(`PDF berhasil diunduh!\nFile: ${fileName}\nData: ${items.length} item(s), ${photoData ? 'dengan foto' : 'tanpa foto'}`);
+                    alert(successDetails);
                 }, 500);
                 
             } catch (error) {
-                console.error('Error generating enhanced PDF:', error);
+                console.error('Error generating integrated PDF:', error);
                 alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi atau periksa data form.');
             } finally {
                 loading.style.display = 'none';
@@ -1358,7 +1742,7 @@
         document.getElementById('downloadFromPreview').addEventListener('click', async () => {
             if (currentPreviewData) {
                 document.getElementById('previewModal').style.display = 'none';
-                await generateEnhancedPDF(currentPreviewData);
+                await generateIntegratedPDF(currentPreviewData);
             }
         });
 
@@ -1369,19 +1753,94 @@
             }
         });
 
-        // Enhanced data loading with real-time synchronization
+        // Enhanced data loading with Registration Manager integration
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
             
             try {
-                // Initialize data sync manager
+                // Initialize data sync manager with Registration Manager integration
                 const dataSyncManager = new DataSyncManager();
+                
+                // Enhanced historical data recovery with Registration Manager data
+                function recoverRegistrationManagerData() {
+                    const registrationManagerKeys = [
+                        'direc_receipts',
+                        'direc_receipts_backup',
+                        'direc_data',
+                        'receipt_data',
+                        'form_submissions',
+                        'tanda_terima_data',
+                        'registration_manager_data'
+                    ];
+                    
+                    let allRegistrationData = [];
+                    
+                    registrationManagerKeys.forEach(key => {
+                        try {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                const parsed = JSON.parse(data);
+                                if (Array.isArray(parsed)) {
+                                    allRegistrationData = allRegistrationData.concat(parsed);
+                                } else if (parsed && typeof parsed === 'object') {
+                                    allRegistrationData.push(parsed);
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(`Error parsing Registration Manager data from ${key}:`, error);
+                        }
+                    });
+                    
+                    // Deduplicate and enhance with image data extraction
+                    const uniqueData = [];
+                    const seenKeys = new Set();
+                    
+                    allRegistrationData.forEach(item => {
+                        if (!item || typeof item !== 'object') return;
+                        
+                        const key1 = item.registrationNumber;
+                        const key2 = `${item.date}_${item.recipientName}`;
+                        
+                        if (key1 && !seenKeys.has(key1)) {
+                            seenKeys.add(key1);
+                            // Extract and enhance image data
+                            const imageData = extractImageDataFromEntry(item);
+                            uniqueData.push({
+                                ...item,
+                                imageData: imageData,
+                                photoUrl: imageData.photoUrl,
+                                signatureSenderUrl: imageData.signatureSenderUrl,
+                                signatureReceiverUrl: imageData.signatureReceiverUrl,
+                                fromRegistrationManager: true
+                            });
+                        } else if (!key1 && key2 && !seenKeys.has(key2)) {
+                            seenKeys.add(key2);
+                            // Extract and enhance image data
+                            const imageData = extractImageDataFromEntry(item);
+                            uniqueData.push({
+                                ...item,
+                                imageData: imageData,
+                                photoUrl: imageData.photoUrl,
+                                signatureSenderUrl: imageData.signatureSenderUrl,
+                                signatureReceiverUrl: imageData.signatureReceiverUrl,
+                                fromRegistrationManager: true
+                            });
+                        }
+                    });
+                    
+                    console.log(`Recovered ${uniqueData.length} Registration Manager records with enhanced image data`);
+                    return uniqueData;
+                }
                 
                 // Load from localStorage as primary source
                 const localData = dataSyncManager.getAllReceipts();
                 console.log('Loaded local receipts:', localData.length);
+                
+                // Recover Registration Manager data with image integration
+                const registrationManagerData = recoverRegistrationManagerData();
+                console.log('Recovered Registration Manager data:', registrationManagerData.length);
                 
                 // Try to load from API as secondary source
                 let apiData = [];
@@ -1396,13 +1855,40 @@
                     console.warn('API not available, using localStorage only:', apiError);
                 }
 
-                // Merge and deduplicate data
+                // Merge and deduplicate all data sources with Registration Manager priority
                 const mergedData = [...localData];
+                
+                // Add Registration Manager data with enhanced image processing
+                registrationManagerData.forEach(regItem => {
+                    const exists = mergedData.some(localItem => 
+                        (localItem.registrationNumber && localItem.registrationNumber === regItem.registrationNumber) ||
+                        (localItem.date === regItem.date && localItem.recipientName === regItem.recipientName)
+                    );
+                    if (!exists && dataSyncManager.validateReceiptData(regItem)) {
+                        // Normalize Registration Manager data structure with image integration
+                        const normalizedRegItem = {
+                            ...regItem,
+                            items: regItem.items || regItem.itemsArray || regItem.itemsString || [],
+                            itemsArray: regItem.items || regItem.itemsArray || [],
+                            itemsString: regItem.itemsString || '',
+                            senderName: regItem.senderName || 'TEAM WAREHOUSE',
+                            dataSource: 'registration_manager',
+                            pdfReady: true,
+                            imagesIntegrated: true,
+                            // Ensure image data is properly accessible
+                            photoUrl: regItem.photoUrl || regItem.imageData?.photoUrl,
+                            signatureSenderUrl: regItem.signatureSenderUrl || regItem.imageData?.signatureSenderUrl,
+                            signatureReceiverUrl: regItem.signatureReceiverUrl || regItem.imageData?.signatureReceiverUrl
+                        };
+                        mergedData.push(normalizedRegItem);
+                    }
+                });
+                
+                // Add API data
                 apiData.forEach(apiItem => {
                     const exists = mergedData.some(localItem => 
-                        localItem.registrationNumber === apiItem.registrationNumber ||
-                        (localItem.date === apiItem.date && 
-                        localItem.recipientName === apiItem.recipientName)
+                        (localItem.registrationNumber && localItem.registrationNumber === apiItem.registrationNumber) ||
+                        (localItem.date === apiItem.date && localItem.recipientName === apiItem.recipientName)
                     );
                     if (!exists) {
                         // Normalize API data structure
@@ -1412,7 +1898,7 @@
                             itemsArray: apiItem.items || [],
                             itemsString: apiItem.itemsString || '',
                             senderName: apiItem.senderName || 'TEAM WAREHOUSE',
-                            dataComplete: false,
+                            dataSource: 'api',
                             pdfReady: true
                         };
                         mergedData.push(normalizedApiItem);
@@ -1427,8 +1913,7 @@
                     return;
                 }
                 
-                console.log('Total merged data:', allData.length);
-                console.log('Sample data structure:', allData[0]);
+                console.log(`Total merged data with Registration Manager integration: ${allData.length} (Local: ${localData.length}, Registration Manager: ${registrationManagerData.length}, API: ${apiData.length})`);
                 
                 // Build registration counters for proper numbering
                 buildRegistrationCounters(allData);
@@ -1454,7 +1939,7 @@
                 // Update last data update timestamp
                 lastDataUpdate = dataSyncManager.getLastUpdate();
                 
-                console.log('Data loading completed successfully');
+                console.log('Enhanced data loading with Registration Manager integration completed successfully');
                 
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -1465,7 +1950,7 @@
             }
         }
 
-        // Initialize enhanced data loading
+        // Initialize enhanced data loading with Registration Manager integration
         loadDownloadData();
 
         // Search functionality
@@ -1483,15 +1968,25 @@
             window.location.href = '/login.html';
         });
 
-        // Auto-refresh data every 30 seconds to catch new submissions
+        // Auto-refresh data every 30 seconds to catch new Registration Manager submissions
         setInterval(async () => {
             const dataSyncManager = new DataSyncManager();
             const currentUpdate = dataSyncManager.getLastUpdate();
             if (currentUpdate !== lastDataUpdate) {
-                console.log('New data detected, refreshing...');
+                console.log('New Registration Manager data detected, refreshing...');
                 await loadDownloadData();
             }
         }, 30000);
+
+        // Listen for Registration Manager form submissions
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'direc_receipts') {
+                console.log('Registration Manager form submission detected');
+                setTimeout(() => {
+                    loadDownloadData();
+                }, 1000);
+            }
+        });
     </script>
 </body>
 </html>
