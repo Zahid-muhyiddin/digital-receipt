@@ -46,7 +46,7 @@
             color: #fff;
             text-decoration: none;
             padding: 8px;
-            display: block;
+            display block;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -392,16 +392,30 @@
         contentToggle.addEventListener('click', toggleSidebar);
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
+                // Load jsPDF
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                script.async = true;
                 script.onload = () => {
+                    if (!window.jspdf || !window.jspdf.jsPDF) {
+                        reject(new Error('jsPDF library failed to initialize'));
+                        return;
+                    }
+                    // Load autotable plugin
                     const autoTableScript = document.createElement('script');
-                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/卑3.8.2/jspdf.plugin.autotable.min.js';
-                    autoTableScript.onload = resolve;
-                    autoTableScript.onerror = reject;
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.async = true;
+                    autoTableScript.onload = () => {
+                        if (!window.jspdf.jsPDF.prototype.autoTable) {
+                            reject(new Error('jsPDF autotable plugin failed to initialize'));
+                            return;
+                        }
+                        resolve();
+                    };
+                    autoTableScript.onerror = () => reject(new Error('Failed to load jsPDF autotable plugin'));
                     document.head.appendChild(autoTableScript);
                 };
-                script.onerror = reject;
+                script.onerror = () => reject(new Error('Failed to load jsPDF library'));
                 document.head.appendChild(script);
             });
         }
@@ -665,9 +679,14 @@
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
                 } catch (error) {
-                    alert('Gagal memuat library PDF: ' + error.message);
+                    alert('Gagal memuat library PDF: ' + (error.message || 'Terjadi kesalahan saat memuat library'));
+                    console.error('PDF library load error:', error);
                     return;
                 }
+            }
+            if (!jsPDFInstance || !jsPDFInstance.jsPDF || !jsPDFInstance.jsPDF.prototype.autoTable) {
+                alert('Gagal memuat library PDF: Library atau plugin tidak tersedia');
+                return;
             }
             const { jsPDF } = jsPDFInstance;
             const doc = new jsPDF();
