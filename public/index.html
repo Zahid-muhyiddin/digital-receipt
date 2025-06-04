@@ -342,7 +342,7 @@
                     <button type="button" id="useCamera">Gunakan Kamera</button>
                     <video id="cameraPreview" autoplay playsinline></video>
                     <button type="button" id="capturePhoto">Ambil Foto</button>
-                    <img id="photoPreview" src="" alt="Preview Foto" style="display: none;">
+                    <img id="photoPreview" src="/placeholder.svg" alt="Preview Foto" style="display: none;">
                 </div>
                 <div class="form-group">
                     <label>Tanda Tangan Pengirim:</label>
@@ -364,11 +364,11 @@
                 <p><strong>Deskripsi Barang:</strong></p>
                 <ul id="outputItems"></ul>
                 <p><strong>Foto Penerima:</strong></p>
-                <img id="outputPhoto" src="" alt="Foto Penerima">
+                <img id="outputPhoto" src="/placeholder.svg" alt="Foto Penerima">
                 <p><strong>Tanda Tangan Pengirim:</strong></p>
-                <img id="signatureSenderPreview" src="" alt="Tanda Tangan Pengirim">
+                <img id="signatureSenderPreview" src="/placeholder.svg" alt="Tanda Tangan Pengirim">
                 <p><strong>Tanda Tangan Penerima:</strong></p>
-                <img id="signatureReceiverPreview" src="" alt="Tanda Tangan Penerima">
+                <img id="signatureReceiverPreview" src="/placeholder.svg" alt="Tanda Tangan Penerima">
                 <button id="savePdfBtn">Simpan sebagai PDF</button>
             </div>
         </div>
@@ -382,6 +382,7 @@
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
+        
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
@@ -390,79 +391,97 @@
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
+        
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
-                // Load jsPDF
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
                 script.onload = () => {
-                    if (!window.jspdf || !window.jspdf.jsPDF) {
-                        reject(new Error('Gagal menginisialisasi library jsPDF'));
-                        return;
-                    }
-                    // Load autotable plugin
                     const autoTableScript = document.createElement('script');
                     autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
-                    autoTableScript.onload = () => {
-                        // Delay untuk memastikan plugin terinisialisasi
-                        setTimeout(() => {
-                            if (!window.jspdf.jsPDF.prototype.autoTable) {
-                                reject(new Error('Gagal menginisialisasi plugin jsPDF autotable'));
-                                return;
-                            }
-                            resolve();
-                        }, 100);
-                    };
-                    autoTableScript.onerror = () => reject(new Error('Gagal memuat plugin jsPDF autotable dari CDN'));
+                    autoTableScript.onload = resolve;
+                    autoTableScript.onerror = reject;
                     document.head.appendChild(autoTableScript);
                 };
-                script.onerror = () => reject(new Error('Gagal memuat library jsPDF dari CDN'));
+                script.onerror = reject;
                 document.head.appendChild(script);
             });
         }
+
+        // PERBAIKAN 1: Fungsi generateRegistrationNumber yang diperbaiki
         async function generateRegistrationNumber() {
             try {
-                const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
-                if (!response.ok) throw new Error('Gagal mengambil data history');
-                const result = await response.json();
-                const data = result.data || [];
                 const now = new Date();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
-                // Filter entries for the current month and year
-                const targetMonthYear = `${year}-${month}`;
-                const filteredEntries = data.filter(entry => {
-                    const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                    if (entryMatch) {
-                        const [, , entryMonth, entryYear] = entryMatch;
-                        return `${entryYear}-${entryMonth}` === targetMonthYear;
+                
+                // Coba ambil data dari API, jika gagal gunakan localStorage sebagai fallback
+                let count = 0;
+                try {
+                    const response = await fetch('/api/history', { signal: AbortSignal.timeout(5000) });
+                    if (response.ok) {
+                        const result = await response.json();
+                        const data = result.data || [];
+                        
+                        // Hitung entri di bulan dan tahun yang sama
+                        const targetMonthYear = `${year}-${month}`;
+                        data.forEach(entry => {
+                            const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                            if (entryMatch) {
+                                const [, , entryMonth, entryYear] = entryMatch;
+                                const entryMonthYear = `${entryYear}-${entryMonth}`;
+                                if (entryMonthYear === targetMonthYear) {
+                                    count++;
+                                }
+                            }
+                        });
                     }
-                    return false;
-                });
-                // Get the highest sequence number from existing entries
-                let maxSequence = 0;
-                filteredEntries.forEach(entry => {
-                    const regMatch = entry.registrationNumber?.match(/TT-RANT-\d{2}-\d{4}-(\d{3})/);
-                    if (regMatch) {
-                        const sequence = parseInt(regMatch[1], 10);
-                        if (sequence > maxSequence) maxSequence = sequence;
-                    }
-                });
-                // Increment for the new entry
-                const sequence = String(maxSequence + 1).padStart(3, '0');
+                } catch (apiError) {
+                    console.warn('API tidak tersedia, menggunakan localStorage:', apiError);
+                    // Fallback ke localStorage jika API tidak tersedia
+                    const localData = JSON.parse(localStorage.getItem('receipts') || '[]');
+                    const targetMonthYear = `${year}-${month}`;
+                    localData.forEach(entry => {
+                        if (entry.date) {
+                            const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                            if (entryMatch) {
+                                const [, , entryMonth, entryYear] = entryMatch;
+                                const entryMonthYear = `${entryYear}-${entryMonth}`;
+                                if (entryMonthYear === targetMonthYear) {
+                                    count++;
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                count++; // Increment untuk entri baru
+                const sequence = String(count).padStart(3, '0');
                 const regNumber = `TT-RANT-${month}-${year}-${sequence}`;
+                
+                // Update tampilan nomor registrasi
                 document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
                 return regNumber;
+                
             } catch (error) {
                 console.error('Error generating registration number:', error);
-                document.getElementById('registrationNumber').textContent = 'No. Registrasi: Gagal memuat';
-                return null;
+                // Fallback jika semua gagal
+                const now = new Date();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const fallbackNumber = `TT-RANT-${month}-${year}-001`;
+                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${fallbackNumber}`;
+                return fallbackNumber;
             }
         }
+        
+        // Generate nomor registrasi saat halaman dimuat
         generateRegistrationNumber();
+        
         let itemCount = 1;
         let stream = null;
         let jsPDFInstance = null;
+        
         document.getElementById('addItem').addEventListener('click', () => {
             const itemList = document.getElementById('itemList');
             const newItem = document.createElement('div');
@@ -484,6 +503,7 @@
             itemList.appendChild(newItem);
             itemCount++;
         });
+        
         document.getElementById('recipientPhoto').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
@@ -496,6 +516,7 @@
                 reader.readAsDataURL(file);
             }
         });
+        
         document.getElementById('useCamera').addEventListener('click', async () => {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -507,6 +528,7 @@
                 alert('Gagal mengakses kamera: ' + error.message);
             }
         });
+        
         document.getElementById('capturePhoto').addEventListener('click', () => {
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
@@ -516,6 +538,7 @@
             document.getElementById('photoPreview').style.display = 'block';
             stopCamera();
         });
+        
         function stopCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -523,12 +546,14 @@
                 document.getElementById('capturePhoto').style.display = 'none';
             }
         }
+        
         const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
         const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
         const ctxSender = signatureSenderCanvas.getContext('2d');
         const ctxReceiver = signatureReceiverCanvas.getContext('2d');
         let drawingSender = false;
         let drawingReceiver = false;
+        
         function getCanvasCoordinates(event, canvas) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -544,6 +569,7 @@
                 y: (event.clientY - rect.top) * scaleY
             };
         }
+        
         function startDrawing(e, canvas, ctx, drawingFlag) {
             drawingFlag = true;
             const { x, y } = getCanvasCoordinates(e, canvas);
@@ -551,12 +577,14 @@
             ctx.moveTo(x, y);
             return drawingFlag;
         }
+        
         function draw(e, canvas, ctx, drawingFlag) {
             if (!drawingFlag) return;
             const { x, y } = getCanvasCoordinates(e, canvas);
             ctx.lineTo(x, y);
             ctx.stroke();
         }
+        
         signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
         signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
         signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
@@ -570,9 +598,11 @@
             draw(e, signatureSenderCanvas, ctxSender, drawingSender);
         });
         signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        
         document.getElementById('clearSenderSignature').addEventListener('click', () => {
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
+        
         signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
         signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
         signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
@@ -586,15 +616,18 @@
             draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
         });
         signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        
         document.getElementById('clearReceiverSignature').addEventListener('click', () => {
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });
+        
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             submitBtn.disabled = true;
             loading.style.display = 'flex';
+            
             const recipientName = document.getElementById('recipientName').value;
             const department = document.getElementById('department').value;
             const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
@@ -604,9 +637,11 @@
                 prNumber: row.querySelector('.itemPrNumber').value,
                 poNumber: row.querySelector('.itemPoNumber').value
             }));
+            
             const photoSrc = document.getElementById('photoPreview').src;
             const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
             const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
+            
             const date = new Date().toLocaleString('id-ID', {
                 day: '2-digit',
                 month: '2-digit',
@@ -614,18 +649,23 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
+            
+            // Generate nomor registrasi baru untuk setiap submit
             const registrationNumber = await generateRegistrationNumber();
+            
             if (!registrationNumber) {
                 alert('Gagal membuat nomor registrasi');
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
                 return;
             }
+            
             const formData = new FormData();
             formData.append('recipientName', recipientName);
             formData.append('department', department);
             formData.append('date', date);
             formData.append('registrationNumber', registrationNumber);
+            
             items.forEach((item, index) => {
                 formData.append(`items[${index}][desc]`, item.desc);
                 formData.append(`items[${index}][qty]`, item.qty);
@@ -633,14 +673,17 @@
                 formData.append(`items[${index}][prNumber]`, item.prNumber);
                 formData.append(`items[${index}][poNumber]`, item.poNumber);
             });
+            
             if (photoSrc) {
                 const photoBlob = await fetch(photoSrc).then(res => res.blob());
                 formData.append('photo', photoBlob, 'photo.jpg');
             }
+            
             const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
             const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
             formData.append('signatureSender', signatureSenderBlob, 'sender.png');
             formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+            
             try {
                 const response = await fetch('/api/receipts', {
                     method: 'POST',
@@ -649,16 +692,40 @@
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
+                
+                // Simpan ke localStorage sebagai backup
+                const receiptData = {
+                    recipientName,
+                    department,
+                    date,
+                    registrationNumber,
+                    items
+                };
+                const localReceipts = JSON.parse(localStorage.getItem('receipts') || '[]');
+                localReceipts.push(receiptData);
+                localStorage.setItem('receipts', JSON.stringify(localReceipts));
+                
                 alert('Tanda terima berhasil disimpan!');
             } catch (error) {
-                alert('Gagal menyimpan: ' + error.message);
-                submitBtn.disabled = false;
-                loading.style.display = 'none';
-                return;
+                console.warn('API gagal, menyimpan ke localStorage:', error);
+                // Fallback ke localStorage jika API gagal
+                const receiptData = {
+                    recipientName,
+                    department,
+                    date,
+                    registrationNumber,
+                    items
+                };
+                const localReceipts = JSON.parse(localStorage.getItem('receipts') || '[]');
+                localReceipts.push(receiptData);
+                localStorage.setItem('receipts', JSON.stringify(localReceipts));
+                alert('Tanda terima berhasil disimpan (offline)!');
             }
+            
             document.getElementById('date').textContent = date;
             document.getElementById('outputName').textContent = recipientName;
             document.getElementById('outputDepartment').textContent = department;
+            
             const outputItems = document.getElementById('outputItems');
             outputItems.innerHTML = '';
             items.forEach(item => {
@@ -666,149 +733,161 @@
                 li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
                 outputItems.appendChild(li);
             });
+            
             document.getElementById('outputPhoto').src = photoSrc;
             document.getElementById('signatureSenderPreview').src = signatureSenderData;
             document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
+            
             document.getElementById('receiptOutput').style.display = 'block';
             document.getElementById('savePdfBtn').style.display = 'block';
+            
             submitBtn.disabled = false;
             loading.style.display = 'none';
         });
+        
         document.getElementById('savePdfBtn').addEventListener('click', async () => {
-            try {
-                if (!jsPDFInstance) {
+            if (!jsPDFInstance) {
+                try {
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
+                } catch (error) {
+                    alert('Gagal memuat library PDF: ' + error.message);
+                    return;
                 }
-                if (!jsPDFInstance || !jsPDFInstance.jsPDF || typeof jsPDFInstance.jsPDF.prototype.autoTable !== 'function') {
-                    throw new Error('Library jsPDF atau plugin autotable tidak tersedia');
-                }
-                const { jsPDF } = jsPDFInstance;
-                const doc = new jsPDF();
-                const date = document.getElementById('date').textContent;
-                const recipientName = document.getElementById('outputName').textContent;
-                const department = document.getElementById('outputDepartment').textContent;
-                const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
-                const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
-                    const parts = li.textContent.split(' - ');
-                    const desc = parts[0];
-                    const qtyMatch = parts[1].match(/Qty: (\d+)/);
-                    const unitMatch = parts[1].match(/Qty: \d+ (\w+)/);
-                    const prMatch = parts[2].match(/PR: (\d+)/);
-                    const poMatch = parts[3].match(/PO: (\w+)/);
-                    return {
-                        desc: desc,
-                        qty: qtyMatch ? qtyMatch[1] : '-',
-                        unit: unitMatch ? unitMatch[1] : '-',
-                        prNumber: prMatch ? prMatch[1] : '-',
-                        poNumber: poMatch ? poMatch[1] : '-'
-                    };
-                });
-                const photoSrc = document.getElementById('outputPhoto').src;
-                const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
-                const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
-
-                // Margin dan posisi awal
-                const margin = 15;
-                const pageWidth = 210; // A4 width in mm
-                const contentWidth = pageWidth - 2 * margin;
-                let yPosition = margin;
-
-                // Judul
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(16);
-                doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 7;
-
-                // Nomor Registrasi
-                doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
-
-                // Informasi (Tanggal, Penerima, Departemen)
-                doc.setFontSize(12);
-                const labelWidth = 30;
-                doc.text('Tanggal', margin, yPosition);
-                doc.text(`: ${date || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 5;
-                doc.text('Penerima', margin, yPosition);
-                doc.text(`: ${recipientName || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 5;
-                doc.text('Departemen', margin, yPosition);
-                doc.text(`: ${department || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 10;
-
-                // Tabel Barang
-                doc.setFontSize(12);
-                doc.text('Deskripsi Barang:', margin, yPosition);
-                yPosition += 5;
-
-                doc.autoTable({
-                    startY: yPosition,
-                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                    styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
-                    headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
-                    columnStyles: {
-                        0: { cellWidth: 70 }, // Deskripsi
-                        1: { cellWidth: 20 }, // Qty
-                        2: { cellWidth: 25 }, // Satuan
-                        3: { cellWidth: 30 }, // No PR
-                        4: { cellWidth: 35 }  // No PO
-                    },
-                    margin: { left: margin, right: margin }
-                });
-
-                yPosition = doc.lastAutoTable.finalY + 10;
-
-                // Foto Penerima
-                doc.setFontSize(12);
-                doc.text('Foto Penerima:', margin, yPosition);
-                yPosition += 5;
-                if (photoSrc) {
-                    try {
-                        doc.addImage(photoSrc, 'JPEG', margin, yPosition, 50, 30);
-                    } catch (error) {
-                        console.error('Error adding photo:', error);
-                    }
-                }
-                yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
-
-                // Tanda Tangan
-                doc.setFontSize(12);
-                const signatureWidth = 50;
-                const signatureHeight = 15;
-                const signatureSpacing = 40;
-                doc.text('Pengirim:', margin, yPosition);
-                doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
-                yPosition += 5;
-                if (signatureSenderSrc) {
-                    try {
-                        doc.addImage(signatureSenderSrc, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
-                    } catch (error) {
-                        console.error('Error adding sender signature:', error);
-                    }
-                }
-                if (signatureReceiverSrc) {
-                    try {
-                        doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
-                    } catch (error) {
-                        console.error('Error adding receiver signature:', error);
-                    }
-                }
-                yPosition += signatureHeight + 5; // Jarak setelah tanda tangan
-                // Tambahkan nama penerima di bawah tanda tangan penerima
-                doc.setFontSize(10);
-                doc.text(recipientName || '-', margin + signatureWidth + signatureSpacing, yPosition, { align: 'left' });
-
-                // Simpan PDF
-                doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
-            } catch (error) {
-                alert('Gagal menyimpan PDF: ' + (error.message || 'Terjadi kesalahan saat menyimpan PDF'));
-                console.error('PDF save error:', error);
             }
+            
+            const { jsPDF } = jsPDFInstance;
+            const doc = new jsPDF();
+            
+            const date = document.getElementById('date').textContent;
+            const recipientName = document.getElementById('outputName').textContent;
+            const department = document.getElementById('outputDepartment').textContent;
+            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+            
+            const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
+                const parts = li.textContent.split(' - ');
+                const desc = parts[0];
+                const qtyMatch = parts[1].match(/Qty: (\d+)/);
+                const unitMatch = parts[1].match(/Qty: \d+ (\w+)/);
+                const prMatch = parts[2].match(/PR: (\d+)/);
+                const poMatch = parts[3].match(/PO: (\w+)/);
+                return {
+                    desc: desc,
+                    qty: qtyMatch ? qtyMatch[1] : '-',
+                    unit: unitMatch ? unitMatch[1] : '-',
+                    prNumber: prMatch ? prMatch[1] : '-',
+                    poNumber: poMatch ? poMatch[1] : '-'
+                };
+            });
+            
+            const photoSrc = document.getElementById('outputPhoto').src;
+            const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
+            const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
+
+            // Margin dan posisi awal
+            const margin = 15;
+            const pageWidth = 210; // A4 width in mm
+            const contentWidth = pageWidth - 2 * margin;
+            let yPosition = margin;
+
+            // Judul
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 7;
+
+            // Nomor Registrasi
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 10;
+
+            // Informasi (Tanggal, Penerima, Departemen)
+            doc.setFontSize(12);
+            const labelWidth = 30;
+            doc.text('Tanggal', margin, yPosition);
+            doc.text(`: ${date || '-'}`, margin + labelWidth, yPosition);
+            yPosition += 5;
+            doc.text('Penerima', margin, yPosition);
+            doc.text(`: ${recipientName || '-'}`, margin + labelWidth, yPosition);
+            yPosition += 5;
+            doc.text('Departemen', margin, yPosition);
+            doc.text(`: ${department || '-'}`, margin + labelWidth, yPosition);
+            yPosition += 10;
+
+            // Tabel Barang
+            doc.setFontSize(12);
+            doc.text('Deskripsi Barang:', margin, yPosition);
+            yPosition += 5;
+
+            doc.autoTable({
+                startY: yPosition,
+                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
+                styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
+                headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+                columnStyles: {
+                    0: { cellWidth: 70 }, // Deskripsi
+                    1: { cellWidth: 20 }, // Qty
+                    2: { cellWidth: 25 }, // Satuan
+                    3: { cellWidth: 30 }, // No PR
+                    4: { cellWidth: 35 }  // No PO
+                },
+                margin: { left: margin, right: margin }
+            });
+
+            yPosition = doc.lastAutoTable.finalY + 10;
+
+            // Foto Penerima
+            doc.setFontSize(12);
+            doc.text('Foto Penerima:', margin, yPosition);
+            yPosition += 5;
+            if (photoSrc) {
+                try {
+                    doc.addImage(photoSrc, 'JPEG', margin, yPosition, 50, 30);
+                } catch (error) {
+                    console.error('Error adding photo:', error);
+                }
+            }
+            yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
+
+            // PERBAIKAN 2: Tanda Tangan dengan nama penerima
+            doc.setFontSize(12);
+            const signatureWidth = 50;
+            const signatureHeight = 15;
+            const signatureSpacing = 40;
+            
+            // Label tanda tangan
+            doc.text('Pengirim:', margin, yPosition);
+            doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
+            yPosition += 5;
+            
+            // Gambar tanda tangan
+            if (signatureSenderSrc) {
+                try {
+                    doc.addImage(signatureSenderSrc, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
+                } catch (error) {
+                    console.error('Error adding sender signature:', error);
+                }
+            }
+            if (signatureReceiverSrc) {
+                try {
+                    doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
+                } catch (error) {
+                    console.error('Error adding receiver signature:', error);
+                }
+            }
+            
+            // Tambahkan nama penerima di bawah tanda tangan penerima
+            yPosition += signatureHeight + 3; // Jarak setelah tanda tangan
+            doc.setFontSize(10);
+            doc.text('(_________________)', margin, yPosition);
+            doc.text(`(${recipientName || '_________________'})`, margin + signatureWidth + signatureSpacing, yPosition);
+
+            // Simpan PDF
+            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
         });
+        
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
