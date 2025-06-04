@@ -163,20 +163,6 @@
         button:hover {
             background: #059669;
         }
-        button:disabled {
-            background: #d1d5db;
-            cursor: not-allowed;
-        }
-        .item-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 8px;
-            align-items: center;
-        }
-        .item-row input, .item-row select {
-            margin: 0;
-        }
         #addItem {
             background: #6b7280;
             margin-top: 10px;
@@ -184,7 +170,6 @@
         #savePdfBtn {
             background: #3b82f6;
             display: none;
-            margin-top: 10px;
         }
         #receiptOutput {
             margin-top: 15px;
@@ -202,14 +187,12 @@
             height: 100px;
             border-radius: 4px;
             margin-top: 5px;
-            cursor: crosshair;
         }
         #photoPreview, #signatureSenderPreview, #signatureReceiverPreview, #outputPhoto {
             max-width: 100%;
             height: auto;
             margin-top: 10px;
             border-radius: 4px;
-            border: 1px solid #d1d5db;
         }
         #cameraPreview {
             width: 100%;
@@ -226,63 +209,18 @@
         .loading {
             display: none;
             justify-content: center;
-            align-items: center;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 3000;
-        }
-        .loading-content {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         .spinner {
             border: 3px solid #e5e7eb;
             border-top: 3px solid #3b82f6;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-        .success-message {
-            background: #10b981;
-            color: #fff;
-            padding: 12px;
-            border-radius: 4px;
-            margin-top: 15px;
-            text-align: center;
-            display: none;
-        }
-        .error-message {
-            background: #ef4444;
-            color: #fff;
-            padding: 12px;
-            border-radius: 4px;
-            margin-top: 15px;
-            text-align: center;
-            display: none;
-        }
-        .canvas-controls {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        .canvas-controls button {
-            width: auto;
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-        .clear-signature {
-            background: #ef4444;
-        }
-        .clear-signature:hover {
-            background: #dc2626;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -311,10 +249,6 @@
             }
             input, select, button {
                 font-size: 13px;
-            }
-            .item-row {
-                grid-template-columns: 1fr;
-                gap: 4px;
             }
             #signatureSenderCanvas, #signatureReceiverCanvas {
                 max-width: 100%;
@@ -359,13 +293,8 @@
         </div>
         <div class="receipt-container">
             <div class="loading" id="loading">
-                <div class="loading-content">
-                    <div class="spinner"></div>
-                    <p>Memproses PDF...</p>
-                </div>
+                <div class="spinner"></div>
             </div>
-            <div class="success-message" id="successMessage"></div>
-            <div class="error-message" id="errorMessage"></div>
             <form id="receiptForm">
                 <div class="form-group">
                     <label for="recipientName">Nama Penerima:</label>
@@ -393,16 +322,16 @@
                     <div id="itemList">
                         <div class="item-row">
                             <input type="text" class="itemDesc" name="items[0][desc]" placeholder="Deskripsi Barang" required>
-                            <input type="number" class="itemQty" name="items[0][qty]" placeholder="Qty" required min="1">
+                            <input type="number" class="itemQty" name="items[0][qty]" placeholder="Qty" required>
                             <select class="itemUnit" name="items[0][unit]" required>
-                                <option value="" disabled selected>Satuan</option>
+                                <option value="" disabled selected>Pilih Satuan</option>
                                 <option value="Assy">Assy</option>
                                 <option value="Each">Each</option>
                                 <option value="Set">Set</option>
                                 <option value="Pcs">Pcs</option>
                                 <option value="Colly">Colly</option>
                             </select>
-                            <input type="number" class="itemPrNumber" name="items[0][prNumber]" placeholder="No PR" required min="1">
+                            <input type="number" class="itemPrNumber" name="items[0][prNumber]" placeholder="No PR" required>
                             <input type="text" class="itemPoNumber" name="items[0][poNumber]" placeholder="No PO" required>
                         </div>
                     </div>
@@ -418,23 +347,18 @@
                 </div>
                 <div class="form-group">
                     <label>Tanda Tangan Pengirim:</label>
-                    <canvas id="signatureSenderCanvas" width="560" height="200"></canvas>
-                    <div class="canvas-controls">
-                        <button type="button" class="clear-signature" id="clearSenderSignature">Hapus Tanda Tangan</button>
-                    </div>
+                    <canvas id="signatureSenderCanvas"></canvas>
+                    <button type="button" id="clearSenderSignature">Hapus Tanda Tangan</button>
                 </div>
                 <div class="form-group">
                     <label>Tanda Tangan Penerima:</label>
-                    <canvas id="signatureReceiverCanvas" width="560" height="200"></canvas>
-                    <div class="canvas-controls">
-                        <button type="button" class="clear-signature" id="clearReceiverSignature">Hapus Tanda Tangan</button>
-                    </div>
+                    <canvas id="signatureReceiverCanvas"></canvas>
+                    <button type="button" id="clearReceiverSignature">Hapus Tanda Tangan</button>
                 </div>
                 <button type="submit" id="submitBtn">Buat Tanda Terima</button>
             </form>
             <div id="receiptOutput">
                 <h3>Tanda Terima</h3>
-                <p><strong>No. Registrasi:</strong> <span id="outputRegistrationNumber"></span></p>
                 <p><strong>Tanggal:</strong> <span id="date"></span></p>
                 <p><strong>Penerima:</strong> <span id="outputName"></span></p>
                 <p><strong>Departemen:</strong> <span id="outputDepartment"></span></p>
@@ -461,7 +385,6 @@
         let itemCount = 1;
         let stream = null;
         let jsPDFInstance = null;
-        let currentReceiptData = null;
 
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
@@ -477,37 +400,18 @@
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
         
-        // Enhanced jsPDF loading with error handling
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
-                if (window.jspdf) {
-                    console.log('jsPDF already loaded');
-                    return resolve();
-                }
-                
-                console.log('Loading jsPDF...');
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                script.crossOrigin = 'anonymous';
                 script.onload = () => {
-                    console.log('jsPDF loaded, loading autoTable...');
                     const autoTableScript = document.createElement('script');
                     autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
-                    autoTableScript.crossOrigin = 'anonymous';
-                    autoTableScript.onload = () => {
-                        console.log('jsPDF and autoTable loaded successfully');
-                        resolve();
-                    };
-                    autoTableScript.onerror = (error) => {
-                        console.error('Failed to load autoTable:', error);
-                        reject(error);
-                    };
+                    autoTableScript.onload = resolve;
+                    autoTableScript.onerror = reject;
                     document.head.appendChild(autoTableScript);
                 };
-                script.onerror = (error) => {
-                    console.error('Failed to load jsPDF:', error);
-                    reject(error);
-                };
+                script.onerror = reject;
                 document.head.appendChild(script);
             });
         }
@@ -519,6 +423,7 @@
                 this.receiptsKey = 'direc_receipts';
             }
 
+            // Get current month-year key
             getCurrentMonthYearKey() {
                 const now = new Date();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -526,6 +431,7 @@
                 return `${year}-${month}`;
             }
 
+            // Get registration counters from localStorage
             getCounters() {
                 try {
                     return JSON.parse(localStorage.getItem(this.storageKey) || '{}');
@@ -535,6 +441,7 @@
                 }
             }
 
+            // Save registration counters to localStorage
             saveCounters(counters) {
                 try {
                     localStorage.setItem(this.storageKey, JSON.stringify(counters));
@@ -543,23 +450,30 @@
                 }
             }
 
+            // Get next registration number
             getNextRegistrationNumber() {
                 const monthYearKey = this.getCurrentMonthYearKey();
                 const counters = this.getCounters();
                 
+                // Initialize counter for current month if it doesn't exist
                 if (!counters[monthYearKey]) {
                     counters[monthYearKey] = 0;
                 }
 
+                // Increment counter
                 counters[monthYearKey]++;
+                
+                // Save updated counters
                 this.saveCounters(counters);
 
+                // Format registration number
                 const [year, month] = monthYearKey.split('-');
                 const sequence = String(counters[monthYearKey]).padStart(3, '0');
                 
                 return `TT-RANT-${month}-${year}-${sequence}`;
             }
 
+            // Preview next registration number without incrementing
             previewNextRegistrationNumber() {
                 const monthYearKey = this.getCurrentMonthYearKey();
                 const counters = this.getCounters();
@@ -573,6 +487,7 @@
                 return `TT-RANT-${month}-${year}-${sequence}`;
             }
 
+            // Sync with API data if available
             async syncWithAPI() {
                 try {
                     const response = await fetch('/api/history', { 
@@ -583,6 +498,7 @@
                         const result = await response.json();
                         const apiData = result.data || [];
                         
+                        // Count entries by month-year from API
                         const apiCounters = {};
                         apiData.forEach(entry => {
                             if (entry.date) {
@@ -595,6 +511,7 @@
                             }
                         });
 
+                        // Merge with local counters (take the maximum)
                         const localCounters = this.getCounters();
                         const mergedCounters = { ...localCounters };
                         
@@ -614,97 +531,19 @@
             }
         }
 
-        // Enhanced Image Data Manager
-        class ImageDataManager {
-            static validateImageData(imageData) {
-                if (!imageData || typeof imageData !== 'string') {
-                    return { isValid: false, error: 'Invalid image data format' };
-                }
-
-                if (!imageData.startsWith('data:image/')) {
-                    return { isValid: false, error: 'Not a valid data URL' };
-                }
-
-                const [header, base64Data] = imageData.split(',');
-                if (!header || !base64Data) {
-                    return { isValid: false, error: 'Invalid data URL structure' };
-                }
-
-                if (base64Data.length < 100) {
-                    return { isValid: false, error: 'Image data too small' };
-                }
-
-                try {
-                    atob(base64Data);
-                    return { 
-                        isValid: true, 
-                        format: header.includes('png') ? 'PNG' : 'JPEG',
-                        size: base64Data.length 
-                    };
-                } catch (error) {
-                    return { isValid: false, error: 'Invalid base64 data' };
-                }
-            }
-
-            static compressImage(canvas, quality = 0.8) {
-                return new Promise((resolve) => {
-                    canvas.toBlob((blob) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    }, 'image/jpeg', quality);
-                });
-            }
-
-            static async processImageFile(file) {
-                return new Promise((resolve, reject) => {
-                    if (!file.type.startsWith('image/')) {
-                        reject(new Error('File is not an image'));
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            
-                            // Resize if too large
-                            const maxWidth = 800;
-                            const maxHeight = 600;
-                            let { width, height } = img;
-                            
-                            if (width > maxWidth || height > maxHeight) {
-                                const ratio = Math.min(maxWidth / width, maxHeight / height);
-                                width *= ratio;
-                                height *= ratio;
-                            }
-                            
-                            canvas.width = width;
-                            canvas.height = height;
-                            ctx.drawImage(img, 0, 0, width, height);
-                            
-                            resolve(canvas.toDataURL('image/jpeg', 0.8));
-                        };
-                        img.onerror = () => reject(new Error('Failed to load image'));
-                        img.src = e.target.result;
-                    };
-                    reader.onerror = () => reject(new Error('Failed to read file'));
-                    reader.readAsDataURL(file);
-                });
-            }
-        }
-
         // Initialize registration number manager
         const regNumberManager = new RegistrationNumberManager();
 
         // Display initial registration number
         async function displayRegistrationNumber() {
             try {
+                // Sync with API first
                 await regNumberManager.syncWithAPI();
+                
+                // Preview next number
                 const nextNumber = regNumberManager.previewNextRegistrationNumber();
                 document.getElementById('registrationNumber').textContent = `No. Registrasi: ${nextNumber}`;
+                
                 console.log('Next registration number will be:', nextNumber);
             } catch (error) {
                 console.error('Error displaying registration number:', error);
@@ -712,11 +551,15 @@
             }
         }
 
+        // Generate and reserve registration number for form submission
         function generateRegistrationNumber() {
             try {
                 const regNumber = regNumberManager.getNextRegistrationNumber();
                 currentRegistrationNumber = regNumber;
+                
+                // Update display
                 document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
+                
                 console.log('Generated registration number:', regNumber);
                 return regNumber;
             } catch (error) {
@@ -728,88 +571,61 @@
         // Initialize registration number display
         displayRegistrationNumber();
         
-        // Enhanced item management
         document.getElementById('addItem').addEventListener('click', () => {
             const itemList = document.getElementById('itemList');
             const newItem = document.createElement('div');
             newItem.className = 'item-row';
             newItem.innerHTML = `
                 <input type="text" class="itemDesc" name="items[${itemCount}][desc]" placeholder="Deskripsi Barang" required>
-                <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required min="1">
+                <input type="number" class="itemQty" name="items[${itemCount}][qty]" placeholder="Qty" required>
                 <select class="itemUnit" name="items[${itemCount}][unit]" required>
-                    <option value="" disabled selected>Satuan</option>
+                    <option value="" disabled selected>Pilih Satuan</option>
                     <option value="Assy">Assy</option>
                     <option value="Each">Each</option>
                     <option value="Set">Set</option>
                     <option value="Pcs">Pcs</option>
                     <option value="Colly">Colly</option>
                 </select>
-                <input type="number" class="itemPrNumber" name="items[${itemCount}][prNumber]" placeholder="No PR" required min="1">
+                <input type="number" class="itemPrNumber" name="items[${itemCount}][prNumber]" placeholder="No PR" required>
                 <input type="text" class="itemPoNumber" name="items[${itemCount}][poNumber]" placeholder="No PO" required>
-                <button type="button" class="remove-item" onclick="removeItem(this)">×</button>
             `;
             itemList.appendChild(newItem);
             itemCount++;
         });
-
-        function removeItem(button) {
-            button.parentElement.remove();
-        }
         
-        // Enhanced photo handling
-        document.getElementById('recipientPhoto').addEventListener('change', async function() {
+        document.getElementById('recipientPhoto').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
-                try {
-                    const processedImage = await ImageDataManager.processImageFile(file);
-                    document.getElementById('photoPreview').src = processedImage;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('photoPreview').src = e.target.result;
                     document.getElementById('photoPreview').style.display = 'block';
                     stopCamera();
-                    console.log('Photo processed successfully');
-                } catch (error) {
-                    console.error('Error processing photo:', error);
-                    showError('Gagal memproses foto: ' + error.message);
-                }
+                };
+                reader.readAsDataURL(file);
             }
         });
         
         document.getElementById('useCamera').addEventListener('click', async () => {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
-                });
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 document.getElementById('cameraPreview').srcObject = stream;
                 document.getElementById('cameraPreview').style.display = 'block';
                 document.getElementById('capturePhoto').style.display = 'block';
                 document.getElementById('photoPreview').style.display = 'none';
             } catch (error) {
-                console.error('Camera access error:', error);
-                showError('Gagal mengakses kamera: ' + error.message);
+                alert('Gagal mengakses kamera: ' + error.message);
             }
         });
         
         document.getElementById('capturePhoto').addEventListener('click', () => {
-            try {
-                const video = document.getElementById('cameraPreview');
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0);
-                
-                const imageData = canvas.toDataURL('image/jpeg', 0.8);
-                document.getElementById('photoPreview').src = imageData;
-                document.getElementById('photoPreview').style.display = 'block';
-                stopCamera();
-                console.log('Photo captured successfully');
-            } catch (error) {
-                console.error('Error capturing photo:', error);
-                showError('Gagal mengambil foto: ' + error.message);
-            }
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = document.getElementById('cameraPreview').videoWidth;
+            tempCanvas.height = document.getElementById('cameraPreview').videoHeight;
+            tempCanvas.getContext('2d').drawImage(document.getElementById('cameraPreview'), 0, 0);
+            document.getElementById('photoPreview').src = tempCanvas.toDataURL('image/jpeg', 0.7);
+            document.getElementById('photoPreview').style.display = 'block';
+            stopCamera();
         });
         
         function stopCamera() {
@@ -817,180 +633,109 @@
                 stream.getTracks().forEach(track => track.stop());
                 document.getElementById('cameraPreview').style.display = 'none';
                 document.getElementById('capturePhoto').style.display = 'none';
-                stream = null;
             }
         }
         
-        // Enhanced signature canvas setup
-        function setupSignatureCanvas(canvasId, clearButtonId) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
-            let drawing = false;
-            let lastX = 0;
-            let lastY = 0;
-
-            // Set canvas resolution
+        // Signature canvas setup
+        const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
+        const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
+        const ctxSender = signatureSenderCanvas.getContext('2d');
+        const ctxReceiver = signatureReceiverCanvas.getContext('2d');
+        let drawingSender = false;
+        let drawingReceiver = false;
+        
+        function getCanvasCoordinates(event, canvas) {
             const rect = canvas.getBoundingClientRect();
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-            ctx.scale(dpr, dpr);
-            canvas.style.width = rect.width + 'px';
-            canvas.style.height = rect.height + 'px';
-
-            // Set drawing styles
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            function getCoordinates(e) {
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / (rect.width * dpr);
-                const scaleY = canvas.height / (rect.height * dpr);
-                
-                if (e.touches) {
-                    return {
-                        x: (e.touches[0].clientX - rect.left) * scaleX,
-                        y: (e.touches[0].clientY - rect.top) * scaleY
-                    };
-                }
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            if (event.touches) {
                 return {
-                    x: (e.clientX - rect.left) * scaleX,
-                    y: (e.clientY - rect.top) * scaleY
+                    x: (event.touches[0].clientX - rect.left) * scaleX,
+                    y: (event.touches[0].clientY - rect.top) * scaleY
                 };
             }
-
-            function startDrawing(e) {
-                drawing = true;
-                const coords = getCoordinates(e);
-                lastX = coords.x;
-                lastY = coords.y;
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-            }
-
-            function draw(e) {
-                if (!drawing) return;
-                e.preventDefault();
-                const coords = getCoordinates(e);
-                ctx.lineTo(coords.x, coords.y);
-                ctx.stroke();
-                lastX = coords.x;
-                lastY = coords.y;
-            }
-
-            function stopDrawing() {
-                drawing = false;
-            }
-
-            // Mouse events
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-
-            // Touch events
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                startDrawing(e);
-            });
-            canvas.addEventListener('touchmove', draw);
-            canvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                stopDrawing();
-            });
-
-            // Clear button
-            document.getElementById(clearButtonId).addEventListener('click', () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                console.log(`Cleared signature canvas: ${canvasId}`);
-            });
-
-            return canvas;
+            return {
+                x: (event.clientX - rect.left) * scaleX,
+                y: (event.clientY - rect.top) * scaleY
+            };
         }
-
-        // Setup signature canvases
-        const senderCanvas = setupSignatureCanvas('signatureSenderCanvas', 'clearSenderSignature');
-        const receiverCanvas = setupSignatureCanvas('signatureReceiverCanvas', 'clearReceiverSignature');
-
-        // Enhanced form submission with comprehensive data handling
+        
+        function startDrawing(e, canvas, ctx, drawingFlag) {
+            drawingFlag = true;
+            const { x, y } = getCanvasCoordinates(e, canvas);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            return drawingFlag;
+        }
+        
+        function draw(e, canvas, ctx, drawingFlag) {
+            if (!drawingFlag) return;
+            const { x, y } = getCanvasCoordinates(e, canvas);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+        
+        // Sender signature events
+        signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
+        signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('mouseout', () => drawingSender = false);
+        signatureSenderCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e, signatureSenderCanvas, ctxSender, drawingSender);
+        });
+        signatureSenderCanvas.addEventListener('touchend', () => drawingSender = false);
+        
+        document.getElementById('clearSenderSignature').addEventListener('click', () => {
+            ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
+        });
+        
+        // Receiver signature events
+        signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
+        signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('mouseout', () => drawingReceiver = false);
+        signatureReceiverCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver);
+        });
+        signatureReceiverCanvas.addEventListener('touchend', () => drawingReceiver = false);
+        
+        document.getElementById('clearReceiverSignature').addEventListener('click', () => {
+            ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
+        });
+        
+        // Form submission
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
-            
             submitBtn.disabled = true;
             loading.style.display = 'flex';
             
             try {
-                // Collect form data
-                const recipientName = document.getElementById('recipientName').value.trim();
+                const recipientName = document.getElementById('recipientName').value;
                 const department = document.getElementById('department').value;
+                const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
+                    desc: row.querySelector('.itemDesc').value,
+                    qty: row.querySelector('.itemQty').value,
+                    unit: row.querySelector('.itemUnit').value,
+                    prNumber: row.querySelector('.itemPrNumber').value,
+                    poNumber: row.querySelector('.itemPoNumber').value
+                }));
                 
-                if (!recipientName || !department) {
-                    throw new Error('Nama penerima dan departemen harus diisi');
-                }
-
-                // Collect items data
-                const items = Array.from(document.getElementsByClassName('item-row')).map((row, index) => {
-                    const desc = row.querySelector('.itemDesc').value.trim();
-                    const qty = row.querySelector('.itemQty').value;
-                    const unit = row.querySelector('.itemUnit').value;
-                    const prNumber = row.querySelector('.itemPrNumber').value;
-                    const poNumber = row.querySelector('.itemPoNumber').value.trim();
-
-                    if (!desc || !qty || !unit || !prNumber || !poNumber) {
-                        throw new Error(`Item ${index + 1}: Semua field harus diisi`);
-                    }
-
-                    return { desc, qty, unit, prNumber, poNumber };
-                });
-
-                if (items.length === 0) {
-                    throw new Error('Minimal harus ada satu item barang');
-                }
+                const photoSrc = document.getElementById('photoPreview').src;
+                const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
+                const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
                 
-                // Process images
-                const photoPreview = document.getElementById('photoPreview');
-                let photoData = null;
-                if (photoPreview.src && !photoPreview.src.includes('placeholder.svg')) {
-                    const validation = ImageDataManager.validateImageData(photoPreview.src);
-                    if (validation.isValid) {
-                        photoData = photoPreview.src;
-                        console.log('Photo data validated successfully');
-                    } else {
-                        console.warn('Photo validation failed:', validation.error);
-                    }
-                }
-                
-                // Process signatures
-                let senderSignatureData = null;
-                let receiverSignatureData = null;
-
-                try {
-                    const senderData = senderCanvas.toDataURL('image/png');
-                    const senderValidation = ImageDataManager.validateImageData(senderData);
-                    if (senderValidation.isValid) {
-                        senderSignatureData = senderData;
-                        console.log('Sender signature validated successfully');
-                    }
-                } catch (error) {
-                    console.warn('Sender signature processing failed:', error);
-                }
-
-                try {
-                    const receiverData = receiverCanvas.toDataURL('image/png');
-                    const receiverValidation = ImageDataManager.validateImageData(receiverData);
-                    if (receiverValidation.isValid) {
-                        receiverSignatureData = receiverData;
-                        console.log('Receiver signature validated successfully');
-                    }
-                } catch (error) {
-                    console.warn('Receiver signature processing failed:', error);
-                }
-                
-                // Generate date and registration number
                 const date = new Date().toLocaleString('id-ID', {
                     day: '2-digit',
                     month: '2-digit',
@@ -999,77 +744,58 @@
                     minute: '2-digit'
                 });
                 
+                // Generate registration number for this submission
                 const registrationNumber = generateRegistrationNumber();
+                
                 if (!registrationNumber) {
                     throw new Error('Gagal membuat nomor registrasi');
                 }
                 
-                // Create comprehensive receipt data
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('recipientName', recipientName);
+                formData.append('department', department);
+                formData.append('date', date);
+                formData.append('registrationNumber', registrationNumber);
+                
+                items.forEach((item, index) => {
+                    formData.append(`items[${index}][desc]`, item.desc);
+                    formData.append(`items[${index}][qty]`, item.qty);
+                    formData.append(`items[${index}][unit]`, item.unit);
+                    formData.append(`items[${index}][prNumber]`, item.prNumber);
+                    formData.append(`items[${index}][poNumber]`, item.poNumber);
+                });
+                
+                if (photoSrc && !photoSrc.includes('placeholder.svg')) {
+                    const photoBlob = await fetch(photoSrc).then(res => res.blob());
+                    formData.append('photo', photoBlob, 'photo.jpg');
+                }
+                
+                const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
+                const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
+                formData.append('signatureSender', signatureSenderBlob, 'sender.png');
+                formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+                
+                // Save to localStorage as backup
                 const receiptData = {
-                    id: generateUUID(),
-                    registrationNumber,
                     recipientName,
                     department,
                     date,
+                    registrationNumber,
                     items,
-                    itemsArray: items,
-                    itemsString: items.map(item => 
-                        `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
-                    ).join('\n'),
-                    photoUrl: photoData,
-                    photoSrc: photoData,
-                    photo: photoData,
-                    signatureSenderUrl: senderSignatureData,
-                    signatureSenderData: senderSignatureData,
-                    senderSignature: senderSignatureData,
-                    signatureReceiverUrl: receiverSignatureData,
-                    signatureReceiverData: receiverSignatureData,
-                    receiverSignature: receiverSignatureData,
-                    senderName: 'TEAM WAREHOUSE',
-                    timestamp: new Date().toISOString(),
-                    createdAt: new Date().toISOString(),
-                    version: '2.0',
-                    dataSource: 'registration_manager_form',
-                    imageData: {
-                        photoUrl: photoData,
-                        signatureSenderUrl: senderSignatureData,
-                        signatureReceiverUrl: receiverSignatureData,
-                        hasPhoto: !!photoData,
-                        hasSenderSignature: !!senderSignatureData,
-                        hasReceiverSignature: !!receiverSignatureData
-                    }
+                    timestamp: new Date().toISOString()
                 };
-
-                // Store current receipt data globally
-                currentReceiptData = receiptData;
                 
-                // Save to localStorage with multiple keys for compatibility
                 const localReceipts = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
                 localReceipts.push(receiptData);
                 localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
-                localStorage.setItem('direc_last_update', new Date().toISOString());
                 
-                // Also save with alternative keys for better compatibility
-                localStorage.setItem('current_receipt_data', JSON.stringify(receiptData));
-                localStorage.setItem(`receipt_${registrationNumber}`, JSON.stringify(receiptData));
-                
-                console.log('Receipt data saved successfully:', receiptData);
-                
-                // Try to send to API (optional)
+                // Try to send to API
                 try {
-                    const formData = new FormData();
-                    Object.keys(receiptData).forEach(key => {
-                        if (typeof receiptData[key] === 'object') {
-                            formData.append(key, JSON.stringify(receiptData[key]));
-                        } else {
-                            formData.append(key, receiptData[key]);
-                        }
-                    });
-                    
                     const response = await fetch('/api/receipts', {
                         method: 'POST',
                         body: formData,
-                        signal: AbortSignal.timeout(10000)
+                        signal: AbortSignal.timeout(30000)
                     });
                     
                     if (response.ok) {
@@ -1082,339 +808,228 @@
                 }
                 
                 // Update output display
-                updateReceiptOutput(receiptData);
+                document.getElementById('date').textContent = date;
+                document.getElementById('outputName').textContent = recipientName;
+                document.getElementById('outputDepartment').textContent = department;
                 
-                // Show success message
-                showSuccess(`Tanda terima berhasil disimpan!\nNomor Registrasi: ${registrationNumber}`);
+                const outputItems = document.getElementById('outputItems');
+                outputItems.innerHTML = '';
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
+                    outputItems.appendChild(li);
+                });
+                
+                document.getElementById('outputPhoto').src = photoSrc;
+                document.getElementById('signatureSenderPreview').src = signatureSenderData;
+                document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
+                
+                document.getElementById('receiptOutput').style.display = 'block';
+                document.getElementById('savePdfBtn').style.display = 'block';
+                
+                alert(`Tanda terima berhasil disimpan!\nNomor Registrasi: ${registrationNumber}`);
                 
                 // Update registration number display for next form
                 setTimeout(() => {
                     displayRegistrationNumber();
                 }, 100);
                 
-                // Trigger data sync event
-                window.dispatchEvent(new CustomEvent('receiptSubmitted', {
-                    detail: receiptData
-                }));
-                
             } catch (error) {
+                alert('Gagal menyimpan: ' + error.message);
                 console.error('Form submission error:', error);
-                showError('Gagal menyimpan: ' + error.message);
             } finally {
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
             }
         });
-
-        // Generate UUID utility
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-
-        // Update receipt output display
-        function updateReceiptOutput(receiptData) {
-            document.getElementById('outputRegistrationNumber').textContent = receiptData.registrationNumber;
-            document.getElementById('date').textContent = receiptData.date;
-            document.getElementById('outputName').textContent = receiptData.recipientName;
-            document.getElementById('outputDepartment').textContent = receiptData.department;
-            
-            const outputItems = document.getElementById('outputItems');
-            outputItems.innerHTML = '';
-            receiptData.items.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
-                outputItems.appendChild(li);
-            });
-            
-            if (receiptData.photoUrl) {
-                document.getElementById('outputPhoto').src = receiptData.photoUrl;
-                document.getElementById('outputPhoto').style.display = 'block';
-            }
-            
-            if (receiptData.signatureSenderUrl) {
-                document.getElementById('signatureSenderPreview').src = receiptData.signatureSenderUrl;
-                document.getElementById('signatureSenderPreview').style.display = 'block';
-            }
-            
-            if (receiptData.signatureReceiverUrl) {
-                document.getElementById('signatureReceiverPreview').src = receiptData.signatureReceiverUrl;
-                document.getElementById('signatureReceiverPreview').style.display = 'block';
-            }
-            
-            document.getElementById('receiptOutput').style.display = 'block';
-            document.getElementById('savePdfBtn').style.display = 'block';
-        }
-
-        // Enhanced PDF generation with comprehensive error handling
+        
+        // PDF generation with recipient name in signature
         document.getElementById('savePdfBtn').addEventListener('click', async () => {
-            if (!currentReceiptData) {
-                showError('Tidak ada data tanda terima untuk disimpan');
-                return;
-            }
-
-            const loading = document.getElementById('loading');
-            loading.style.display = 'flex';
-
-            try {
-                await loadJsPDF();
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-                const pageWidth = 210;
-                const margin = 20;
-                let yPos = margin;
-
-                // Header
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.text('DIREC - TANDA TERIMA', pageWidth / 2, yPos, { align: 'center' });
-                yPos += 10;
-
-                // Registration Number
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(12);
-                doc.text(`No. Registrasi: ${currentReceiptData.registrationNumber}`, pageWidth / 2, yPos, { align: 'center' });
-                yPos += 15;
-
-                // Information Section
-                doc.setFontSize(11);
-                const labelWidth = 35;
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text('Tanggal', margin, yPos);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`: ${currentReceiptData.date}`, margin + labelWidth, yPos);
-                yPos += 7;
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text('Nama Penerima', margin, yPos);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`: ${currentReceiptData.recipientName}`, margin + labelWidth, yPos);
-                yPos += 7;
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text('Departemen', margin, yPos);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`: ${currentReceiptData.department}`, margin + labelWidth, yPos);
-                yPos += 15;
-
-                // Items Table
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.text('Deskripsi Barang:', margin, yPos);
-                yPos += 8;
-
-                const tableData = currentReceiptData.items.map(item => [
-                    item.desc,
-                    item.qty,
-                    item.unit,
-                    item.prNumber,
-                    item.poNumber
-                ]);
-
-                doc.autoTable({
-                    startY: yPos,
-                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: tableData,
-                    theme: 'grid',
-                    headStyles: {
-                        fillColor: [0, 184, 148],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold',
-                        halign: 'center',
-                        valign: 'middle',
-                        fontSize: 11
-                    },
-                    styles: {
-                        fontSize: 10,
-                        cellPadding: 3,
-                        halign: 'center',
-                        valign: 'middle'
-                    },
-                    columnStyles: {
-                        0: { cellWidth: 70, halign: 'left' },
-                        1: { cellWidth: 20 },
-                        2: { cellWidth: 25 },
-                        3: { cellWidth: 30 },
-                        4: { cellWidth: 35 }
-                    },
-                    margin: { left: margin, right: margin }
-                });
-
-                yPos = doc.lastAutoTable.finalY + 15;
-
-                // Photo Section
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.text('Foto Penerima:', margin, yPos);
-                yPos += 8;
-                
-                if (currentReceiptData.photoUrl) {
-                    try {
-                        const validation = ImageDataManager.validateImageData(currentReceiptData.photoUrl);
-                        if (validation.isValid) {
-                            doc.addImage(currentReceiptData.photoUrl, validation.format, margin, yPos, 60, 40);
-                            console.log('Photo added to PDF successfully');
-                        } else {
-                            throw new Error('Invalid photo data');
-                        }
-                    } catch (error) {
-                        console.error('Error adding photo to PDF:', error);
-                        doc.setFont('helvetica', 'italic');
-                        doc.setFontSize(10);
-                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPos + 20);
-                    }
-                } else {
-                    doc.setFont('helvetica', 'italic');
-                    doc.setFontSize(10);
-                    doc.text('(Tidak ada foto)', margin, yPos + 20);
+            if (!jsPDFInstance) {
+                try {
+                    await loadJsPDF();
+                    jsPDFInstance = window.jspdf;
+                } catch (error) {
+                    alert('Gagal memuat library PDF: ' + error.message);
+                    return;
                 }
-                yPos += 50;
-
-                // Signature Section
-                const leftSignatureX = margin + 35;
-                const rightSignatureX = pageWidth - margin - 35;
-                const signatureWidth = 50;
-                const signatureHeight = 25;
-
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
-                doc.text('Pengirim:', leftSignatureX, yPos, { align: 'center' });
-                doc.text('Penerima:', rightSignatureX, yPos, { align: 'center' });
-                yPos += 10;
-
-                // Add signatures
-                if (currentReceiptData.signatureSenderUrl) {
-                    try {
-                        const validation = ImageDataManager.validateImageData(currentReceiptData.signatureSenderUrl);
-                        if (validation.isValid) {
-                            doc.addImage(currentReceiptData.signatureSenderUrl, validation.format, 
-                                leftSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
-                            console.log('Sender signature added to PDF successfully');
-                        }
-                    } catch (error) {
-                        console.error('Error adding sender signature:', error);
-                    }
-                }
-
-                if (currentReceiptData.signatureReceiverUrl) {
-                    try {
-                        const validation = ImageDataManager.validateImageData(currentReceiptData.signatureReceiverUrl);
-                        if (validation.isValid) {
-                            doc.addImage(currentReceiptData.signatureReceiverUrl, validation.format, 
-                                rightSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
-                            console.log('Receiver signature added to PDF successfully');
-                        }
-                    } catch (error) {
-                        console.error('Error adding receiver signature:', error);
-                    }
-                }
-
-                yPos += signatureHeight + 8;
-                
-                // Signature names
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.text('(TEAM WAREHOUSE)', leftSignatureX, yPos, { align: 'center' });
-                doc.text(`(${currentReceiptData.recipientName})`, rightSignatureX, yPos, { align: 'center' });
-
-                // Save PDF
-                const cleanRegNumber = currentReceiptData.registrationNumber.replace(/[^a-zA-Z0-9]/g, '-');
-                const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
-                doc.save(fileName);
-                
-                // Show success message with image status
-                const imageStatus = [
-                    `Foto: ${currentReceiptData.photoUrl ? '✓ Tersedia' : '✗ Tidak tersedia'}`,
-                    `Tanda tangan pengirim: ${currentReceiptData.signatureSenderUrl ? '✓ Tersedia' : '✗ Tidak tersedia'}`,
-                    `Tanda tangan penerima: ${currentReceiptData.signatureReceiverUrl ? '✓ Tersedia' : '✗ Tidak tersedia'}`
-                ].join('\n');
-
-                setTimeout(() => {
-                    showSuccess(`PDF berhasil diunduh!\n\nFile: ${fileName}\nNomor Registrasi: ${currentReceiptData.registrationNumber}\nJumlah item: ${currentReceiptData.items.length}\n\nStatus Gambar:\n${imageStatus}`);
-                }, 500);
-
-                console.log('PDF generated successfully:', fileName);
-                
-            } catch (error) {
-                console.error('Error generating PDF:', error);
-                showError('Gagal membuat PDF: ' + error.message);
-            } finally {
-                loading.style.display = 'none';
             }
-        });
-
-        // Utility functions for user feedback
-        function showSuccess(message) {
-            const successElement = document.getElementById('successMessage');
-            successElement.textContent = message;
-            successElement.style.display = 'block';
-            setTimeout(() => {
-                successElement.style.display = 'none';
-            }, 5000);
-        }
-
-        function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-            setTimeout(() => {
-                errorElement.style.display = 'none';
-            }, 5000);
-        }
-
-        // Logout functionality
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            if (confirm('Apakah Anda yakin ingin logout?')) {
-                localStorage.removeItem('isLoggedIn');
-                window.location.href = '/login.html';
-            }
-        });
-
-        // Auto-save form data periodically
-        setInterval(() => {
-            const formData = {
-                recipientName: document.getElementById('recipientName').value,
-                department: document.getElementById('department').value,
-                items: Array.from(document.getElementsByClassName('item-row')).map(row => ({
-                    desc: row.querySelector('.itemDesc').value,
-                    qty: row.querySelector('.itemQty').value,
-                    unit: row.querySelector('.itemUnit').value,
-                    prNumber: row.querySelector('.itemPrNumber').value,
-                    poNumber: row.querySelector('.itemPoNumber').value
-                })),
-                timestamp: new Date().toISOString()
-            };
             
-            if (formData.recipientName || formData.department) {
-                localStorage.setItem('form_draft', JSON.stringify(formData));
-            }
-        }, 30000); // Auto-save every 30 seconds
+            const { jsPDF } = jsPDFInstance;
+            const doc = new jsPDF();
+            
+            const date = document.getElementById('date').textContent;
+            const recipientName = document.getElementById('outputName').textContent;
+            const department = document.getElementById('outputDepartment').textContent;
+            const registrationNumber = currentRegistrationNumber || 'N/A';
+            
+            const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
+                const parts = li.textContent.split(' - ');
+                const desc = parts[0] || '-';
+                const qtyMatch = parts[1] ? parts[1].match(/Qty: (\d+)/) : null;
+                const unitMatch = parts[1] ? parts[1].match(/Qty: \d+ (\w+)/) : null;
+                const prMatch = parts[2] ? parts[2].match(/PR: (\d+)/) : null;
+                const poMatch = parts[3] ? parts[3].match(/PO: (\w+)/) : null;
+                return {
+                    desc: desc,
+                    qty: qtyMatch ? qtyMatch[1] : '-',
+                    unit: unitMatch ? unitMatch[1] : '-',
+                    prNumber: prMatch ? prMatch[1] : '-',
+                    poNumber: poMatch ? poMatch[1] : '-'
+                };
+            });
+            
+            const photoSrc = document.getElementById('outputPhoto').src;
+            const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
+            const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
 
-        // Load draft data on page load
-        window.addEventListener('load', () => {
-            try {
-                const draft = localStorage.getItem('form_draft');
-                if (draft) {
-                    const formData = JSON.parse(draft);
-                    if (formData.recipientName) {
-                        document.getElementById('recipientName').value = formData.recipientName;
-                    }
-                    if (formData.department) {
-                        document.getElementById('department').value = formData.department;
-                    }
-                    console.log('Draft data loaded');
+            // PDF Layout
+            const margin = 15;
+            const pageWidth = 210; // A4 width in mm
+            let yPosition = margin;
+
+            // Header
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('DIREC - TANDA TERIMA', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 10;
+
+            // Registration Number
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 15;
+
+            // Information Section
+            doc.setFontSize(12);
+            const labelWidth = 35;
+            
+            doc.setFont('Helvetica', 'bold');
+            doc.text('Tanggal', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
+            doc.text(`: ${date || '-'}`, margin + labelWidth, yPosition);
+            yPosition += 7;
+            
+            doc.setFont('Helvetica', 'bold');
+            doc.text('Nama Penerima', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
+            doc.text(`: ${recipientName || '-'}`, margin + labelWidth, yPosition);
+            yPosition += 7;
+            
+            doc.setFont('Helvetica', 'bold');
+            doc.text('Departemen', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
+            doc.text(`: ${department || '-'}`, margin + labelWidth, yPosition);
+            yPosition += 15;
+
+            // Items Table
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text('Deskripsi Barang:', margin, yPosition);
+            yPosition += 8;
+
+            doc.autoTable({
+                startY: yPosition,
+                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                body: items.length ? items.map(item => [
+                    item.desc, 
+                    item.qty, 
+                    item.unit, 
+                    item.prNumber, 
+                    item.poNumber
+                ]) : [['-', '-', '-', '-', '-']],
+                styles: { 
+                    fontSize: 10, 
+                    cellPadding: 3, 
+                    halign: 'center', 
+                    valign: 'middle' 
+                },
+                headStyles: { 
+                    fillColor: [16, 185, 129], 
+                    textColor: [255, 255, 255], 
+                    fontStyle: 'bold' 
+                },
+                columnStyles: {
+                    0: { cellWidth: 70, halign: 'left' }, // Deskripsi
+                    1: { cellWidth: 20 }, // Qty
+                    2: { cellWidth: 25 }, // Satuan
+                    3: { cellWidth: 30 }, // No PR
+                    4: { cellWidth: 35 }  // No PO
+                },
+                margin: { left: margin, right: margin }
+            });
+
+            yPosition = doc.lastAutoTable.finalY + 15;
+
+            // Photo Section
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.text('Foto Penerima:', margin, yPosition);
+            yPosition += 8;
+            
+            if (photoSrc && !photoSrc.includes('placeholder.svg')) {
+                try {
+                    doc.addImage(photoSrc, 'JPEG', margin, yPosition, 60, 40);
+                } catch (error) {
+                    console.error('Error adding photo:', error);
+                    doc.setFont('Helvetica', 'normal');
+                    doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 20);
                 }
-            } catch (error) {
-                console.warn('Failed to load draft data:', error);
+            } else {
+                doc.setFont('Helvetica', 'normal');
+                doc.text('(Tidak ada foto)', margin, yPosition + 20);
             }
-        });
+            yPosition += 50;
 
-        console.log('Registration Manager initialized successfully');
+            // Signature Section with Recipient Name
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(12);
+            
+            const signatureWidth = 60;
+            const signatureHeight = 20;
+            const signatureSpacing = 70;
+            
+            // Signature labels
+            doc.text('Pengirim:', margin, yPosition);
+            doc.text('Penerima:', margin + signatureSpacing, yPosition);
+            yPosition += 8;
+            
+            // Signature images
+            if (signatureSenderSrc) {
+                try {
+                    doc.addImage(signatureSenderSrc, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
+                } catch (error) {
+                    console.error('Error adding sender signature:', error);
+                }
+            }
+            
+            if (signatureReceiverSrc) {
+                try {
+                    doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureSpacing, yPosition, signatureWidth, signatureHeight);
+                } catch (error) {
+                    console.error('Error adding receiver signature:', error);
+                }
+            }
+            
+            yPosition += signatureHeight + 8;
+            
+            // Signature names/lines
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text('(TEAM WAREHOUSE)', margin, yPosition);
+            doc.text(`(${recipientName || '_____________________'})`, margin + signatureSpacing, yPosition);
+
+            // Save PDF
+            const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+            doc.save(fileName);
+            
+            console.log('PDF generated successfully:', fileName);
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = '/login.html';
+        });
     </script>
 </body>
 </html>
