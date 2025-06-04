@@ -751,12 +751,36 @@
                     throw new Error('Gagal membuat nomor registrasi');
                 }
                 
-                // Prepare form data
+                // Prepare complete receipt data with all images as base64
+                const receiptData = {
+                    recipientName,
+                    department,
+                    date,
+                    registrationNumber,
+                    items,
+                    photoUrl: photoSrc && !photoSrc.includes('placeholder.svg') ? photoSrc : null,
+                    signatureSenderUrl: signatureSenderData,
+                    signatureReceiverUrl: signatureReceiverData,
+                    senderName: 'TEAM WAREHOUSE', // Default sender name
+                    timestamp: new Date().toISOString(),
+                    // Format items as string for compatibility
+                    itemsString: items.map(item => 
+                        `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
+                    ).join('\n')
+                };
+                
+                // Save to localStorage with complete data
+                const localReceipts = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
+                localReceipts.push(receiptData);
+                localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
+                
+                // Prepare form data for API
                 const formData = new FormData();
                 formData.append('recipientName', recipientName);
                 formData.append('department', department);
                 formData.append('date', date);
                 formData.append('registrationNumber', registrationNumber);
+                formData.append('items', receiptData.itemsString);
                 
                 items.forEach((item, index) => {
                     formData.append(`items[${index}][desc]`, item.desc);
@@ -775,20 +799,6 @@
                 const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
                 formData.append('signatureSender', signatureSenderBlob, 'sender.png');
                 formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
-                
-                // Save to localStorage as backup
-                const receiptData = {
-                    recipientName,
-                    department,
-                    date,
-                    registrationNumber,
-                    items,
-                    timestamp: new Date().toISOString()
-                };
-                
-                const localReceipts = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
-                localReceipts.push(receiptData);
-                localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
                 
                 // Try to send to API
                 try {
@@ -1018,6 +1028,10 @@
             doc.setFontSize(10);
             doc.text('(TEAM WAREHOUSE)', margin, yPosition);
             doc.text(`(${recipientName || '_____________________'})`, margin + signatureSpacing, yPosition);
+            
+            yPosition += 8;
+            doc.text('Pengirim', margin + 25, yPosition);
+            doc.text('Penerima', margin + signatureSpacing + 25, yPosition);
 
             // Save PDF
             const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
