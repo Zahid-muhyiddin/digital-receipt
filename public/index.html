@@ -783,10 +783,11 @@
                     date,
                     registrationNumber,
                     items,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+		    photoUrl: photoSrc && !photoSrc.includes('placeholder.svg') ? photoSrc : null,
+		    signatureSenderUrl: signatureSenderData,
+		    signatureReceiverUrl: signatureReceiverData
                 };
-                
-                const localReceipts = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
                 localReceipts.push(receiptData);
                 localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
                 
