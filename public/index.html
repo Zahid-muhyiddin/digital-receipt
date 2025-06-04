@@ -123,6 +123,7 @@
             font-size: 14px;
             color: #6b7280;
             margin-top: 5px;
+            font-weight: 600;
         }
         .receipt-container {
             padding: 15px;
@@ -287,7 +288,7 @@
             <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
             <div class="header-container">
                 <div class="header-text">DIREC - Input Form</div>
-                <div class="registration-number" id="registrationNumber"></div>
+                <div class="registration-number" id="registrationNumber">No. Registrasi: Memuat...</div>
             </div>
         </div>
         <div class="receipt-container">
@@ -378,6 +379,13 @@
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
+
+        // Global variables
+        let currentRegistrationNumber = null;
+        let itemCount = 1;
+        let stream = null;
+        let jsPDFInstance = null;
+
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
@@ -408,79 +416,160 @@
             });
         }
 
-        // PERBAIKAN 1: Fungsi generateRegistrationNumber yang diperbaiki
-        async function generateRegistrationNumber() {
-            try {
+        // Registration Number Management System
+        class RegistrationNumberManager {
+            constructor() {
+                this.storageKey = 'direc_registration_counters';
+                this.receiptsKey = 'direc_receipts';
+            }
+
+            // Get current month-year key
+            getCurrentMonthYearKey() {
                 const now = new Date();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
-                
-                // Coba ambil data dari API, jika gagal gunakan localStorage sebagai fallback
-                let count = 0;
+                return `${year}-${month}`;
+            }
+
+            // Get registration counters from localStorage
+            getCounters() {
                 try {
-                    const response = await fetch('/api/history', { signal: AbortSignal.timeout(5000) });
+                    return JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+                } catch (error) {
+                    console.error('Error reading counters:', error);
+                    return {};
+                }
+            }
+
+            // Save registration counters to localStorage
+            saveCounters(counters) {
+                try {
+                    localStorage.setItem(this.storageKey, JSON.stringify(counters));
+                } catch (error) {
+                    console.error('Error saving counters:', error);
+                }
+            }
+
+            // Get next registration number
+            getNextRegistrationNumber() {
+                const monthYearKey = this.getCurrentMonthYearKey();
+                const counters = this.getCounters();
+                
+                // Initialize counter for current month if it doesn't exist
+                if (!counters[monthYearKey]) {
+                    counters[monthYearKey] = 0;
+                }
+
+                // Increment counter
+                counters[monthYearKey]++;
+                
+                // Save updated counters
+                this.saveCounters(counters);
+
+                // Format registration number
+                const [year, month] = monthYearKey.split('-');
+                const sequence = String(counters[monthYearKey]).padStart(3, '0');
+                
+                return `TT-RANT-${month}-${year}-${sequence}`;
+            }
+
+            // Preview next registration number without incrementing
+            previewNextRegistrationNumber() {
+                const monthYearKey = this.getCurrentMonthYearKey();
+                const counters = this.getCounters();
+                
+                const currentCount = counters[monthYearKey] || 0;
+                const nextCount = currentCount + 1;
+                
+                const [year, month] = monthYearKey.split('-');
+                const sequence = String(nextCount).padStart(3, '0');
+                
+                return `TT-RANT-${month}-${year}-${sequence}`;
+            }
+
+            // Sync with API data if available
+            async syncWithAPI() {
+                try {
+                    const response = await fetch('/api/history', { 
+                        signal: AbortSignal.timeout(5000) 
+                    });
+                    
                     if (response.ok) {
                         const result = await response.json();
-                        const data = result.data || [];
+                        const apiData = result.data || [];
                         
-                        // Hitung entri di bulan dan tahun yang sama
-                        const targetMonthYear = `${year}-${month}`;
-                        data.forEach(entry => {
-                            const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                            if (entryMatch) {
-                                const [, , entryMonth, entryYear] = entryMatch;
-                                const entryMonthYear = `${entryYear}-${entryMonth}`;
-                                if (entryMonthYear === targetMonthYear) {
-                                    count++;
+                        // Count entries by month-year from API
+                        const apiCounters = {};
+                        apiData.forEach(entry => {
+                            if (entry.date) {
+                                const match = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                                if (match) {
+                                    const [, , month, year] = match;
+                                    const key = `${year}-${month}`;
+                                    apiCounters[key] = (apiCounters[key] || 0) + 1;
                                 }
                             }
                         });
+
+                        // Merge with local counters (take the maximum)
+                        const localCounters = this.getCounters();
+                        const mergedCounters = { ...localCounters };
+                        
+                        Object.keys(apiCounters).forEach(key => {
+                            mergedCounters[key] = Math.max(
+                                mergedCounters[key] || 0,
+                                apiCounters[key] || 0
+                            );
+                        });
+
+                        this.saveCounters(mergedCounters);
+                        console.log('Synced with API data');
                     }
-                } catch (apiError) {
-                    console.warn('API tidak tersedia, menggunakan localStorage:', apiError);
-                    // Fallback ke localStorage jika API tidak tersedia
-                    const localData = JSON.parse(localStorage.getItem('receipts') || '[]');
-                    const targetMonthYear = `${year}-${month}`;
-                    localData.forEach(entry => {
-                        if (entry.date) {
-                            const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                            if (entryMatch) {
-                                const [, , entryMonth, entryYear] = entryMatch;
-                                const entryMonthYear = `${entryYear}-${entryMonth}`;
-                                if (entryMonthYear === targetMonthYear) {
-                                    count++;
-                                }
-                            }
-                        }
-                    });
+                } catch (error) {
+                    console.warn('API sync failed, using local data:', error);
                 }
-                
-                count++; // Increment untuk entri baru
-                const sequence = String(count).padStart(3, '0');
-                const regNumber = `TT-RANT-${month}-${year}-${sequence}`;
-                
-                // Update tampilan nomor registrasi
-                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
-                return regNumber;
-                
-            } catch (error) {
-                console.error('Error generating registration number:', error);
-                // Fallback jika semua gagal
-                const now = new Date();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const year = now.getFullYear();
-                const fallbackNumber = `TT-RANT-${month}-${year}-001`;
-                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${fallbackNumber}`;
-                return fallbackNumber;
             }
         }
-        
-        // Generate nomor registrasi saat halaman dimuat
-        generateRegistrationNumber();
-        
-        let itemCount = 1;
-        let stream = null;
-        let jsPDFInstance = null;
+
+        // Initialize registration number manager
+        const regNumberManager = new RegistrationNumberManager();
+
+        // Display initial registration number
+        async function displayRegistrationNumber() {
+            try {
+                // Sync with API first
+                await regNumberManager.syncWithAPI();
+                
+                // Preview next number
+                const nextNumber = regNumberManager.previewNextRegistrationNumber();
+                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${nextNumber}`;
+                
+                console.log('Next registration number will be:', nextNumber);
+            } catch (error) {
+                console.error('Error displaying registration number:', error);
+                document.getElementById('registrationNumber').textContent = 'No. Registrasi: Error';
+            }
+        }
+
+        // Generate and reserve registration number for form submission
+        function generateRegistrationNumber() {
+            try {
+                const regNumber = regNumberManager.getNextRegistrationNumber();
+                currentRegistrationNumber = regNumber;
+                
+                // Update display
+                document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
+                
+                console.log('Generated registration number:', regNumber);
+                return regNumber;
+            } catch (error) {
+                console.error('Error generating registration number:', error);
+                return null;
+            }
+        }
+
+        // Initialize registration number display
+        displayRegistrationNumber();
         
         document.getElementById('addItem').addEventListener('click', () => {
             const itemList = document.getElementById('itemList');
@@ -547,6 +636,7 @@
             }
         }
         
+        // Signature canvas setup
         const signatureSenderCanvas = document.getElementById('signatureSenderCanvas');
         const signatureReceiverCanvas = document.getElementById('signatureReceiverCanvas');
         const ctxSender = signatureSenderCanvas.getContext('2d');
@@ -585,6 +675,7 @@
             ctx.stroke();
         }
         
+        // Sender signature events
         signatureSenderCanvas.addEventListener('mousedown', (e) => drawingSender = startDrawing(e, signatureSenderCanvas, ctxSender, drawingSender));
         signatureSenderCanvas.addEventListener('mousemove', (e) => draw(e, signatureSenderCanvas, ctxSender, drawingSender));
         signatureSenderCanvas.addEventListener('mouseup', () => drawingSender = false);
@@ -603,6 +694,7 @@
             ctxSender.clearRect(0, 0, signatureSenderCanvas.width, signatureSenderCanvas.height);
         });
         
+        // Receiver signature events
         signatureReceiverCanvas.addEventListener('mousedown', (e) => drawingReceiver = startDrawing(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
         signatureReceiverCanvas.addEventListener('mousemove', (e) => draw(e, signatureReceiverCanvas, ctxReceiver, drawingReceiver));
         signatureReceiverCanvas.addEventListener('mouseup', () => drawingReceiver = false);
@@ -621,6 +713,7 @@
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });
         
+        // Form submission
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -628,123 +721,129 @@
             submitBtn.disabled = true;
             loading.style.display = 'flex';
             
-            const recipientName = document.getElementById('recipientName').value;
-            const department = document.getElementById('department').value;
-            const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
-                desc: row.querySelector('.itemDesc').value,
-                qty: row.querySelector('.itemQty').value,
-                unit: row.querySelector('.itemUnit').value,
-                prNumber: row.querySelector('.itemPrNumber').value,
-                poNumber: row.querySelector('.itemPoNumber').value
-            }));
-            
-            const photoSrc = document.getElementById('photoPreview').src;
-            const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
-            const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
-            
-            const date = new Date().toLocaleString('id-ID', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            // Generate nomor registrasi baru untuk setiap submit
-            const registrationNumber = await generateRegistrationNumber();
-            
-            if (!registrationNumber) {
-                alert('Gagal membuat nomor registrasi');
+            try {
+                const recipientName = document.getElementById('recipientName').value;
+                const department = document.getElementById('department').value;
+                const items = Array.from(document.getElementsByClassName('item-row')).map(row => ({
+                    desc: row.querySelector('.itemDesc').value,
+                    qty: row.querySelector('.itemQty').value,
+                    unit: row.querySelector('.itemUnit').value,
+                    prNumber: row.querySelector('.itemPrNumber').value,
+                    poNumber: row.querySelector('.itemPoNumber').value
+                }));
+                
+                const photoSrc = document.getElementById('photoPreview').src;
+                const signatureSenderData = signatureSenderCanvas.toDataURL('image/png');
+                const signatureReceiverData = signatureReceiverCanvas.toDataURL('image/png');
+                
+                const date = new Date().toLocaleString('id-ID', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                // Generate registration number for this submission
+                const registrationNumber = generateRegistrationNumber();
+                
+                if (!registrationNumber) {
+                    throw new Error('Gagal membuat nomor registrasi');
+                }
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('recipientName', recipientName);
+                formData.append('department', department);
+                formData.append('date', date);
+                formData.append('registrationNumber', registrationNumber);
+                
+                items.forEach((item, index) => {
+                    formData.append(`items[${index}][desc]`, item.desc);
+                    formData.append(`items[${index}][qty]`, item.qty);
+                    formData.append(`items[${index}][unit]`, item.unit);
+                    formData.append(`items[${index}][prNumber]`, item.prNumber);
+                    formData.append(`items[${index}][poNumber]`, item.poNumber);
+                });
+                
+                if (photoSrc && !photoSrc.includes('placeholder.svg')) {
+                    const photoBlob = await fetch(photoSrc).then(res => res.blob());
+                    formData.append('photo', photoBlob, 'photo.jpg');
+                }
+                
+                const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
+                const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
+                formData.append('signatureSender', signatureSenderBlob, 'sender.png');
+                formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+                
+                // Save to localStorage as backup
+                const receiptData = {
+                    recipientName,
+                    department,
+                    date,
+                    registrationNumber,
+                    items,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const localReceipts = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
+                localReceipts.push(receiptData);
+                localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
+                
+                // Try to send to API
+                try {
+                    const response = await fetch('/api/receipts', {
+                        method: 'POST',
+                        body: formData,
+                        signal: AbortSignal.timeout(30000)
+                    });
+                    
+                    if (response.ok) {
+                        console.log('Successfully saved to API');
+                    } else {
+                        console.warn('API save failed, data saved locally');
+                    }
+                } catch (apiError) {
+                    console.warn('API not available, data saved locally:', apiError);
+                }
+                
+                // Update output display
+                document.getElementById('date').textContent = date;
+                document.getElementById('outputName').textContent = recipientName;
+                document.getElementById('outputDepartment').textContent = department;
+                
+                const outputItems = document.getElementById('outputItems');
+                outputItems.innerHTML = '';
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
+                    outputItems.appendChild(li);
+                });
+                
+                document.getElementById('outputPhoto').src = photoSrc;
+                document.getElementById('signatureSenderPreview').src = signatureSenderData;
+                document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
+                
+                document.getElementById('receiptOutput').style.display = 'block';
+                document.getElementById('savePdfBtn').style.display = 'block';
+                
+                alert(`Tanda terima berhasil disimpan!\nNomor Registrasi: ${registrationNumber}`);
+                
+                // Update registration number display for next form
+                setTimeout(() => {
+                    displayRegistrationNumber();
+                }, 100);
+                
+            } catch (error) {
+                alert('Gagal menyimpan: ' + error.message);
+                console.error('Form submission error:', error);
+            } finally {
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
-                return;
             }
-            
-            const formData = new FormData();
-            formData.append('recipientName', recipientName);
-            formData.append('department', department);
-            formData.append('date', date);
-            formData.append('registrationNumber', registrationNumber);
-            
-            items.forEach((item, index) => {
-                formData.append(`items[${index}][desc]`, item.desc);
-                formData.append(`items[${index}][qty]`, item.qty);
-                formData.append(`items[${index}][unit]`, item.unit);
-                formData.append(`items[${index}][prNumber]`, item.prNumber);
-                formData.append(`items[${index}][poNumber]`, item.poNumber);
-            });
-            
-            if (photoSrc) {
-                const photoBlob = await fetch(photoSrc).then(res => res.blob());
-                formData.append('photo', photoBlob, 'photo.jpg');
-            }
-            
-            const signatureSenderBlob = await fetch(signatureSenderData).then(res => res.blob());
-            const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
-            formData.append('signatureSender', signatureSenderBlob, 'sender.png');
-            formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
-            
-            try {
-                const response = await fetch('/api/receipts', {
-                    method: 'POST',
-                    body: formData,
-                    signal: AbortSignal.timeout(30000)
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Gagal menyimpan');
-                
-                // Simpan ke localStorage sebagai backup
-                const receiptData = {
-                    recipientName,
-                    department,
-                    date,
-                    registrationNumber,
-                    items
-                };
-                const localReceipts = JSON.parse(localStorage.getItem('receipts') || '[]');
-                localReceipts.push(receiptData);
-                localStorage.setItem('receipts', JSON.stringify(localReceipts));
-                
-                alert('Tanda terima berhasil disimpan!');
-            } catch (error) {
-                console.warn('API gagal, menyimpan ke localStorage:', error);
-                // Fallback ke localStorage jika API gagal
-                const receiptData = {
-                    recipientName,
-                    department,
-                    date,
-                    registrationNumber,
-                    items
-                };
-                const localReceipts = JSON.parse(localStorage.getItem('receipts') || '[]');
-                localReceipts.push(receiptData);
-                localStorage.setItem('receipts', JSON.stringify(localReceipts));
-                alert('Tanda terima berhasil disimpan (offline)!');
-            }
-            
-            document.getElementById('date').textContent = date;
-            document.getElementById('outputName').textContent = recipientName;
-            document.getElementById('outputDepartment').textContent = department;
-            
-            const outputItems = document.getElementById('outputItems');
-            outputItems.innerHTML = '';
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`;
-                outputItems.appendChild(li);
-            });
-            
-            document.getElementById('outputPhoto').src = photoSrc;
-            document.getElementById('signatureSenderPreview').src = signatureSenderData;
-            document.getElementById('signatureReceiverPreview').src = signatureReceiverData;
-            
-            document.getElementById('receiptOutput').style.display = 'block';
-            document.getElementById('savePdfBtn').style.display = 'block';
-            
-            submitBtn.disabled = false;
-            loading.style.display = 'none';
         });
         
+        // PDF generation with recipient name in signature
         document.getElementById('savePdfBtn').addEventListener('click', async () => {
             if (!jsPDFInstance) {
                 try {
@@ -762,15 +861,15 @@
             const date = document.getElementById('date').textContent;
             const recipientName = document.getElementById('outputName').textContent;
             const department = document.getElementById('outputDepartment').textContent;
-            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+            const registrationNumber = currentRegistrationNumber || 'N/A';
             
             const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
                 const parts = li.textContent.split(' - ');
-                const desc = parts[0];
-                const qtyMatch = parts[1].match(/Qty: (\d+)/);
-                const unitMatch = parts[1].match(/Qty: \d+ (\w+)/);
-                const prMatch = parts[2].match(/PR: (\d+)/);
-                const poMatch = parts[3].match(/PO: (\w+)/);
+                const desc = parts[0] || '-';
+                const qtyMatch = parts[1] ? parts[1].match(/Qty: (\d+)/) : null;
+                const unitMatch = parts[1] ? parts[1].match(/Qty: \d+ (\w+)/) : null;
+                const prMatch = parts[2] ? parts[2].match(/PR: (\d+)/) : null;
+                const poMatch = parts[3] ? parts[3].match(/PO: (\w+)/) : null;
                 return {
                     desc: desc,
                     qty: qtyMatch ? qtyMatch[1] : '-',
@@ -784,50 +883,74 @@
             const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
             const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
 
-            // Margin dan posisi awal
+            // PDF Layout
             const margin = 15;
             const pageWidth = 210; // A4 width in mm
-            const contentWidth = pageWidth - 2 * margin;
             let yPosition = margin;
 
-            // Judul
+            // Header
             doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(16);
-            doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 7;
+            doc.setFontSize(18);
+            doc.text('DIREC - TANDA TERIMA', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 10;
 
-            // Nomor Registrasi
+            // Registration Number
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(10);
+            doc.setFontSize(12);
             doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 10;
+            yPosition += 15;
 
-            // Informasi (Tanggal, Penerima, Departemen)
+            // Information Section
             doc.setFontSize(12);
-            const labelWidth = 30;
+            const labelWidth = 35;
+            
+            doc.setFont('Helvetica', 'bold');
             doc.text('Tanggal', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
             doc.text(`: ${date || '-'}`, margin + labelWidth, yPosition);
-            yPosition += 5;
-            doc.text('Penerima', margin, yPosition);
+            yPosition += 7;
+            
+            doc.setFont('Helvetica', 'bold');
+            doc.text('Nama Penerima', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
             doc.text(`: ${recipientName || '-'}`, margin + labelWidth, yPosition);
-            yPosition += 5;
+            yPosition += 7;
+            
+            doc.setFont('Helvetica', 'bold');
             doc.text('Departemen', margin, yPosition);
+            doc.setFont('Helvetica', 'normal');
             doc.text(`: ${department || '-'}`, margin + labelWidth, yPosition);
-            yPosition += 10;
+            yPosition += 15;
 
-            // Tabel Barang
-            doc.setFontSize(12);
+            // Items Table
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(14);
             doc.text('Deskripsi Barang:', margin, yPosition);
-            yPosition += 5;
+            yPosition += 8;
 
             doc.autoTable({
                 startY: yPosition,
                 head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
-                headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+                body: items.length ? items.map(item => [
+                    item.desc, 
+                    item.qty, 
+                    item.unit, 
+                    item.prNumber, 
+                    item.poNumber
+                ]) : [['-', '-', '-', '-', '-']],
+                styles: { 
+                    fontSize: 10, 
+                    cellPadding: 3, 
+                    halign: 'center', 
+                    valign: 'middle' 
+                },
+                headStyles: { 
+                    fillColor: [16, 185, 129], 
+                    textColor: [255, 255, 255], 
+                    fontStyle: 'bold' 
+                },
                 columnStyles: {
-                    0: { cellWidth: 70 }, // Deskripsi
+                    0: { cellWidth: 70, halign: 'left' }, // Deskripsi
                     1: { cellWidth: 20 }, // Qty
                     2: { cellWidth: 25 }, // Satuan
                     3: { cellWidth: 30 }, // No PR
@@ -836,33 +959,42 @@
                 margin: { left: margin, right: margin }
             });
 
-            yPosition = doc.lastAutoTable.finalY + 10;
+            yPosition = doc.lastAutoTable.finalY + 15;
 
-            // Foto Penerima
+            // Photo Section
+            doc.setFont('Helvetica', 'bold');
             doc.setFontSize(12);
             doc.text('Foto Penerima:', margin, yPosition);
-            yPosition += 5;
-            if (photoSrc) {
+            yPosition += 8;
+            
+            if (photoSrc && !photoSrc.includes('placeholder.svg')) {
                 try {
-                    doc.addImage(photoSrc, 'JPEG', margin, yPosition, 50, 30);
+                    doc.addImage(photoSrc, 'JPEG', margin, yPosition, 60, 40);
                 } catch (error) {
                     console.error('Error adding photo:', error);
+                    doc.setFont('Helvetica', 'normal');
+                    doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 20);
                 }
+            } else {
+                doc.setFont('Helvetica', 'normal');
+                doc.text('(Tidak ada foto)', margin, yPosition + 20);
             }
-            yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
+            yPosition += 50;
 
-            // PERBAIKAN 2: Tanda Tangan dengan nama penerima
+            // Signature Section with Recipient Name
+            doc.setFont('Helvetica', 'bold');
             doc.setFontSize(12);
-            const signatureWidth = 50;
-            const signatureHeight = 15;
-            const signatureSpacing = 40;
             
-            // Label tanda tangan
+            const signatureWidth = 60;
+            const signatureHeight = 20;
+            const signatureSpacing = 70;
+            
+            // Signature labels
             doc.text('Pengirim:', margin, yPosition);
-            doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
-            yPosition += 5;
+            doc.text('Penerima:', margin + signatureSpacing, yPosition);
+            yPosition += 8;
             
-            // Gambar tanda tangan
+            // Signature images
             if (signatureSenderSrc) {
                 try {
                     doc.addImage(signatureSenderSrc, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
@@ -870,22 +1002,32 @@
                     console.error('Error adding sender signature:', error);
                 }
             }
+            
             if (signatureReceiverSrc) {
                 try {
-                    doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
+                    doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureSpacing, yPosition, signatureWidth, signatureHeight);
                 } catch (error) {
                     console.error('Error adding receiver signature:', error);
                 }
             }
             
-            // Tambahkan nama penerima di bawah tanda tangan penerima
-            yPosition += signatureHeight + 3; // Jarak setelah tanda tangan
+            yPosition += signatureHeight + 8;
+            
+            // Signature names/lines
+            doc.setFont('Helvetica', 'normal');
             doc.setFontSize(10);
-            doc.text('(Team Warehouse)', margin, yPosition);
-            doc.text(`(${recipientName || '_________________'})`, margin + signatureWidth + signatureSpacing, yPosition);
+            doc.text('(TEAM WAREHOUSE)', margin, yPosition);
+            doc.text(`(${recipientName || '_____________________'})`, margin + signatureSpacing, yPosition);
+            
+            yPosition += 8;
+            doc.text('Pengirim', margin + 25, yPosition);
+            doc.text('Penerima', margin + signatureSpacing + 25, yPosition);
 
-            // Simpan PDF
-            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
+            // Save PDF
+            const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+            doc.save(fileName);
+            
+            console.log('PDF generated successfully:', fileName);
         });
         
         document.getElementById('logoutBtn').addEventListener('click', () => {
