@@ -416,85 +416,6 @@
             });
         }
 
-        // Enhanced Data Synchronization System
-        class DataSyncManager {
-            constructor() {
-                this.storageKey = 'direc_receipts';
-                this.lastUpdateKey = 'direc_last_update';
-            }
-
-            // Save receipt data with enhanced structure
-            saveReceiptData(receiptData) {
-                try {
-                    const receipts = this.getAllReceipts();
-                    
-                    // Add unique ID and enhanced metadata
-                    const enhancedData = {
-                        ...receiptData,
-                        id: this.generateUniqueId(),
-                        createdAt: new Date().toISOString(),
-                        lastModified: new Date().toISOString(),
-                        version: '1.0',
-                        dataIntegrity: this.calculateDataHash(receiptData)
-                    };
-                    
-                    receipts.push(enhancedData);
-                    localStorage.setItem(this.storageKey, JSON.stringify(receipts));
-                    localStorage.setItem(this.lastUpdateKey, new Date().toISOString());
-                    
-                    console.log('Receipt data saved with enhanced structure:', enhancedData.id);
-                    return enhancedData;
-                } catch (error) {
-                    console.error('Error saving receipt data:', error);
-                    throw error;
-                }
-            }
-
-            // Get all receipts with data validation
-            getAllReceipts() {
-                try {
-                    const data = localStorage.getItem(this.storageKey);
-                    if (!data) return [];
-                    
-                    const receipts = JSON.parse(data);
-                    return receipts.filter(receipt => this.validateReceiptData(receipt));
-                } catch (error) {
-                    console.error('Error loading receipts:', error);
-                    return [];
-                }
-            }
-
-            // Generate unique ID for receipts
-            generateUniqueId() {
-                return 'receipt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            }
-
-            // Calculate data hash for integrity checking
-            calculateDataHash(data) {
-                const str = JSON.stringify(data);
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                    const char = str.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // Convert to 32-bit integer
-                }
-                return hash.toString();
-            }
-
-            // Validate receipt data structure
-            validateReceiptData(receipt) {
-                const requiredFields = ['recipientName', 'department', 'date', 'registrationNumber'];
-                return requiredFields.every(field => receipt.hasOwnProperty(field) && receipt[field]);
-            }
-
-            // Trigger data sync event for other pages
-            triggerDataSync() {
-                window.dispatchEvent(new CustomEvent('direcDataSync', {
-                    detail: { timestamp: new Date().toISOString() }
-                }));
-            }
-        }
-
         // Registration Number Management System
         class RegistrationNumberManager {
             constructor() {
@@ -610,8 +531,7 @@
             }
         }
 
-        // Initialize managers
-        const dataSyncManager = new DataSyncManager();
+        // Initialize registration number manager
         const regNumberManager = new RegistrationNumberManager();
 
         // Display initial registration number
@@ -793,7 +713,7 @@
             ctxReceiver.clearRect(0, 0, signatureReceiverCanvas.width, signatureReceiverCanvas.height);
         });
         
-        // Enhanced Form submission with complete data integration
+        // Form submission
         document.getElementById('receiptForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -831,68 +751,12 @@
                     throw new Error('Gagal membuat nomor registrasi');
                 }
                 
-                // Prepare complete receipt data with enhanced structure for perfect PDF integration
-                const receiptData = {
-                    // Basic Information
-                    recipientName,
-                    department,
-                    date,
-                    registrationNumber,
-                    
-                    // Items Data (multiple formats for compatibility)
-                    items: items,
-                    itemsArray: items, // Explicit array format
-                    itemsString: items.map(item => 
-                        `${item.desc} - Qty: ${item.qty} ${item.unit} - PR: ${item.prNumber} - PO: ${item.poNumber}`
-                    ).join('\n'),
-                    
-                    // Image Data (Base64 for immediate use)
-                    photoUrl: photoSrc && !photoSrc.includes('placeholder.svg') ? photoSrc : null,
-                    signatureSenderUrl: signatureSenderData,
-                    signatureReceiverUrl: signatureReceiverData,
-                    
-                    // Additional Metadata for PDF generation
-                    senderName: 'TEAM WAREHOUSE',
-                    formVersion: '2.0',
-                    dataComplete: true,
-                    
-                    // Timestamps
-                    timestamp: new Date().toISOString(),
-                    submissionTime: date,
-                    
-                    // Data validation flags
-                    hasPhoto: !!(photoSrc && !photoSrc.includes('placeholder.svg')),
-                    hasSenderSignature: !!signatureSenderData,
-                    hasReceiverSignature: !!signatureReceiverData,
-                    itemCount: items.length,
-                    
-                    // PDF Generation metadata
-                    pdfReady: true,
-                    layoutVersion: 'v2.0',
-                    
-                    // Form field mapping for PDF
-                    formFields: {
-                        recipientName: recipientName,
-                        department: department,
-                        date: date,
-                        registrationNumber: registrationNumber,
-                        items: items,
-                        photoData: photoSrc && !photoSrc.includes('placeholder.svg') ? photoSrc : null,
-                        senderSignature: signatureSenderData,
-                        receiverSignature: signatureReceiverData
-                    }
-                };
-                
-                // Save to localStorage with enhanced data sync
-                const savedData = dataSyncManager.saveReceiptData(receiptData);
-                
-                // Prepare form data for API
+                // Prepare form data
                 const formData = new FormData();
                 formData.append('recipientName', recipientName);
                 formData.append('department', department);
                 formData.append('date', date);
                 formData.append('registrationNumber', registrationNumber);
-                formData.append('items', receiptData.itemsString);
                 
                 items.forEach((item, index) => {
                     formData.append(`items[${index}][desc]`, item.desc);
@@ -911,6 +775,20 @@
                 const signatureReceiverBlob = await fetch(signatureReceiverData).then(res => res.blob());
                 formData.append('signatureSender', signatureSenderBlob, 'sender.png');
                 formData.append('signatureReceiver', signatureReceiverBlob, 'receiver.png');
+                
+                // Save to localStorage as backup
+                const receiptData = {
+                    recipientName,
+                    department,
+                    date,
+                    registrationNumber,
+                    items,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const localReceipts = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
+                localReceipts.push(receiptData);
+                localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
                 
                 // Try to send to API
                 try {
@@ -949,10 +827,7 @@
                 document.getElementById('receiptOutput').style.display = 'block';
                 document.getElementById('savePdfBtn').style.display = 'block';
                 
-                // Trigger data sync event for download page
-                dataSyncManager.triggerDataSync();
-                
-                alert(`Tanda terima berhasil disimpan!\nNomor Registrasi: ${registrationNumber}\nData ID: ${savedData.id}`);
+                alert(`Tanda terima berhasil disimpan!\nNomor Registrasi: ${registrationNumber}`);
                 
                 // Update registration number display for next form
                 setTimeout(() => {
@@ -1143,10 +1018,6 @@
             doc.setFontSize(10);
             doc.text('(TEAM WAREHOUSE)', margin, yPosition);
             doc.text(`(${recipientName || '_____________________'})`, margin + signatureSpacing, yPosition);
-            
-            yPosition += 8;
-            doc.text('Pengirim', margin + 25, yPosition);
-            doc.text('Penerima', margin + signatureSpacing + 25, yPosition);
 
             // Save PDF
             const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
