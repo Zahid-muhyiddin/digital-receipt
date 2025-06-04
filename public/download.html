@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Download Tanda Terima - DIREC</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous">
     <style>
         * {
             margin: 0;
@@ -114,10 +114,10 @@
         .search-container {
             display: flex;
             gap: 8px;
-            max-width: 250px;
+            max-width: 300px;
         }
         .search-container input {
-            width: 150px;
+            width: 180px;
             padding: 6px;
             border: 1px solid #d1d5db;
             border-radius: 4px;
@@ -167,6 +167,16 @@
         th {
             background: #10b981;
             color: #fff;
+            cursor: pointer;
+        }
+        th.sortable:hover {
+            background: #059669;
+        }
+        th.sort-asc::after {
+            content: ' ↑';
+        }
+        th.sort-desc::after {
+            content: ' ↓';
         }
         tr:nth-child(even) {
             background: #f9fafb;
@@ -195,6 +205,12 @@
             text-align: center;
             font-size: 12px;
             display: none;
+            margin-top: 10px;
+        }
+        .no-results {
+            color: #6b7280;
+            text-align: center;
+            font-size: 13px;
             margin-top: 10px;
         }
         .loading {
@@ -229,6 +245,7 @@
             justify-content: center;
             gap: 8px;
             margin-top: 10px;
+            align-items: center;
         }
         .pagination button {
             background: #3b82f6;
@@ -247,8 +264,14 @@
             background: #1e40af;
             font-weight: bold;
         }
-        
-        /* Preview Modal Styles */
+        .pagination input {
+            width: 50px;
+            padding: 5px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 13px;
+        }
         .preview-modal {
             display: none;
             position: fixed;
@@ -397,7 +420,16 @@
             color: #000;
             margin-bottom: 5px;
         }
-        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -466,71 +498,82 @@
     </style>
 </head>
 <body>
-    <div class="sidebar" id="sidebar">
-        <button class="toggle-btn" id="toggleSidebar"><i class="fas fa-arrow-left"></i></button>
+    <div class="sidebar" id="sidebar" aria-hidden="true">
+        <button class="toggle-btn" id="toggleSidebar" aria-label="Toggle Sidebar">
+            <i class="fas fa-arrow-left"></i>
+            <span class="sr-only">Toggle Sidebar</span>
+        </button>
         <div class="logo-text">DIREC</div>
         <ul>
             <li><a href="/index.html">Input Form</a></li>
             <li><a href="/history.html">History</a></li>
             <li><a href="/download.html" class="active">Download Tanda Terima</a></li>
         </ul>
-        <button class="logout-btn" id="logoutBtn">Logout</button>
+        <button class="logout-btn" id="logoutBtn" aria-label="Logout">Logout</button>
     </div>
     <div class="content" id="content">
         <div class="content-header">
             <div>
-                <button class="content-toggle" id="contentToggle"><i class="fas fa-bars"></i></button>
+                <button class="content-toggle" id="contentToggle" aria-label="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                    <span class="sr-only">Toggle Sidebar</span>
+                </button>
                 <span class="header-text">DIREC - Download Tanda Terima</span>
             </div>
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Cari No PO atau PR">
-                <button id="resetBtn">Reset</button>
+                <input type="text" id="searchInput" placeholder="Cari No PO atau PR" aria-label="Cari No PO atau PR">
+                <button id="resetBtn" aria-label="Reset Pencarian">Reset</button>
             </div>
         </div>
         <div class="download-container">
             <div class="sync-status" id="syncStatus">
                 Data tersinkronisasi dengan form terbaru
             </div>
-            <div class="loading" id="loading">
+            <div class="loading" id="loading" aria-live="polite">
                 <div class="loading-content">
                     <div class="spinner"></div>
                     <p>Memproses PDF...</p>
                 </div>
             </div>
             <div class="table-wrapper">
-                <table id="downloadTable">
+                <table id="downloadTable" role="grid">
                     <thead>
                         <tr>
-                            <th>Tanggal</th>
-                            <th>Departemen</th>
-                            <th>Penerima</th>
-                            <th>No PR</th>
-                            <th>No PO</th>
-                            <th>Aksi</th>
+                            <th scope="col" class="sortable" data-sort="date">Tanggal</th>
+                            <th scope="col" class="sortable" data-sort="department">Departemen</th>
+                            <th scope="col" class="sortable" data-sort="recipientName">Penerima</th>
+                            <th scope="col">No PR</th>
+                            <th scope="col">No PO</th>
+                            <th scope="col">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="downloadBody"></tbody>
                 </table>
             </div>
-            <div class="pagination" id="pagination"></div>
-            <p class="error" id="errorMessage"></p>
+            <div class="pagination" id="pagination">
+                <button id="prevPage" aria-label="Halaman Sebelumnya">Previous</button>
+                <span id="pageNumbers"></span>
+                <input type="number" id="goToPage" min="1" aria-label="Masukkan nomor halaman">
+                <button id="goToPageBtn" aria-label="Pergi ke Halaman">Go</button>
+                <button id="nextPage" aria-label="Halaman Berikutnya">Next</button>
+            </div>
+            <p class="error" id="errorMessage" aria-live="assertive"></p>
+            <p class="no-results" id="noResults" style="display: none;">Tidak ada hasil pencarian</p>
         </div>
     </div>
 
-    <!-- Preview Modal -->
-    <div class="preview-modal" id="previewModal">
+    <div class="preview-modal" id="previewModal" role="dialog" aria-labelledby="previewTitle" aria-modal="true">
         <div class="preview-content">
-            <button class="preview-close" id="previewClose">&times;</button>
-            <div class="preview-receipt" id="previewReceipt">
-                <!-- Preview content will be dynamically generated here -->
-            </div>
+            <button class="preview-close" id="previewClose" aria-label="Tutup Pratinjau">×</button>
+            <div class="preview-receipt" id="previewReceipt"></div>
             <div style="text-align: center; margin-top: 20px;">
-                <button class="download-btn" id="downloadFromPreview">Download PDF</button>
+                <button class="download-btn" id="downloadFromPreview" aria-label="Download PDF dari Pratinjau">Download PDF</button>
             </div>
         </div>
     </div>
 
     <script>
+        // Authentication check
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = '/login.html';
         }
@@ -543,28 +586,73 @@
         const itemsPerPage = 10;
         let allData = [];
         let filteredData = [];
-        
+        let sortConfig = { key: 'date', direction: 'desc' };
+
+        // Utility: Generate UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        // Utility: Sanitize input to prevent XSS
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+
+        // Utility: Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // Utility: SHA-256 hash for data integrity
+        async function calculateDataHash(data) {
+            try {
+                const msgBuffer = new TextEncoder().encode(JSON.stringify(data));
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (error) {
+                console.error('Error calculating hash:', error);
+                return '';
+            }
+        }
+
+        // Sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
         const toggleBtn = document.getElementById('toggleSidebar');
         const contentToggle = document.getElementById('contentToggle');
-        
+
         function toggleSidebar() {
             sidebar.classList.toggle('hidden');
             content.classList.toggle('full-width');
-            toggleBtn.innerHTML = sidebar.classList.contains('hidden') ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-arrow-left"></i>';
+            toggleBtn.innerHTML = sidebar.classList.contains('hidden') 
+                ? '<i class="fas fa-bars"></i><span class="sr-only">Toggle Sidebar</span>' 
+                : '<i class="fas fa-arrow-left"></i><span class="sr-only">Toggle Sidebar</span>';
             contentToggle.classList.toggle('visible');
+            sidebar.setAttribute('aria-hidden', sidebar.classList.contains('hidden'));
         }
         toggleBtn.addEventListener('click', toggleSidebar);
         contentToggle.addEventListener('click', toggleSidebar);
-        
+
+        // Load jsPDF and autoTable
         function loadJsPDF() {
             return new Promise((resolve, reject) => {
+                if (window.jspdf) return resolve();
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                script.crossOrigin = 'anonymous';
                 script.onload = () => {
                     const autoTableScript = document.createElement('script');
                     autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.crossOrigin = 'anonymous';
                     autoTableScript.onload = resolve;
                     autoTableScript.onerror = reject;
                     document.head.appendChild(autoTableScript);
@@ -574,7 +662,7 @@
             });
         }
 
-        // Enhanced Data Synchronization Manager with Registration Number Manager Integration
+        // DataSyncManager class
         class DataSyncManager {
             constructor() {
                 this.storageKey = 'direc_receipts';
@@ -584,13 +672,11 @@
             }
 
             setupEventListeners() {
-                // Listen for data sync events from form submission
                 window.addEventListener('direcDataSync', (event) => {
                     console.log('Data sync event received:', event.detail);
                     this.handleDataSync();
                 });
 
-                // Listen for storage changes from other tabs
                 window.addEventListener('storage', (event) => {
                     if (event.key === this.storageKey) {
                         console.log('Storage change detected, refreshing data');
@@ -598,7 +684,6 @@
                     }
                 });
 
-                // Listen for form submissions from registration number manager
                 window.addEventListener('receiptSubmitted', (event) => {
                     console.log('Receipt submitted event received:', event.detail);
                     this.handleFormSubmission(event.detail);
@@ -607,12 +692,8 @@
 
             async handleDataSync() {
                 try {
-                    // Show sync status
                     this.showSyncStatus();
-                    
-                    // Reload data
                     await loadDownloadData();
-                    
                     console.log('Data synchronized successfully');
                 } catch (error) {
                     console.error('Error during data sync:', error);
@@ -620,9 +701,6 @@
             }
 
             handleFormSubmission(submissionData) {
-                console.log('Processing form submission data:', submissionData);
-                
-                // Ensure the data includes all necessary image and signature information
                 if (submissionData) {
                     this.saveReceiptWithImages(submissionData);
                 }
@@ -631,17 +709,13 @@
             saveReceiptWithImages(receiptData) {
                 try {
                     const receipts = this.getAllReceipts();
-                    
-                    // Enhanced receipt data structure with complete image integration
                     const enhancedReceiptData = {
                         ...receiptData,
-                        id: this.generateUniqueId(),
+                        id: generateUUID(),
                         createdAt: new Date().toISOString(),
                         lastModified: new Date().toISOString(),
                         version: '2.0',
-                        dataIntegrity: this.calculateDataHash(receiptData),
-                        
-                        // Ensure image data is properly structured
+                        dataIntegrity: '',
                         imageData: {
                             photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
                             signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
@@ -650,27 +724,22 @@
                             hasSenderSignature: !!(receiptData.signatureSenderUrl || receiptData.signatureSenderData),
                             hasReceiverSignature: !!(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData)
                         },
-                        
-                        // Maintain backward compatibility
                         photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
                         signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
                         signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
-                        
-                        // Form integration flags
                         fromRegistrationManager: true,
                         pdfReady: true,
                         imagesProcessed: true
                     };
-                    
-                    receipts.push(enhancedReceiptData);
-                    localStorage.setItem(this.storageKey, JSON.stringify(receipts));
-                    localStorage.setItem(this.lastUpdateKey, new Date().toISOString());
-                    
-                    console.log('Receipt saved with enhanced image data:', enhancedReceiptData.id);
-                    
-                    // Trigger data sync for download interface
-                    this.triggerDataSync();
-                    
+
+                    calculateDataHash(enhancedReceiptData).then(hash => {
+                        enhancedReceiptData.dataIntegrity = hash;
+                        receipts.push(enhancedReceiptData);
+                        localStorage.setItem(this.storageKey, JSON.stringify(receipts));
+                        localStorage.setItem(this.lastUpdateKey, new Date().toISOString());
+                        this.triggerDataSync();
+                    });
+
                     return enhancedReceiptData;
                 } catch (error) {
                     console.error('Error saving receipt with images:', error);
@@ -681,16 +750,13 @@
             showSyncStatus() {
                 const syncStatus = document.getElementById('syncStatus');
                 syncStatus.classList.add('show');
-                setTimeout(() => {
-                    syncStatus.classList.remove('show');
-                }, 3000);
+                setTimeout(() => syncStatus.classList.remove('show'), 3000);
             }
 
             getAllReceipts() {
                 try {
                     const data = localStorage.getItem(this.storageKey);
                     if (!data) return [];
-                    
                     const receipts = JSON.parse(data);
                     return receipts.filter(receipt => this.validateReceiptData(receipt));
                 } catch (error) {
@@ -708,21 +774,6 @@
                 return localStorage.getItem(this.lastUpdateKey);
             }
 
-            generateUniqueId() {
-                return 'receipt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            }
-
-            calculateDataHash(data) {
-                const str = JSON.stringify(data);
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                    const char = str.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash;
-                }
-                return hash.toString();
-            }
-
             triggerDataSync() {
                 window.dispatchEvent(new CustomEvent('direcDataSync', {
                     detail: { timestamp: new Date().toISOString() }
@@ -730,57 +781,38 @@
             }
         }
 
-        // Enhanced item parsing with multiple format support
+        // Parse items with enhanced validation
         function parseItems(itemsData) {
-            console.log('Parsing items data type:', typeof itemsData);
-            
-            // Handle empty or invalid data
-            if (!itemsData || itemsData === 'Tidak ada barang') {
-                console.log('No items data found');
-                return [];
-            }
-            
-            // Handle array format
+            if (!itemsData || itemsData === 'Tidak ada barang') return [];
+
             if (Array.isArray(itemsData)) {
-                console.log('Items data is array with length:', itemsData.length);
                 return itemsData.filter(item => item && (item.desc || item.description));
             }
-            
-            // Handle itemsArray property
+
             if (itemsData && typeof itemsData === 'object' && itemsData.itemsArray) {
-                console.log('Using itemsArray property');
                 return Array.isArray(itemsData.itemsArray) ? itemsData.itemsArray : [];
             }
-            
-            // Handle string format
+
             if (typeof itemsData === 'string') {
-                console.log('Items data is string with length:', itemsData.length);
                 try {
-                    // Try to parse as JSON first
                     const parsed = JSON.parse(itemsData);
-                    if (Array.isArray(parsed)) {
-                        return parsed;
-                    }
+                    if (Array.isArray(parsed)) return parsed;
                 } catch (e) {
-                    // Parse string format: "desc - Qty: X unit - PR: Y - PO: Z"
                     return itemsData.split('\n').map(item => {
                         const trimmed = item.trim();
                         if (!trimmed) return null;
-                        
                         const match = trimmed.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
                         if (match) {
                             return {
-                                desc: match[1].trim(),
+                                desc: sanitizeInput(match[1].trim()),
                                 qty: match[2],
                                 unit: match[3],
                                 prNumber: match[4],
                                 poNumber: match[5]
                             };
                         }
-                        
-                        // Fallback: treat as description only
                         return {
-                            desc: trimmed,
+                            desc: sanitizeInput(trimmed),
                             qty: '1',
                             unit: 'Pcs',
                             prNumber: '-',
@@ -789,29 +821,18 @@
                     }).filter(item => item);
                 }
             }
-            
-            // Handle object with items property
+
             if (itemsData && typeof itemsData === 'object') {
-                if (itemsData.items) {
-                    console.log('Using items property');
-                    return Array.isArray(itemsData.items) ? itemsData.items : [];
-                }
-                
-                if (itemsData.itemsString) {
-                    console.log('Using itemsString property');
-                    return parseItems(itemsData.itemsString);
-                }
+                if (itemsData.items) return Array.isArray(itemsData.items) ? itemsData.items : [];
+                if (itemsData.itemsString) return parseItems(itemsData.itemsString);
             }
-            
-            console.log('No valid items found, returning empty array');
+
             return [];
         }
 
-        // Registration Number System Integration
+        // Registration number system
         function buildRegistrationCounters(data) {
             registrationCounters = {};
-            
-            // Sort data by date to ensure proper sequential numbering
             const sortedData = [...data].sort((a, b) => {
                 try {
                     const matchA = a.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
@@ -821,24 +842,21 @@
                     const [, dayB, monthB, yearB, hourB, minuteB] = matchB;
                     const dateA = new Date(`${yearA}-${monthA}-${dayA}T${hourA}:${minuteA}:00`);
                     const dateB = new Date(`${yearB}-${monthB}-${dayB}T${hourB}:${minuteB}:00`);
-                    return dateA - dateB; // Sort ascending (oldest first)
+                    return dateA - dateB;
                 } catch (error) {
                     return 0;
                 }
             });
 
-            // Build counters sequentially
             sortedData.forEach((entry, index) => {
                 try {
                     const match = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                     if (!match) return;
                     const [, , month, year] = match;
                     const monthYearKey = `${year}-${month}`;
-                    
                     if (!registrationCounters[monthYearKey]) {
                         registrationCounters[monthYearKey] = [];
                     }
-                    
                     registrationCounters[monthYearKey].push({
                         index: index,
                         entry: entry,
@@ -851,32 +869,30 @@
         }
 
         function getRegistrationNumber(entry) {
-            // If entry already has a registration number, use it
             if (entry.registrationNumber && entry.registrationNumber.startsWith('TT-RANT-')) {
                 return entry.registrationNumber;
             }
 
             try {
-                const match = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                if (!match) throw new Error('Invalid date format');
-                const [, , month, year] = match;
+                let date = entry.date || '';
+                let month = '01', year = new Date().getFullYear().toString();
+                const match = date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                if (match) {
+                    [, , month, year] = match;
+                } else {
+                    console.warn('Invalid date format, using current date:', date);
+                    const now = new Date();
+                    month = String(now.getMonth() + 1).padStart(2, '0');
+                    year = now.getFullYear().toString();
+                }
                 const monthYearKey = `${year}-${month}`;
-                
-                // Find this entry in the counters
                 const monthEntries = registrationCounters[monthYearKey] || [];
                 const entryData = monthEntries.find(item => 
                     item.entry.date === entry.date && 
                     item.entry.recipientName === entry.recipientName
                 );
-                
-                if (entryData) {
-                    const sequence = String(entryData.sequence).padStart(3, '0');
-                    return `TT-RANT-${month}-${year}-${sequence}`;
-                } else {
-                    // Fallback: use position in month
-                    const sequence = String(monthEntries.length + 1).padStart(3, '0');
-                    return `TT-RANT-${month}-${year}-${sequence}`;
-                }
+                const sequence = String((entryData ? entryData.sequence : monthEntries.length + 1)).padStart(3, '0');
+                return `TT-RANT-${month}-${year}-${sequence}`;
             } catch (error) {
                 console.error('Error generating registration number:', error);
                 const now = new Date();
@@ -886,81 +902,74 @@
             }
         }
 
-        // Enhanced Image Data Extraction from Registration Manager
+        // Image extraction
         function extractImageDataFromEntry(entry) {
-            console.log('Extracting image data from entry:', entry);
-            
-            // Multiple possible sources for image data
             const imageData = {
                 photoUrl: null,
                 signatureSenderUrl: null,
                 signatureReceiverUrl: null
             };
-            
-            // Check various possible property names for photo
+
             imageData.photoUrl = entry.photoUrl || 
-                                 entry.photoSrc || 
-                                 entry.photo || 
-                                 entry.recipientPhoto ||
-                                 (entry.imageData && entry.imageData.photoUrl) ||
-                                 null;
-            
-            // Check various possible property names for sender signature
+                                entry.photoSrc || 
+                                entry.photo || 
+                                entry.recipientPhoto ||
+                                (entry.imageData && entry.imageData.photoUrl) ||
+                                null;
+
             imageData.signatureSenderUrl = entry.signatureSenderUrl || 
-                                          entry.signatureSenderData || 
-                                          entry.senderSignature ||
-                                          (entry.imageData && entry.imageData.signatureSenderUrl) ||
-                                          null;
-            
-            // Check various possible property names for receiver signature
+                                         entry.signatureSenderData || 
+                                         entry.senderSignature ||
+                                         (entry.imageData && entry.imageData.signatureSenderUrl) ||
+                                         null;
+
             imageData.signatureReceiverUrl = entry.signatureReceiverUrl || 
-                                            entry.signatureReceiverData || 
-                                            entry.receiverSignature ||
-                                            (entry.imageData && entry.imageData.signatureReceiverUrl) ||
-                                            null;
-            
-            // Validate image URLs
+                                           entry.signatureReceiverData || 
+                                           entry.receiverSignature ||
+                                           (entry.imageData && entry.imageData.signatureReceiverUrl) ||
+                                           null;
+
             if (imageData.photoUrl && (imageData.photoUrl.includes('placeholder.svg') || imageData.photoUrl === 'undefined')) {
                 imageData.photoUrl = null;
             }
-            
-            console.log('Extracted image data:', imageData);
+
             return imageData;
         }
 
-        // Fixed function to render table with proper data serialization
+        // Table rendering with sorting
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
+            const noResults = document.getElementById('noResults');
             downloadBody.innerHTML = '';
+            noResults.style.display = 'none';
+
             const start = (page - 1) * itemsPerPage;
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
-            
+
             if (pageData.length === 0) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = '<td colspan="6" style="text-align: center;">Tidak ada data</td>';
                 downloadBody.appendChild(tr);
+                noResults.style.display = data.length === 0 ? 'block' : 'none';
                 return;
             }
-            
+
             pageData.forEach((row, index) => {
                 try {
-                    // Parse items safely
                     const items = parseItems(row.items || row.itemsArray || row.itemsString);
                     const firstItem = items[0] || { prNumber: '-', poNumber: '-' };
-                    
-                    // Create table row
+
                     const tr = document.createElement('tr');
-                    
                     tr.innerHTML = `
-                        <td>${row.date || '-'}</td>
-                        <td>${row.department || '-'}</td>
-                        <td>${row.recipientName || '-'}</td>
-                        <td>${firstItem.prNumber || '-'}</td>
-                        <td>${firstItem.poNumber || '-'}</td>
+                        <td>${sanitizeInput(row.date || '-')}</td>
+                        <td>${sanitizeInput(row.department || '-')}</td>
+                        <td>${sanitizeInput(row.recipientName || '-')}</td>
+                        <td>${sanitizeInput(firstItem.prNumber || '-')}</td>
+                        <td>${sanitizeInput(firstItem.poNumber || '-')}</td>
                         <td>
-                            <button class="preview-btn" data-index="${start + index}">Preview</button>
-                            <button class="download-btn" data-index="${start + index}">Download PDF</button>
+                            <button class="preview-btn" data-index="${start + index}" aria-label="Pratinjau Tanda Terima">Preview</button>
+                            <button class="download-btn" data-index="${start + index}" aria-label="Download PDF Tanda Terima">Download PDF</button>
                         </td>
                     `;
                     downloadBody.appendChild(tr);
@@ -968,9 +977,9 @@
                     console.error('Error rendering row:', error, row);
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${row.date || '-'}</td>
-                        <td>${row.department || '-'}</td>
-                        <td>${row.recipientName || '-'}</td>
+                        <td>${sanitizeInput(row.date || '-')}</td>
+                        <td>${sanitizeInput(row.department || '-')}</td>
+                        <td>${sanitizeInput(row.recipientName || '-')}</td>
                         <td>-</td>
                         <td>-</td>
                         <td><span style="color: red;">Error loading data</span></td>
@@ -978,105 +987,97 @@
                     downloadBody.appendChild(tr);
                 }
             });
-            
+
             renderPagination(data.length, page);
             attachEvents();
         }
 
-        // Fixed pagination rendering with active state
+        // Pagination rendering
         function renderPagination(totalItems, currentPage) {
             const pagination = document.getElementById('pagination');
-            pagination.innerHTML = '';
-            
+            const pageNumbers = document.getElementById('pageNumbers');
+            pageNumbers.innerHTML = '';
+
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             if (totalPages <= 1) {
-                return; // Don't show pagination if only one page
+                pagination.style.display = 'none';
+                return;
             }
-            
-            // Previous button
-            const prevBtn = document.createElement('button');
-            prevBtn.textContent = 'Previous';
+            pagination.style.display = 'flex';
+
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
             prevBtn.disabled = currentPage === 1;
-            prevBtn.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    goToPage(currentPage - 1);
-                }
-            });
-            pagination.appendChild(prevBtn);
-            
-            // Page numbers
+            nextBtn.disabled = currentPage === totalPages;
+
+            prevBtn.onclick = () => {
+                if (currentPage > 1) goToPage(currentPage - 1);
+            };
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) goToPage(currentPage + 1);
+            };
+
             const maxVisiblePages = 5;
             let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
             let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-            
-            // Adjust start page if we're near the end
+
             if (endPage - startPage + 1 < maxVisiblePages) {
                 startPage = Math.max(1, endPage - maxVisiblePages + 1);
             }
-            
-            // First page button if not visible
+
             if (startPage > 1) {
                 const firstBtn = document.createElement('button');
                 firstBtn.textContent = '1';
                 firstBtn.addEventListener('click', () => goToPage(1));
-                pagination.appendChild(firstBtn);
-                
+                pageNumbers.appendChild(firstBtn);
                 if (startPage > 2) {
                     const ellipsis = document.createElement('span');
                     ellipsis.textContent = '...';
                     ellipsis.style.margin = '0 5px';
-                    pagination.appendChild(ellipsis);
+                    pageNumbers.appendChild(ellipsis);
                 }
             }
-            
-            // Page buttons
+
             for (let i = startPage; i <= endPage; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
                 pageBtn.classList.toggle('active', i === currentPage);
                 pageBtn.disabled = i === currentPage;
                 pageBtn.addEventListener('click', () => goToPage(i));
-                pagination.appendChild(pageBtn);
+                pageNumbers.appendChild(pageBtn);
             }
-            
-            // Last page button if not visible
+
             if (endPage < totalPages) {
                 if (endPage < totalPages - 1) {
                     const ellipsis = document.createElement('span');
                     ellipsis.textContent = '...';
                     ellipsis.style.margin = '0 5px';
-                    pagination.appendChild(ellipsis);
+                    pageNumbers.appendChild(ellipsis);
                 }
-                
                 const lastBtn = document.createElement('button');
                 lastBtn.textContent = totalPages;
                 lastBtn.addEventListener('click', () => goToPage(totalPages));
-                pagination.appendChild(lastBtn);
+                pageNumbers.appendChild(lastBtn);
             }
-            
-            // Next button
-            const nextBtn = document.createElement('button');
-            nextBtn.textContent = 'Next';
-            nextBtn.disabled = currentPage === totalPages;
-            nextBtn.addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    goToPage(currentPage + 1);
-                }
-            });
-            pagination.appendChild(nextBtn);
+
+            const goToPageInput = document.getElementById('goToPage');
+            goToPageInput.max = totalPages;
+            goToPageInput.value = currentPage;
+            document.getElementById('goToPageBtn').onclick = () => {
+                const page = parseInt(goToPageInput.value);
+                if (page >= 1 && page <= totalPages) goToPage(page);
+            };
         }
 
-        // Helper function to navigate to a specific page
         function goToPage(page) {
             currentPage = page;
             renderTable(filteredData, currentPage);
-            
-            // Scroll to top of table
             document.getElementById('downloadTable').scrollIntoView({ behavior: 'smooth' });
         }
 
+        // Search with sanitization
         function searchData(query) {
-            query = query.toLowerCase();
+            query = sanitizeInput(query.toLowerCase());
             filteredData = allData.filter(item => {
                 try {
                     const items = parseItems(item.items || item.itemsArray || item.itemsString);
@@ -1093,20 +1094,16 @@
             renderTable(filteredData, currentPage);
         }
 
-        // Fixed event attachment function
+        // Event attachment
         function attachEvents() {
-            // Preview buttons
             const previewButtons = document.querySelectorAll('.preview-btn');
-            previewButtons.forEach((btn) => {
+            previewButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     try {
                         const index = parseInt(btn.dataset.index);
                         const row = filteredData[index];
-                        if (row) {
-                            showPreview(row);
-                        } else {
-                            throw new Error('Data not found');
-                        }
+                        if (row) showPreview(row);
+                        else throw new Error('Data not found');
                     } catch (error) {
                         console.error('Error showing preview:', error);
                         alert('Error loading preview data. Please try again.');
@@ -1114,114 +1111,159 @@
                 });
             });
 
-            // Download buttons
             const downloadButtons = document.querySelectorAll('.download-btn');
-            downloadButtons.forEach((btn) => {
+            downloadButtons.forEach(btn => {
                 btn.addEventListener('click', async () => {
                     try {
                         const index = parseInt(btn.dataset.index);
                         const row = filteredData[index];
-                        if (row) {
-                            await generateIntegratedPDF(row);
-                        } else {
-                            throw new Error('Data not found');
-                        }
+                        if (row) await generateIntegratedPDF(row);
+                        else throw new Error('Data not found');
                     } catch (error) {
                         console.error('Error generating PDF:', error);
                         alert('Error generating PDF. Please try again.');
                     }
                 });
             });
+
+            const sortableHeaders = document.querySelectorAll('.sortable');
+            sortableHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortKey = header.dataset.sort;
+                    if (sortConfig.key === sortKey) {
+                        sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortConfig.key = sortKey;
+                        sortConfig.direction = 'asc';
+                    }
+
+                    filteredData.sort((a, b) => {
+                        let valA = a[sortKey] || '';
+                        let valB = b[sortKey] || '';
+                        if (sortKey === 'date') {
+                            valA = getTimestamp(valA);
+                            valB = getTimestamp(valB);
+                        }
+                        if (sortConfig.direction === 'asc') {
+                            return valA > valB ? 1 : -1;
+                        }
+                        return valA < valB ? 1 : -1;
+                    });
+
+                    sortableHeaders.forEach(h => {
+                        h.classList.remove('sort-asc', 'sort-desc');
+                        if (h.dataset.sort === sortKey) {
+                            h.classList.add(sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                        }
+                    });
+
+                    renderTable(filteredData, currentPage);
+                });
+            });
         }
 
-        // Enhanced Preview Function with Registration Manager Integration
+        function getTimestamp(dateStr) {
+            try {
+                const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                if (!match) return 0;
+                const [, day, month, year, hour, minute] = match;
+                return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`).getTime();
+            } catch (error) {
+                return 0;
+            }
+        }
+
+        // Preview function
         async function showPreview(row) {
             try {
-                console.log('Showing preview for:', row);
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
                 const imageData = extractImageDataFromEntry(row);
-                
-                // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
+
+                const [photoResult, senderSigResult, receiverSigResult] = await Promise.allSettled([
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.photoUrl, 'Photo'),
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureSenderUrl, 'Sender Signature'),
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureReceiverUrl, 'Receiver Signature')
+                ]);
+
+                const photoUrl = photoResult.status === 'fulfilled' && photoResult.value.isValid ? photoResult.value.data : null;
+                const senderSigUrl = senderSigResult.status === 'fulfilled' && senderSigResult.value.isValid ? senderSigResult.value.data : null;
+                const receiverSigUrl = receiverSigResult.status === 'fulfilled' && receiverSigResult.value.isValid ? receiverSigResult.value.data : null;
+
                 let formattedDate = row.date;
                 if (formattedDate && formattedDate.includes(',')) {
                     const [datePart, timePart] = formattedDate.split(',');
                     if (timePart && timePart.includes(':')) {
-                        const trimmedTime = timePart.trim().replace(':', '.');
-                        formattedDate = `${datePart}, ${trimmedTime}`;
+                        formattedDate = `${datePart}, ${timePart.trim().replace(':', '.')}`;
                     }
                 }
 
                 const previewReceipt = document.getElementById('previewReceipt');
                 previewReceipt.innerHTML = `
                     <div class="preview-header">
-                        <div class="preview-title">DIREC - TANDA TERIMA</div>
-                        <div class="preview-reg-number">No. Registrasi: ${registrationNumber}</div>
+                        <div class="preview-title" id="previewTitle">DIREC - TANDA TERIMA</div>
+                        <div class="preview-reg-number">No. Registrasi: ${sanitizeInput(registrationNumber)}</div>
                     </div>
-                    
                     <div class="preview-info">
                         <div class="preview-info-row">
                             <span class="preview-info-label">Tanggal</span>
-                            <span class="preview-info-value">: ${formattedDate || '-'}</span>
+                            <span class="preview-info-value">: ${sanitizeInput(formattedDate || '-')}</span>
                         </div>
                         <div class="preview-info-row">
                             <span class="preview-info-label">Nama Penerima</span>
-                            <span class="preview-info-value">: ${row.recipientName || '-'}</span>
+                            <span class="preview-info-value">: ${sanitizeInput(row.recipientName || '-')}</span>
                         </div>
                         <div class="preview-info-row">
                             <span class="preview-info-label">Departemen</span>
-                            <span class="preview-info-value">: ${row.department || '-'}</span>
+                            <span class="preview-info-value">: ${sanitizeInput(row.department || '-')}</span>
                         </div>
                     </div>
-                    
                     <div class="preview-items">
                         <div class="preview-items-title">Deskripsi Barang:</div>
                         <table class="preview-table">
                             <thead>
                                 <tr>
-                                    <th>Deskripsi</th>
-                                    <th>Qty</th>
-                                    <th>Satuan</th>
-                                    <th>No PR</th>
-                                    <th>No PO</th>
+                                    <th scope="col">Deskripsi</th>
+                                    <th scope="col">Qty</th>
+                                    <th scope="col">Satuan</th>
+                                    <th scope="col">No PR</th>
+                                    <th scope="col">No PO</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${items.length ? items.map(item => `
                                     <tr>
-                                        <td>${item.desc || '-'}</td>
-                                        <td>${item.qty || '-'}</td>
-                                        <td>${item.unit || '-'}</td>
-                                        <td>${item.prNumber || '-'}</td>
-                                        <td>${item.poNumber || '-'}</td>
+                                        <td>${sanitizeInput(item.desc || '-')}</td>
+                                        <td>${sanitizeInput(item.qty || '-')}</td>
+                                        <td>${sanitizeInput(item.unit || '-')}</td>
+                                        <td>${sanitizeInput(item.prNumber || '-')}</td>
+                                        <td>${sanitizeInput(item.poNumber || '-')}</td>
                                     </tr>
                                 `).join('') : '<tr><td colspan="5">Tidak ada barang</td></tr>'}
                             </tbody>
                         </table>
                     </div>
-                    
                     <div class="preview-photo-section">
                         <div class="preview-photo-title">Foto Penerima:</div>
                         <div id="photoContainer">
-                            ${imageData.photoUrl ? `<img src="${imageData.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            ${photoUrl ? `<img src="${photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                             <p style="color: #6b7280; font-style: italic; display: none;">Foto tidak dapat dimuat</p>` : '<p style="color: #6b7280; font-style: italic;">Tidak ada foto</p>'}
                         </div>
                     </div>
-                    
                     <div class="preview-signatures">
                         <div class="preview-signature">
                             <div class="preview-signature-title">Pengirim:</div>
                             <div class="preview-signature-img">
-                                ${imageData.signatureSenderUrl ? `<img src="${imageData.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                                ${senderSigUrl ? `<img src="${senderSigUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                             </div>
-                            <div class="preview-signature-name">(${row.senderName || 'TEAM WAREHOUSE'})</div>
+                            <div class="preview-signature-name">(${sanitizeInput(row.senderName || 'TEAM WAREHOUSE')})</div>
                         </div>
                         <div class="preview-signature">
                             <div class="preview-signature-title">Penerima:</div>
                             <div class="preview-signature-img">
-                                ${imageData.signatureReceiverUrl ? `<img src="${imageData.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                                ${receiverSigUrl ? `<img src="${receiverSigUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                             </div>
-                            <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
+                            <div class="preview-signature-name">(${sanitizeInput(row.recipientName || '_________________')})</div>
                         </div>
                     </div>
                 `;
@@ -1234,85 +1276,38 @@
             }
         }
 
-        // Comprehensive Image Processing System for Registration Manager Integration
+        // Image Processor
         class RegistrationManagerImageProcessor {
             static async validateAndProcessImage(imageUrl, imageName = 'image') {
-                console.log(`Processing ${imageName} from Registration Manager:`, imageUrl ? 'URL provided' : 'No URL');
-                
                 if (!imageUrl || imageUrl.includes('placeholder.svg') || imageUrl === 'undefined' || imageUrl === 'null') {
-                    return { 
-                        isValid: false, 
-                        data: null, 
-                        error: 'No valid image URL provided',
-                        imageName 
-                    };
+                    return { isValid: false, data: null, error: 'No valid image URL provided', imageName };
                 }
 
                 try {
-                    // Handle data URLs (base64 encoded images) - Primary format from Registration Manager
                     if (imageUrl.startsWith('data:image/')) {
                         return await this.processDataURL(imageUrl, imageName);
                     }
-                    
-                    // Handle blob URLs
                     if (imageUrl.startsWith('blob:')) {
                         return await this.processBlobURL(imageUrl, imageName);
                     }
-                    
-                    // Handle regular HTTP/HTTPS URLs
                     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
                         return await this.processHTTPURL(imageUrl, imageName);
                     }
-                    
-                    // Handle relative URLs or other formats
                     return await this.processOtherURL(imageUrl, imageName);
-                    
                 } catch (error) {
                     console.error(`Error processing ${imageName}:`, error);
-                    return { 
-                        isValid: false, 
-                        data: null, 
-                        error: error.message,
-                        imageName 
-                    };
+                    return { isValid: false, data: null, error: error.message, imageName };
                 }
             }
 
             static async processDataURL(dataURL, imageName) {
                 try {
-                    // Validate data URL format
                     const [header, base64Data] = dataURL.split(',');
-                    if (!header || !base64Data) {
-                        throw new Error('Invalid data URL format');
-                    }
-
-                    // Check if base64 data is substantial (not just a tiny placeholder)
-                    if (base64Data.length < 100) {
-                        throw new Error('Base64 data too small, likely invalid');
-                    }
-
-                    // Determine image format
-                    const format = header.includes('png') ? 'PNG' : 
-                                  header.includes('jpeg') || header.includes('jpg') ? 'JPEG' : 
-                                  'PNG'; // Default to PNG
-
-                    // Validate base64 encoding
-                    try {
-                        atob(base64Data);
-                    } catch (e) {
-                        throw new Error('Invalid base64 encoding');
-                    }
-
-                    console.log(`${imageName} processed successfully as ${format}, size: ${base64Data.length} chars`);
-                    
-                    return {
-                        isValid: true,
-                        data: dataURL,
-                        format: format,
-                        size: base64Data.length,
-                        imageName,
-                        source: 'registration_manager'
-                    };
+                    if (!header || !base64Data) throw new Error('Invalid data URL format');
+                    if (base64Data.length < 100) throw new Error('Base64 data too small');
+                    atob(base64Data);
+                    const format = header.includes('png') ? 'PNG' : header.includes('jpeg') || header.includes('jpg') ? 'JPEG' : 'PNG';
+                    return { isValid: true, data: dataURL, format, size: base64Data.length, imageName, source: 'registration_manager' };
                 } catch (error) {
                     throw new Error(`Data URL processing failed: ${error.message}`);
                 }
@@ -1320,36 +1315,18 @@
 
             static async processBlobURL(blobURL, imageName) {
                 try {
-                    const response = await fetch(blobURL);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch blob: ${response.status}`);
-                    }
-
+                    const response = await fetchWithRetry(blobURL);
+                    if (!response.ok) throw new Error(`Failed to fetch blob: ${response.status}`);
                     const blob = await response.blob();
-                    if (blob.size === 0) {
-                        throw new Error('Empty blob received');
-                    }
-
-                    // Convert blob to data URL
+                    if (blob.size === 0) throw new Error('Empty blob received');
                     const dataURL = await new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onload = () => resolve(reader.result);
                         reader.onerror = () => reject(new Error('FileReader error'));
                         reader.readAsDataURL(blob);
                     });
-
                     const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
-                    
-                    console.log(`${imageName} blob converted successfully, size: ${blob.size} bytes`);
-                    
-                    return {
-                        isValid: true,
-                        data: dataURL,
-                        format: format,
-                        size: blob.size,
-                        imageName,
-                        source: 'registration_manager'
-                    };
+                    return { isValid: true, data: dataURL, format, size: blob.size, imageName, source: 'registration_manager' };
                 } catch (error) {
                     throw new Error(`Blob processing failed: ${error.message}`);
                 }
@@ -1357,47 +1334,18 @@
 
             static async processHTTPURL(httpURL, imageName) {
                 try {
-                    // Create a promise that will timeout after 10 seconds
-                    const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('Image fetch timeout')), 10000);
-                    });
-
-                    const fetchPromise = fetch(httpURL, {
-                        mode: 'cors',
-                        cache: 'no-cache'
-                    });
-
-                    const response = await Promise.race([fetchPromise, timeoutPromise]);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
+                    const response = await fetchWithRetry(httpURL, { mode: 'cors', cache: 'no-cache' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     const blob = await response.blob();
-                    if (blob.size === 0) {
-                        throw new Error('Empty image received');
-                    }
-
-                    // Convert to data URL
+                    if (blob.size === 0) throw new Error('Empty image received');
                     const dataURL = await new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onload = () => resolve(reader.result);
                         reader.onerror = () => reject(new Error('FileReader error'));
                         reader.readAsDataURL(blob);
                     });
-
                     const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
-                    
-                    console.log(`${imageName} HTTP image processed successfully, size: ${blob.size} bytes`);
-                    
-                    return {
-                        isValid: true,
-                        data: dataURL,
-                        format: format,
-                        size: blob.size,
-                        imageName,
-                        source: 'registration_manager'
-                    };
+                    return { isValid: true, data: dataURL, format, size: blob.size, imageName, source: 'registration_manager' };
                 } catch (error) {
                     throw new Error(`HTTP URL processing failed: ${error.message}`);
                 }
@@ -1405,20 +1353,16 @@
 
             static async processOtherURL(url, imageName) {
                 try {
-                    // Try to load as a regular image element first
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
-                    
                     const loadPromise = new Promise((resolve, reject) => {
                         img.onload = () => {
                             try {
-                                // Create canvas to convert to data URL
                                 const canvas = document.createElement('canvas');
                                 const ctx = canvas.getContext('2d');
                                 canvas.width = img.width;
                                 canvas.height = img.height;
                                 ctx.drawImage(img, 0, 0);
-                                
                                 const dataURL = canvas.toDataURL('image/png');
                                 resolve(dataURL);
                             } catch (canvasError) {
@@ -1427,134 +1371,96 @@
                         };
                         img.onerror = () => reject(new Error('Image load failed'));
                     });
-
-                    const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('Image load timeout')), 10000);
-                    });
-
                     img.src = url;
-                    const dataURL = await Promise.race([loadPromise, timeoutPromise]);
-                    
-                    console.log(`${imageName} other URL processed successfully via canvas`);
-                    
-                    return {
-                        isValid: true,
-                        data: dataURL,
-                        format: 'PNG',
-                        imageName,
-                        source: 'registration_manager'
-                    };
+                    const dataURL = await Promise.race([
+                        loadPromise,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Image load timeout')), 10000))
+                    ]);
+                    return { isValid: true, data: dataURL, format: 'PNG', imageName, source: 'registration_manager' };
                 } catch (error) {
                     throw new Error(`Other URL processing failed: ${error.message}`);
                 }
             }
         }
 
-        // Integrated PDF Generation with Registration Manager Data
+        // Fetch with retry
+        async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (response.ok) return response;
+                    throw new Error(`HTTP ${response.status}`);
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+                }
+            }
+        }
+
+        // PDF generation
         async function generateIntegratedPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
 
             try {
-                let jsPDFInstance = window.jspdf;
-                if (!jsPDFInstance) {
-                    await loadJsPDF();
-                    jsPDFInstance = window.jspdf;
-                }
+                await loadJsPDF();
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-                const { jsPDF } = jsPDFInstance;
-                const doc = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-                
-                // Parse and validate form data
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
                 const imageData = extractImageDataFromEntry(row);
 
-                console.log('Starting integrated PDF generation with Registration Manager data:', {
-                    recipientName: row.recipientName,
-                    department: row.department,
-                    date: row.date,
-                    registrationNumber: registrationNumber,
-                    items: items,
-                    itemsCount: items.length,
-                    imageData: imageData
-                });
-
-                // Process all images with Registration Manager integration
-                console.log('Processing images from Registration Manager...');
                 const [photoResult, senderSigResult, receiverSigResult] = await Promise.allSettled([
                     RegistrationManagerImageProcessor.validateAndProcessImage(imageData.photoUrl, 'Photo'),
                     RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureSenderUrl, 'Sender Signature'),
                     RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureReceiverUrl, 'Receiver Signature')
                 ]);
 
-                // Extract results and handle rejections
                 const processedPhoto = photoResult.status === 'fulfilled' ? photoResult.value : 
                     { isValid: false, error: photoResult.reason?.message || 'Processing failed', imageName: 'Photo' };
-                
                 const processedSenderSig = senderSigResult.status === 'fulfilled' ? senderSigResult.value : 
                     { isValid: false, error: senderSigResult.reason?.message || 'Processing failed', imageName: 'Sender Signature' };
-                
                 const processedReceiverSig = receiverSigResult.status === 'fulfilled' ? receiverSigResult.value : 
                     { isValid: false, error: receiverSigResult.reason?.message || 'Processing failed', imageName: 'Receiver Signature' };
 
-                console.log('Registration Manager image processing results:', {
-                    photo: processedPhoto.isValid ? '✓ Success' : `✗ Failed: ${processedPhoto.error}`,
-                    senderSig: processedSenderSig.isValid ? '✓ Success' : `✗ Failed: ${processedSenderSig.error}`,
-                    receiverSig: processedReceiverSig.isValid ? '✓ Success' : `✗ Failed: ${processedReceiverSig.error}`
-                });
-
-                // PDF Layout Configuration - Exact match to the provided image
-                const pageWidth = 210; // A4 width in mm
+                const pageWidth = 210;
                 const margin = 20;
 
-                // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
                 let formattedDate = row.date;
                 if (formattedDate && formattedDate.includes(',')) {
                     const [datePart, timePart] = formattedDate.split(',');
                     if (timePart && timePart.includes(':')) {
-                        const trimmedTime = timePart.trim().replace(':', '.');
-                        formattedDate = `${datePart}, ${trimmedTime}`;
+                        formattedDate = `${datePart}, ${timePart.trim().replace(':', '.')}`;
                     }
                 }
 
-                // 1. Title and Registration Number (centered)
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(16);
                 doc.text('DIREC - TANDA TERIMA', pageWidth / 2, 25, { align: 'center' });
-                
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(12);
-                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, 35, { align: 'center' });
-                
-                // 2. Basic Information (left-aligned with labels)
+                doc.text(`No. Registrasi: ${sanitizeInput(registrationNumber)}`, pageWidth / 2, 35, { align: 'center' });
+
                 let yPos = 50;
                 doc.setFontSize(11);
-                
-                // Tanggal
                 doc.text('Tanggal', margin, yPos);
-                doc.text(`: ${formattedDate || '-'}`, margin + 30, yPos);
+                doc.text(`: ${sanitizeInput(formattedDate || '-')}`, margin + 30, yPos);
                 yPos += 8;
-                
-                // Nama Penerima
                 doc.text('Nama Penerima', margin, yPos);
-                doc.text(`: ${row.recipientName || '-'}`, margin + 30, yPos);
+                doc.text(`: ${sanitizeInput(row.recipientName || '-')}`, margin + 30, yPos);
                 yPos += 8;
-                
-                // Departemen
                 doc.text('Departemen', margin, yPos);
-                doc.text(`: ${row.department || '-'}`, margin + 30, yPos);
+                doc.text(`: ${sanitizeInput(row.department || '-')}`, margin + 30, yPos);
                 yPos += 15;
-                
-                // 3. Items Table Section
+
                 doc.setFont('helvetica', 'bold');
                 doc.text('Deskripsi Barang:', margin, yPos);
                 yPos += 8;
-                
+
                 const tableData = items.map(item => ({
                     desc: item.desc || '-',
                     qty: item.qty || '-',
@@ -1562,26 +1468,18 @@
                     pr: item.prNumber || '-',
                     po: item.poNumber || '-'
                 }));
-                
-                // If no items, add a placeholder row
+
                 if (tableData.length === 0) {
-                    tableData.push({
-                        desc: '-',
-                        qty: '-',
-                        satuan: '-',
-                        pr: '-',
-                        po: '-'
-                    });
+                    tableData.push({ desc: '-', qty: '-', satuan: '-', pr: '-', po: '-' });
                 }
-                
-                // Generate table with exact styling from the image
+
                 doc.autoTable({
                     startY: yPos,
                     head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
                     body: tableData.map(row => [row.desc, row.qty, row.satuan, row.pr, row.po]),
                     theme: 'grid',
                     headStyles: {
-                        fillColor: [0, 184, 148], // Teal color from the image
+                        fillColor: [0, 184, 148],
                         textColor: [255, 255, 255],
                         fontStyle: 'normal',
                         halign: 'center',
@@ -1602,30 +1500,20 @@
                     },
                     margin: { left: margin, right: margin }
                 });
-                
+
                 yPos = doc.lastAutoTable.finalY + 15;
-                
-                // 4. Photo Section with Registration Manager Integration
+
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(11);
                 doc.text('Foto Penerima:', margin, yPos);
                 yPos += 8;
-                
+
                 if (processedPhoto.isValid) {
                     try {
-                        // Add photo with exact dimensions from the image
-                        doc.addImage(
-                            processedPhoto.data, 
-                            processedPhoto.format, 
-                            margin, 
-                            yPos, 
-                            50, // Width as in the image
-                            40  // Height as in the image
-                        );
-                        console.log('✓ Photo from Registration Manager added successfully to PDF');
-                        yPos += 45; // Photo height + margin
+                        doc.addImage(processedPhoto.data, processedPhoto.format, margin, yPos, 50, 40);
+                        yPos += 45;
                     } catch (error) {
-                        console.error('✗ Error adding photo from Registration Manager to PDF:', error);
+                        console.error('Error adding photo to PDF:', error);
                         doc.setFont('helvetica', 'italic');
                         doc.setFontSize(10);
                         doc.text('(Foto tidak tersedia)', margin, yPos + 10);
@@ -1637,98 +1525,58 @@
                     doc.text('(Foto tidak tersedia)', margin, yPos + 10);
                     yPos += 15;
                 }
-                
-                // 5. Signatures Section with Registration Manager Integration - Exact layout from the image
-                yPos += 15; // Add space before signatures
-                
-                // Signature titles
+
+                yPos += 15;
                 const leftSignatureX = margin + 20;
                 const rightSignatureX = pageWidth - margin - 70;
-                
+
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(11);
                 doc.text('Pengirim:', leftSignatureX, yPos, { align: 'center' });
                 doc.text('Penerima:', rightSignatureX, yPos, { align: 'center' });
-                
+
                 yPos += 10;
-                
-                // Add signatures with exact dimensions from the image
                 const signatureWidth = 40;
                 const signatureHeight = 25;
-                
-                // Sender signature from Registration Manager
+
                 if (processedSenderSig.isValid) {
                     try {
-                        doc.addImage(
-                            processedSenderSig.data,
-                            processedSenderSig.format,
-                            leftSignatureX - signatureWidth/2,
-                            yPos,
-                            signatureWidth,
-                            signatureHeight
-                        );
-                        console.log('✓ Sender signature from Registration Manager added successfully to PDF');
+                        doc.addImage(processedSenderSig.data, processedSenderSig.format, leftSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
                     } catch (error) {
-                        console.error('✗ Error adding sender signature from Registration Manager:', error);
+                        console.error('Error adding sender signature:', error);
                     }
                 }
-                
-                // Receiver signature from Registration Manager
+
                 if (processedReceiverSig.isValid) {
                     try {
-                        doc.addImage(
-                            processedReceiverSig.data,
-                            processedReceiverSig.format,
-                            rightSignatureX - signatureWidth/2,
-                            yPos,
-                            signatureWidth,
-                            signatureHeight
-                        );
-                        console.log('✓ Receiver signature from Registration Manager added successfully to PDF');
+                        doc.addImage(processedReceiverSig.data, processedReceiverSig.format, rightSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
                     } catch (error) {
-                        console.error('✗ Error adding receiver signature from Registration Manager:', error);
+                        console.error('Error adding receiver signature:', error);
                     }
                 }
-                
+
                 yPos += signatureHeight + 5;
-                
-                // Signature names - Exact format from the image
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
-                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, leftSignatureX, yPos, { align: 'center' });
-                doc.text(`(${row.recipientName || row.recipientName})`, rightSignatureX, yPos, { align: 'center' });
-                
-                // Generate filename and save
+                doc.text(`(${sanitizeInput(row.senderName || 'TEAM WAREHOUSE')})`, leftSignatureX, yPos, { align: 'center' });
+                doc.text(`(${sanitizeInput(row.recipientName || row.recipientName)})`, rightSignatureX, yPos, { align: 'center' });
+
                 const cleanRegNumber = registrationNumber.replace(/[^a-zA-Z0-9]/g, '-');
                 const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
                 doc.save(fileName);
-                
-                console.log('Integrated PDF generated successfully with Registration Manager data:', fileName);
-                
-                // Show detailed success message with Registration Manager integration status
+
                 const imageStatus = [
-                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`,
-                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`,
-                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`
+                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil' : '✗ Gagal'}`,
+                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil' : '✗ Gagal'}`,
+                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil' : '✗ Gagal'}`
                 ].join('\n');
 
-                const successDetails = [
-                    `PDF berhasil diunduh dengan integrasi Registration Manager!`,
-                    `File: ${fileName}`,
-                    `Data: ${items.length} item(s)`,
-                    `Sumber: Registration Manager Form`,
-                    ``,
-                    `Status Gambar:`,
-                    imageStatus
-                ].join('\n');
-                
                 setTimeout(() => {
-                    alert(successDetails);
+                    alert(`PDF berhasil diunduh!\nFile: ${fileName}\nData: ${items.length} item(s)\n\nStatus Gambar:\n${imageStatus}`);
                 }, 500);
-                
             } catch (error) {
-                console.error('Error generating integrated PDF:', error);
-                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi atau periksa data form.');
+                console.error('Error generating PDF:', error);
+                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi.');
             } finally {
                 loading.style.display = 'none';
             }
@@ -1746,37 +1594,29 @@
             }
         });
 
-        // Close modal when clicking outside
         document.getElementById('previewModal').addEventListener('click', (e) => {
             if (e.target.id === 'previewModal') {
                 document.getElementById('previewModal').style.display = 'none';
             }
         });
 
-        // Enhanced data loading with Registration Manager integration
+        // Data loading
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
-            
+
             try {
-                // Initialize data sync manager with Registration Manager integration
                 const dataSyncManager = new DataSyncManager();
-                
-                // Enhanced historical data recovery with Registration Manager data
+
                 function recoverRegistrationManagerData() {
                     const registrationManagerKeys = [
-                        'direc_receipts',
-                        'direc_receipts_backup',
-                        'direc_data',
-                        'receipt_data',
-                        'form_submissions',
-                        'tanda_terima_data',
+                        'direc_receipts', 'direc_receipts_backup', 'direc_data',
+                        'receipt_data', 'form_submissions', 'tanda_terima_data',
                         'registration_manager_data'
                     ];
-                    
+
                     let allRegistrationData = [];
-                    
                     registrationManagerKeys.forEach(key => {
                         try {
                             const data = localStorage.getItem(key);
@@ -1789,27 +1629,22 @@
                                 }
                             }
                         } catch (error) {
-                            console.warn(`Error parsing Registration Manager data from ${key}:`, error);
+                            console.warn(`Error parsing data from ${key}:`, error);
                         }
                     });
-                    
-                    // Deduplicate and enhance with image data extraction
+
                     const uniqueData = [];
                     const seenKeys = new Set();
-                    
                     allRegistrationData.forEach(item => {
                         if (!item || typeof item !== 'object') return;
-                        
                         const key1 = item.registrationNumber;
                         const key2 = `${item.date}_${item.recipientName}`;
-                        
                         if (key1 && !seenKeys.has(key1)) {
                             seenKeys.add(key1);
-                            // Extract and enhance image data
                             const imageData = extractImageDataFromEntry(item);
                             uniqueData.push({
                                 ...item,
-                                imageData: imageData,
+                                imageData,
                                 photoUrl: imageData.photoUrl,
                                 signatureSenderUrl: imageData.signatureSenderUrl,
                                 signatureReceiverUrl: imageData.signatureReceiverUrl,
@@ -1817,11 +1652,10 @@
                             });
                         } else if (!key1 && key2 && !seenKeys.has(key2)) {
                             seenKeys.add(key2);
-                            // Extract and enhance image data
                             const imageData = extractImageDataFromEntry(item);
                             uniqueData.push({
                                 ...item,
-                                imageData: imageData,
+                                imageData,
                                 photoUrl: imageData.photoUrl,
                                 signatureSenderUrl: imageData.signatureSenderUrl,
                                 signatureReceiverUrl: imageData.signatureReceiverUrl,
@@ -1829,44 +1663,32 @@
                             });
                         }
                     });
-                    
-                    console.log(`Recovered ${uniqueData.length} Registration Manager records with enhanced image data`);
+
                     return uniqueData;
                 }
-                
-                // Load from localStorage as primary source
+
                 const localData = dataSyncManager.getAllReceipts();
-                console.log('Loaded local receipts:', localData.length);
-                
-                // Recover Registration Manager data with image integration
                 const registrationManagerData = recoverRegistrationManagerData();
-                console.log('Recovered Registration Manager data:', registrationManagerData.length);
-                
-                // Try to load from API as secondary source
                 let apiData = [];
+
                 try {
-                    const response = await fetch('/api/history', { signal: AbortSignal.timeout(10000) });
+                    const response = await fetchWithRetry('/api/history');
                     if (response.ok) {
                         const result = await response.json();
                         apiData = result.data || [];
-                        console.log('Loaded API data:', apiData.length);
                     }
                 } catch (apiError) {
-                    console.warn('API not available, using localStorage only:', apiError);
+                    console.warn('API not available, using localStorage:', apiError);
                 }
 
-                // Merge and deduplicate all data sources with Registration Manager priority
                 const mergedData = [...localData];
-                
-                // Add Registration Manager data with enhanced image processing
                 registrationManagerData.forEach(regItem => {
                     const exists = mergedData.some(localItem => 
                         (localItem.registrationNumber && localItem.registrationNumber === regItem.registrationNumber) ||
                         (localItem.date === regItem.date && localItem.recipientName === regItem.recipientName)
                     );
                     if (!exists && dataSyncManager.validateReceiptData(regItem)) {
-                        // Normalize Registration Manager data structure with image integration
-                        const normalizedRegItem = {
+                        mergedData.push({
                             ...regItem,
                             items: regItem.items || regItem.itemsArray || regItem.itemsString || [],
                             itemsArray: regItem.items || regItem.itemsArray || [],
@@ -1875,24 +1697,20 @@
                             dataSource: 'registration_manager',
                             pdfReady: true,
                             imagesIntegrated: true,
-                            // Ensure image data is properly accessible
                             photoUrl: regItem.photoUrl || regItem.imageData?.photoUrl,
                             signatureSenderUrl: regItem.signatureSenderUrl || regItem.imageData?.signatureSenderUrl,
                             signatureReceiverUrl: regItem.signatureReceiverUrl || regItem.imageData?.signatureReceiverUrl
-                        };
-                        mergedData.push(normalizedRegItem);
+                        });
                     }
                 });
-                
-                // Add API data
+
                 apiData.forEach(apiItem => {
                     const exists = mergedData.some(localItem => 
                         (localItem.registrationNumber && localItem.registrationNumber === apiItem.registrationNumber) ||
                         (localItem.date === apiItem.date && localItem.recipientName === apiItem.recipientName)
                     );
                     if (!exists) {
-                        // Normalize API data structure
-                        const normalizedApiItem = {
+                        mergedData.push({
                             ...apiItem,
                             items: apiItem.items || apiItem.itemsString || [],
                             itemsArray: apiItem.items || [],
@@ -1900,47 +1718,23 @@
                             senderName: apiItem.senderName || 'TEAM WAREHOUSE',
                             dataSource: 'api',
                             pdfReady: true
-                        };
-                        mergedData.push(normalizedApiItem);
+                        });
                     }
                 });
 
                 allData = mergedData;
-                
+
                 if (allData.length === 0) {
                     errorMessage.textContent = 'Belum ada data tanda terima. Silakan buat tanda terima baru di halaman Input Form.';
                     errorMessage.style.display = 'block';
                     return;
                 }
-                
-                console.log(`Total merged data with Registration Manager integration: ${allData.length} (Local: ${localData.length}, Registration Manager: ${registrationManagerData.length}, API: ${apiData.length})`);
-                
-                // Build registration counters for proper numbering
+
                 buildRegistrationCounters(allData);
-                
-                // Sort by date (newest first) for display
-                allData.sort((a, b) => {
-                    try {
-                        const getTimestamp = (dateStr) => {
-                            const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                            if (!match) return 0;
-                            const [, day, month, year, hour, minute] = match;
-                            return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`).getTime();
-                        };
-                        return getTimestamp(b.date) - getTimestamp(a.date);
-                    } catch (error) {
-                        return 0;
-                    }
-                });
-                
+                allData.sort((a, b) => getTimestamp(b.date) - getTimestamp(a.date));
                 filteredData = [...allData];
                 renderTable(filteredData, currentPage);
-                
-                // Update last data update timestamp
                 lastDataUpdate = dataSyncManager.getLastUpdate();
-                
-                console.log('Enhanced data loading with Registration Manager integration completed successfully');
-                
             } catch (error) {
                 console.error('Error loading data:', error);
                 errorMessage.textContent = 'Terjadi kesalahan saat memuat data: ' + error.message;
@@ -1950,11 +1744,14 @@
             }
         }
 
-        // Initialize enhanced data loading with Registration Manager integration
+        // Initialize
         loadDownloadData();
 
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', (e) => searchData(e.target.value));
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', debounce((e) => {
+            searchData(e.target.value);
+        }, 300));
+
         document.getElementById('resetBtn').addEventListener('click', () => {
             document.getElementById('searchInput').value = '';
             filteredData = [...allData];
@@ -1962,29 +1759,27 @@
             renderTable(filteredData, currentPage);
         });
 
-        // Logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = '/login.html';
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                localStorage.removeItem('isLoggedIn');
+                window.location.href = '/login.html';
+            }
         });
 
-        // Auto-refresh data every 30 seconds to catch new Registration Manager submissions
+        // Auto-refresh every 60 seconds
         setInterval(async () => {
             const dataSyncManager = new DataSyncManager();
             const currentUpdate = dataSyncManager.getLastUpdate();
             if (currentUpdate !== lastDataUpdate) {
-                console.log('New Registration Manager data detected, refreshing...');
+                console.log('New data detected, refreshing...');
                 await loadDownloadData();
             }
-        }, 30000);
+        }, 60000);
 
-        // Listen for Registration Manager form submissions
         window.addEventListener('storage', (event) => {
             if (event.key === 'direc_receipts') {
-                console.log('Registration Manager form submission detected');
-                setTimeout(() => {
-                    loadDownloadData();
-                }, 1000);
+                console.log('Form submission detected');
+                setTimeout(() => loadDownloadData(), 1000);
             }
         });
     </script>
