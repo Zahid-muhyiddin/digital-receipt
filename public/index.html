@@ -46,7 +46,7 @@
             color: #fff;
             text-decoration: none;
             padding: 8px;
-            display block;
+            display: block;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -397,8 +397,9 @@
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
                 script.async = true;
                 script.onload = () => {
+                    console.log('jsPDF loaded successfully');
                     if (!window.jspdf || !window.jspdf.jsPDF) {
-                        reject(new Error('jsPDF library failed to initialize'));
+                        reject(new Error('Gagal menginisialisasi library jsPDF'));
                         return;
                     }
                     // Load autotable plugin
@@ -406,16 +407,52 @@
                     autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
                     autoTableScript.async = true;
                     autoTableScript.onload = () => {
-                        if (!window.jspdf.jsPDF.prototype.autoTable) {
-                            reject(new Error('jsPDF autotable plugin failed to initialize'));
+                        console.log('jsPDF-autotable loaded successfully');
+                        // Tambahkan penundaan kecil untuk memastikan plugin terinisialisasi
+                        setTimeout(() => {
+                            if (!window.jspdf.jsPDF.prototype.autoTable) {
+                                reject(new Error('Gagal menginisialisasi plugin autotable'));
+                                return;
+                            }
+                            resolve();
+                        }, 100); // Penundaan 100ms untuk memastikan plugin siap
+                    };
+                    autoTableScript.onerror = () => {
+                        console.error('Gagal memuat plugin autotable dari CDN');
+                        // Coba fallback ke versi lokal (jika ada)
+                        const localAutoTable = document.createElement('script');
+                        localAutoTable.src = '/js/jspdf.plugin.autotable.min.js'; // Ganti dengan path lokal jika tersedia
+                        localAutoTable.onload = () => {
+                            console.log('jsPDF-autotable lokal loaded successfully');
+                            setTimeout(() => {
+                                if (!window.jspdf.jsPDF.prototype.autoTable) {
+                                    reject(new Error('Gagal menginisialisasi plugin autotable dari lokal'));
+                                    return;
+                                }
+                                resolve();
+                            }, 100);
+                        };
+                        localAutoTable.onerror = () => reject(new Error('Gagal memuat plugin autotable dari lokal'));
+                        document.head.appendChild(localAutoTable);
+                    };
+                    document.head.appendChild(autoTableScript);
+                };
+                script.onerror = () => {
+                    console.error('Gagal memuat library jsPDF dari CDN');
+                    // Coba fallback ke versi lokal (jika tersedia)
+                    const localScript = document.createElement('script');
+                    localScript.src = '/js/jspdf.umd.min.js'; // Ganti dengan path lokal jika tersedia
+                    localScript.onload = () => {
+                        console.log('jsPDF lokal loaded successfully');
+                        if (!window.jspdf || !window.jspdf.jsPDF) {
+                            reject(new Error('Gagal menginisialisasi library jsPDF dari lokal'));
                             return;
                         }
                         resolve();
                     };
-                    autoTableScript.onerror = () => reject(new Error('Failed to load jsPDF autotable plugin'));
-                    document.head.appendChild(autoTableScript);
+                    localScript.onerror = () => reject(new Error('Gagal memuat library jsPDF dari lokal'));
+                    document.head.appendChild(localScript);
                 };
-                script.onerror = () => reject(new Error('Failed to load jsPDF library'));
                 document.head.appendChild(script);
             });
         }
@@ -429,7 +466,7 @@
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
                 // Filter entries for the current month and year
-                const targetMonthYear = `${year}-${month}`;
+                const targetMonthYear = chromatic${year}-${month}`;
                 const filteredEntries = data.filter(entry => {
                     const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                     if (entryMatch) {
@@ -678,14 +715,16 @@
                 try {
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
+                    console.log('jsPDF dan autotable berhasil dimuat');
                 } catch (error) {
                     alert('Gagal memuat library PDF: ' + (error.message || 'Terjadi kesalahan saat memuat library'));
-                    console.error('PDF library load error:', error);
+                    console.error('Error saat memuat library PDF:', error);
                     return;
                 }
             }
             if (!jsPDFInstance || !jsPDFInstance.jsPDF || !jsPDFInstance.jsPDF.prototype.autoTable) {
-                alert('Gagal memuat library PDF: Library atau plugin tidak tersedia');
+                alert('Gagal memuat library PDF: Library atau plugin autotable tidak tersedia');
+                console.error('jsPDFInstance:', jsPDFInstance);
                 return;
             }
             const { jsPDF } = jsPDFInstance;
