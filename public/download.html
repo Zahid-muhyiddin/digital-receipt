@@ -662,7 +662,7 @@
             });
         }
 
-        // DataSyncManager class
+        // Enhanced DataSyncManager class for Registration Manager integration
         class DataSyncManager {
             constructor() {
                 this.storageKey = 'direc_receipts';
@@ -706,44 +706,127 @@
                 }
             }
 
+            // Enhanced method to save receipt data from Registration Manager
             saveReceiptWithImages(receiptData) {
                 try {
                     const receipts = this.getAllReceipts();
+                    
+                    // Enhanced data processing for Registration Manager compatibility
                     const enhancedReceiptData = {
                         ...receiptData,
                         id: generateUUID(),
                         createdAt: new Date().toISOString(),
                         lastModified: new Date().toISOString(),
-                        version: '2.0',
+                        version: '2.1', // Updated version for enhanced compatibility
                         dataIntegrity: '',
+                        
+                        // Enhanced image data handling
                         imageData: {
-                            photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
-                            signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
-                            signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
-                            hasPhoto: !!(receiptData.photoUrl || receiptData.photoSrc),
-                            hasSenderSignature: !!(receiptData.signatureSenderUrl || receiptData.signatureSenderData),
-                            hasReceiverSignature: !!(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData)
+                            photoUrl: this.processImageUrl(receiptData.photoUrl || receiptData.photoSrc || receiptData.photo),
+                            signatureSenderUrl: this.processImageUrl(receiptData.signatureSenderUrl || receiptData.signatureSenderData || receiptData.senderSignature),
+                            signatureReceiverUrl: this.processImageUrl(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || receiptData.receiverSignature),
+                            hasPhoto: this.hasValidImage(receiptData.photoUrl || receiptData.photoSrc || receiptData.photo),
+                            hasSenderSignature: this.hasValidImage(receiptData.signatureSenderUrl || receiptData.signatureSenderData || receiptData.senderSignature),
+                            hasReceiverSignature: this.hasValidImage(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || receiptData.receiverSignature)
                         },
-                        photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
-                        signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
-                        signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
+                        
+                        // Ensure backward compatibility
+                        photoUrl: this.processImageUrl(receiptData.photoUrl || receiptData.photoSrc || receiptData.photo),
+                        signatureSenderUrl: this.processImageUrl(receiptData.signatureSenderUrl || receiptData.signatureSenderData || receiptData.senderSignature),
+                        signatureReceiverUrl: this.processImageUrl(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || receiptData.receiverSignature),
+                        
+                        // Enhanced metadata
                         fromRegistrationManager: true,
                         pdfReady: true,
-                        imagesProcessed: true
+                        imagesProcessed: true,
+                        dataSource: 'registration_manager_form',
+                        
+                        // Ensure items are properly formatted
+                        items: this.processItemsData(receiptData.items || receiptData.itemsArray || receiptData.itemsString),
+                        itemsArray: this.processItemsData(receiptData.items || receiptData.itemsArray || receiptData.itemsString),
+                        itemsString: this.generateItemsString(receiptData.items || receiptData.itemsArray || receiptData.itemsString),
+                        
+                        // Enhanced sender information
+                        senderName: receiptData.senderName || 'TEAM WAREHOUSE',
+                        senderDepartment: receiptData.senderDepartment || 'WAREHOUSE',
+                        
+                        // Registration number validation
+                        registrationNumber: receiptData.registrationNumber || this.generateFallbackRegistrationNumber(receiptData.date)
                     };
 
+                    // Calculate data integrity hash
                     calculateDataHash(enhancedReceiptData).then(hash => {
                         enhancedReceiptData.dataIntegrity = hash;
                         receipts.push(enhancedReceiptData);
                         localStorage.setItem(this.storageKey, JSON.stringify(receipts));
                         localStorage.setItem(this.lastUpdateKey, new Date().toISOString());
                         this.triggerDataSync();
+                        console.log('Enhanced receipt data saved successfully:', enhancedReceiptData.registrationNumber);
                     });
 
                     return enhancedReceiptData;
                 } catch (error) {
                     console.error('Error saving receipt with images:', error);
                     throw error;
+                }
+            }
+
+            // Helper method to process image URLs
+            processImageUrl(imageUrl) {
+                if (!imageUrl || imageUrl.includes('placeholder.svg') || imageUrl === 'undefined' || imageUrl === 'null') {
+                    return null;
+                }
+                return imageUrl;
+            }
+
+            // Helper method to check if image is valid
+            hasValidImage(imageUrl) {
+                return !!(imageUrl && !imageUrl.includes('placeholder.svg') && imageUrl !== 'undefined' && imageUrl !== 'null');
+            }
+
+            // Helper method to process items data
+            processItemsData(itemsData) {
+                if (!itemsData) return [];
+                
+                if (Array.isArray(itemsData)) {
+                    return itemsData.filter(item => item && (item.desc || item.description));
+                }
+                
+                if (typeof itemsData === 'string') {
+                    try {
+                        const parsed = JSON.parse(itemsData);
+                        if (Array.isArray(parsed)) return parsed;
+                    } catch (e) {
+                        // Handle string format from form
+                        return itemsData.split('\n').map(item => {
+                            const trimmed = item.trim();
+                            if (!trimmed) return null;
+                            return { desc: trimmed, qty: '1', unit: 'Pcs', prNumber: '-', poNumber: '-' };
+                        }).filter(item => item);
+                    }
+                }
+                
+                return [];
+            }
+
+            // Helper method to generate items string
+            generateItemsString(itemsData) {
+                const items = this.processItemsData(itemsData);
+                return items.map(item => 
+                    `${item.desc || item.description || '-'} - Qty: ${item.qty || '1'} ${item.unit || 'Pcs'} - PR: ${item.prNumber || '-'} - PO: ${item.poNumber || '-'}`
+                ).join('\n');
+            }
+
+            // Helper method to generate fallback registration number
+            generateFallbackRegistrationNumber(dateString) {
+                try {
+                    const now = new Date();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const year = now.getFullYear();
+                    const timestamp = now.getTime().toString().slice(-3);
+                    return `TT-RANT-${month}-${year}-${timestamp}`;
+                } catch (error) {
+                    return `TT-RANT-${new Date().getTime()}`;
                 }
             }
 
@@ -781,36 +864,50 @@
             }
         }
 
-        // Parse items with enhanced validation
+        // Enhanced parse items function with better Registration Manager compatibility
         function parseItems(itemsData) {
             if (!itemsData || itemsData === 'Tidak ada barang') return [];
 
+            // Handle array format (direct from Registration Manager)
             if (Array.isArray(itemsData)) {
-                return itemsData.filter(item => item && (item.desc || item.description));
+                return itemsData.filter(item => item && (item.desc || item.description)).map(item => ({
+                    desc: item.desc || item.description || '-',
+                    qty: item.qty || '1',
+                    unit: item.unit || 'Pcs',
+                    prNumber: item.prNumber || item.pr || '-',
+                    poNumber: item.poNumber || item.po || '-'
+                }));
             }
 
+            // Handle object with itemsArray property
             if (itemsData && typeof itemsData === 'object' && itemsData.itemsArray) {
-                return Array.isArray(itemsData.itemsArray) ? itemsData.itemsArray : [];
+                return Array.isArray(itemsData.itemsArray) ? parseItems(itemsData.itemsArray) : [];
             }
 
+            // Handle string format
             if (typeof itemsData === 'string') {
                 try {
                     const parsed = JSON.parse(itemsData);
-                    if (Array.isArray(parsed)) return parsed;
+                    if (Array.isArray(parsed)) return parseItems(parsed);
                 } catch (e) {
+                    // Parse string format from Registration Manager form
                     return itemsData.split('\n').map(item => {
                         const trimmed = item.trim();
                         if (!trimmed) return null;
-                        const match = trimmed.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
+                        
+                        // Try to parse structured format
+                        const match = trimmed.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*([^-]+)\s*-\s*PO:\s*(.+)$/);
                         if (match) {
                             return {
                                 desc: sanitizeInput(match[1].trim()),
                                 qty: match[2],
                                 unit: match[3],
-                                prNumber: match[4],
-                                poNumber: match[5]
+                                prNumber: match[4].trim(),
+                                poNumber: match[5].trim()
                             };
                         }
+                        
+                        // Fallback to simple format
                         return {
                             desc: sanitizeInput(trimmed),
                             qty: '1',
@@ -822,8 +919,9 @@
                 }
             }
 
+            // Handle other object formats
             if (itemsData && typeof itemsData === 'object') {
-                if (itemsData.items) return Array.isArray(itemsData.items) ? itemsData.items : [];
+                if (itemsData.items) return parseItems(itemsData.items);
                 if (itemsData.itemsString) return parseItems(itemsData.itemsString);
             }
 
@@ -841,7 +939,7 @@
                     const [, dayA, monthA, yearA, hourA, minuteA] = matchA;
                     const [, dayB, monthB, yearB, hourB, minuteB] = matchB;
                     const dateA = new Date(`${yearA}-${monthA}-${dayA}T${hourA}:${minuteA}:00`);
-                    const dateB = new Date(`${yearB}-${monthB}-${dayB}T${hourB}:${minuteB}:00`);
+                    const dateB = new Date(`${yearB}-${monthB}-${yearB}T${hourB}:${minuteB}:00`);
                     return dateA - dateB;
                 } catch (error) {
                     return 0;
@@ -902,7 +1000,7 @@
             }
         }
 
-        // Image extraction
+        // Enhanced image extraction with Registration Manager compatibility
         function extractImageDataFromEntry(entry) {
             const imageData = {
                 photoUrl: null,
@@ -910,6 +1008,7 @@
                 signatureReceiverUrl: null
             };
 
+            // Enhanced photo URL extraction
             imageData.photoUrl = entry.photoUrl || 
                                 entry.photoSrc || 
                                 entry.photo || 
@@ -917,20 +1016,29 @@
                                 (entry.imageData && entry.imageData.photoUrl) ||
                                 null;
 
+            // Enhanced sender signature extraction
             imageData.signatureSenderUrl = entry.signatureSenderUrl || 
                                          entry.signatureSenderData || 
                                          entry.senderSignature ||
                                          (entry.imageData && entry.imageData.signatureSenderUrl) ||
                                          null;
 
+            // Enhanced receiver signature extraction
             imageData.signatureReceiverUrl = entry.signatureReceiverUrl || 
                                            entry.signatureReceiverData || 
                                            entry.receiverSignature ||
                                            (entry.imageData && entry.imageData.signatureReceiverUrl) ||
                                            null;
 
+            // Clean up invalid URLs
             if (imageData.photoUrl && (imageData.photoUrl.includes('placeholder.svg') || imageData.photoUrl === 'undefined')) {
                 imageData.photoUrl = null;
+            }
+            if (imageData.signatureSenderUrl && imageData.signatureSenderUrl === 'undefined') {
+                imageData.signatureSenderUrl = null;
+            }
+            if (imageData.signatureReceiverUrl && imageData.signatureReceiverUrl === 'undefined') {
+                imageData.signatureReceiverUrl = null;
             }
 
             return imageData;
@@ -1117,7 +1225,7 @@
                     try {
                         const index = parseInt(btn.dataset.index);
                         const row = filteredData[index];
-                        if (row) await generateIntegratedPDF(row);
+                        if (row) await generateEnhancedPDF(row);
                         else throw new Error('Data not found');
                     } catch (error) {
                         console.error('Error generating PDF:', error);
@@ -1173,7 +1281,7 @@
             }
         }
 
-        // Preview function
+        // Enhanced preview function with better Registration Manager compatibility
         async function showPreview(row) {
             try {
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
@@ -1276,7 +1384,7 @@
             }
         }
 
-        // Image Processor
+        // Enhanced Image Processor with better Registration Manager compatibility
         class RegistrationManagerImageProcessor {
             static async validateAndProcessImage(imageUrl, imageName = 'image') {
                 if (!imageUrl || imageUrl.includes('placeholder.svg') || imageUrl === 'undefined' || imageUrl === 'null') {
@@ -1305,9 +1413,19 @@
                     const [header, base64Data] = dataURL.split(',');
                     if (!header || !base64Data) throw new Error('Invalid data URL format');
                     if (base64Data.length < 100) throw new Error('Base64 data too small');
+                    
+                    // Validate base64 data
                     atob(base64Data);
+                    
                     const format = header.includes('png') ? 'PNG' : header.includes('jpeg') || header.includes('jpg') ? 'JPEG' : 'PNG';
-                    return { isValid: true, data: dataURL, format, size: base64Data.length, imageName, source: 'registration_manager' };
+                    return { 
+                        isValid: true, 
+                        data: dataURL, 
+                        format, 
+                        size: base64Data.length, 
+                        imageName, 
+                        source: 'registration_manager' 
+                    };
                 } catch (error) {
                     throw new Error(`Data URL processing failed: ${error.message}`);
                 }
@@ -1317,16 +1435,26 @@
                 try {
                     const response = await fetchWithRetry(blobURL);
                     if (!response.ok) throw new Error(`Failed to fetch blob: ${response.status}`);
+                    
                     const blob = await response.blob();
                     if (blob.size === 0) throw new Error('Empty blob received');
+                    
                     const dataURL = await new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onload = () => resolve(reader.result);
                         reader.onerror = () => reject(new Error('FileReader error'));
                         reader.readAsDataURL(blob);
                     });
+                    
                     const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
-                    return { isValid: true, data: dataURL, format, size: blob.size, imageName, source: 'registration_manager' };
+                    return { 
+                        isValid: true, 
+                        data: dataURL, 
+                        format, 
+                        size: blob.size, 
+                        imageName, 
+                        source: 'registration_manager' 
+                    };
                 } catch (error) {
                     throw new Error(`Blob processing failed: ${error.message}`);
                 }
@@ -1336,16 +1464,26 @@
                 try {
                     const response = await fetchWithRetry(httpURL, { mode: 'cors', cache: 'no-cache' });
                     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    
                     const blob = await response.blob();
                     if (blob.size === 0) throw new Error('Empty image received');
+                    
                     const dataURL = await new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onload = () => resolve(reader.result);
                         reader.onerror = () => reject(new Error('FileReader error'));
                         reader.readAsDataURL(blob);
                     });
+                    
                     const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
-                    return { isValid: true, data: dataURL, format, size: blob.size, imageName, source: 'registration_manager' };
+                    return { 
+                        isValid: true, 
+                        data: dataURL, 
+                        format, 
+                        size: blob.size, 
+                        imageName, 
+                        source: 'registration_manager' 
+                    };
                 } catch (error) {
                     throw new Error(`HTTP URL processing failed: ${error.message}`);
                 }
@@ -1376,7 +1514,13 @@
                         loadPromise,
                         new Promise((_, reject) => setTimeout(() => reject(new Error('Image load timeout')), 10000))
                     ]);
-                    return { isValid: true, data: dataURL, format: 'PNG', imageName, source: 'registration_manager' };
+                    return { 
+                        isValid: true, 
+                        data: dataURL, 
+                        format: 'PNG', 
+                        imageName, 
+                        source: 'registration_manager' 
+                    };
                 } catch (error) {
                     throw new Error(`Other URL processing failed: ${error.message}`);
                 }
@@ -1400,8 +1544,8 @@
             }
         }
 
-        // PDF generation
-        async function generateIntegratedPDF(row) {
+        // Enhanced PDF generation with perfect Registration Manager compatibility
+        async function generateEnhancedPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
 
@@ -1414,6 +1558,7 @@
                 const registrationNumber = getRegistrationNumber(row);
                 const imageData = extractImageDataFromEntry(row);
 
+                // Enhanced image processing with better error handling
                 const [photoResult, senderSigResult, receiverSigResult] = await Promise.allSettled([
                     RegistrationManagerImageProcessor.validateAndProcessImage(imageData.photoUrl, 'Photo'),
                     RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureSenderUrl, 'Sender Signature'),
@@ -1430,6 +1575,7 @@
                 const pageWidth = 210;
                 const margin = 20;
 
+                // Enhanced date formatting
                 let formattedDate = row.date;
                 if (formattedDate && formattedDate.includes(',')) {
                     const [datePart, timePart] = formattedDate.split(',');
@@ -1438,40 +1584,52 @@
                     }
                 }
 
+                // PDF Header with enhanced styling
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(16);
+                doc.setFontSize(18);
                 doc.text('DIREC - TANDA TERIMA', pageWidth / 2, 25, { align: 'center' });
+                
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(12);
                 doc.text(`No. Registrasi: ${sanitizeInput(registrationNumber)}`, pageWidth / 2, 35, { align: 'center' });
 
                 let yPos = 50;
+                
+                // Information section with enhanced formatting
                 doc.setFontSize(11);
+                const labelWidth = 35;
+                
+                doc.setFont('helvetica', 'bold');
                 doc.text('Tanggal', margin, yPos);
-                doc.text(`: ${sanitizeInput(formattedDate || '-')}`, margin + 30, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`: ${sanitizeInput(formattedDate || '-')}`, margin + labelWidth, yPos);
                 yPos += 8;
+                
+                doc.setFont('helvetica', 'bold');
                 doc.text('Nama Penerima', margin, yPos);
-                doc.text(`: ${sanitizeInput(row.recipientName || '-')}`, margin + 30, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`: ${sanitizeInput(row.recipientName || '-')}`, margin + labelWidth, yPos);
                 yPos += 8;
+                
+                doc.setFont('helvetica', 'bold');
                 doc.text('Departemen', margin, yPos);
-                doc.text(`: ${sanitizeInput(row.department || '-')}`, margin + 30, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`: ${sanitizeInput(row.department || '-')}`, margin + labelWidth, yPos);
                 yPos += 15;
 
+                // Items table with enhanced formatting
                 doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
                 doc.text('Deskripsi Barang:', margin, yPos);
                 yPos += 8;
 
-                const tableData = items.map(item => ({
+                const tableData = items.length ? items.map(item => ({
                     desc: item.desc || '-',
                     qty: item.qty || '-',
                     satuan: item.unit || '-',
                     pr: item.prNumber || '-',
                     po: item.poNumber || '-'
-                }));
-
-                if (tableData.length === 0) {
-                    tableData.push({ desc: '-', qty: '-', satuan: '-', pr: '-', po: '-' });
-                }
+                })) : [{ desc: 'Tidak ada barang', qty: '-', satuan: '-', pr: '-', po: '-' }];
 
                 doc.autoTable({
                     startY: yPos,
@@ -1481,7 +1639,7 @@
                     headStyles: {
                         fillColor: [0, 184, 148],
                         textColor: [255, 255, 255],
-                        fontStyle: 'normal',
+                        fontStyle: 'bold',
                         halign: 'center',
                         valign: 'middle',
                         fontSize: 11
@@ -1489,59 +1647,64 @@
                     styles: {
                         lineColor: [0, 0, 0],
                         lineWidth: 0.5,
-                        fontSize: 10
+                        fontSize: 10,
+                        cellPadding: 3
                     },
                     columnStyles: {
-                        0: { cellWidth: 65, halign: 'left' },
+                        0: { cellWidth: 70, halign: 'left' },
                         1: { cellWidth: 20, halign: 'center' },
-                        2: { cellWidth: 30, halign: 'center' },
+                        2: { cellWidth: 25, halign: 'center' },
                         3: { cellWidth: 30, halign: 'center' },
-                        4: { cellWidth: 30, halign: 'center' }
+                        4: { cellWidth: 35, halign: 'center' }
                     },
                     margin: { left: margin, right: margin }
                 });
 
                 yPos = doc.lastAutoTable.finalY + 15;
 
+                // Photo section with enhanced error handling
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
+                doc.setFontSize(12);
                 doc.text('Foto Penerima:', margin, yPos);
                 yPos += 8;
 
                 if (processedPhoto.isValid) {
                     try {
-                        doc.addImage(processedPhoto.data, processedPhoto.format, margin, yPos, 50, 40);
+                        doc.addImage(processedPhoto.data, processedPhoto.format, margin, yPos, 60, 40);
                         yPos += 45;
                     } catch (error) {
                         console.error('Error adding photo to PDF:', error);
                         doc.setFont('helvetica', 'italic');
                         doc.setFontSize(10);
-                        doc.text('(Foto tidak tersedia)', margin, yPos + 10);
+                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPos + 10);
                         yPos += 15;
                     }
                 } else {
                     doc.setFont('helvetica', 'italic');
                     doc.setFontSize(10);
-                    doc.text('(Foto tidak tersedia)', margin, yPos + 10);
+                    doc.text('(Tidak ada foto)', margin, yPos + 10);
                     yPos += 15;
                 }
 
+                // Signature section with enhanced layout
                 yPos += 15;
-                const leftSignatureX = margin + 20;
-                const rightSignatureX = pageWidth - margin - 70;
+                const leftSignatureX = margin + 35;
+                const rightSignatureX = pageWidth - margin - 35;
 
-                doc.setFont('helvetica', 'normal');
+                doc.setFont('helvetica', 'bold');
                 doc.setFontSize(11);
                 doc.text('Pengirim:', leftSignatureX, yPos, { align: 'center' });
                 doc.text('Penerima:', rightSignatureX, yPos, { align: 'center' });
 
                 yPos += 10;
-                const signatureWidth = 40;
+                const signatureWidth = 50;
                 const signatureHeight = 25;
 
+                // Add signatures with enhanced error handling
                 if (processedSenderSig.isValid) {
                     try {
-                        doc.addImage(processedSenderSig.data, processedSenderSig.format, leftSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
+                        doc.addImage(processedSenderSig.data, processedSenderSig.format, 
+                            leftSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
                     } catch (error) {
                         console.error('Error adding sender signature:', error);
                     }
@@ -1549,34 +1712,50 @@
 
                 if (processedReceiverSig.isValid) {
                     try {
-                        doc.addImage(processedReceiverSig.data, processedReceiverSig.format, rightSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
+                        doc.addImage(processedReceiverSig.data, processedReceiverSig.format, 
+                            rightSignatureX - signatureWidth/2, yPos, signatureWidth, signatureHeight);
                     } catch (error) {
                         console.error('Error adding receiver signature:', error);
                     }
                 }
 
-                yPos += signatureHeight + 5;
+                yPos += signatureHeight + 8;
+                
+                // Signature names with enhanced formatting
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
                 doc.text(`(${sanitizeInput(row.senderName || 'TEAM WAREHOUSE')})`, leftSignatureX, yPos, { align: 'center' });
-                doc.text(`(${sanitizeInput(row.recipientName || row.recipientName)})`, rightSignatureX, yPos, { align: 'center' });
+                doc.text(`(${sanitizeInput(row.recipientName || '_________________')})`, rightSignatureX, yPos, { align: 'center' });
 
+                // Generate filename and save
                 const cleanRegNumber = registrationNumber.replace(/[^a-zA-Z0-9]/g, '-');
                 const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
                 doc.save(fileName);
 
+                // Enhanced success message with detailed status
                 const imageStatus = [
-                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil' : '✗ Gagal'}`,
-                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil' : '✗ Gagal'}`,
-                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil' : '✗ Gagal'}`
+                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil dimuat' : '✗ Tidak tersedia'}`,
+                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil dimuat' : '✗ Tidak tersedia'}`,
+                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil dimuat' : '✗ Tidak tersedia'}`
                 ].join('\n');
 
                 setTimeout(() => {
-                    alert(`PDF berhasil diunduh!\nFile: ${fileName}\nData: ${items.length} item(s)\n\nStatus Gambar:\n${imageStatus}`);
+                    alert(`PDF berhasil diunduh!\n\nFile: ${fileName}\nNomor Registrasi: ${registrationNumber}\nJumlah item: ${items.length}\n\nStatus Gambar:\n${imageStatus}\n\nData dari: Registration Manager Form`);
                 }, 500);
+
+                console.log('Enhanced PDF generated successfully:', {
+                    fileName,
+                    registrationNumber,
+                    itemCount: items.length,
+                    photoProcessed: processedPhoto.isValid,
+                    senderSigProcessed: processedSenderSig.isValid,
+                    receiverSigProcessed: processedReceiverSig.isValid,
+                    dataSource: row.dataSource || 'registration_manager'
+                });
+
             } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi.');
+                console.error('Error generating enhanced PDF:', error);
+                alert(`Gagal membuat PDF: ${error.message}\n\nSilakan coba lagi atau hubungi administrator jika masalah berlanjut.`);
             } finally {
                 loading.style.display = 'none';
             }
@@ -1590,7 +1769,7 @@
         document.getElementById('downloadFromPreview').addEventListener('click', async () => {
             if (currentPreviewData) {
                 document.getElementById('previewModal').style.display = 'none';
-                await generateIntegratedPDF(currentPreviewData);
+                await generateEnhancedPDF(currentPreviewData);
             }
         });
 
@@ -1600,7 +1779,7 @@
             }
         });
 
-        // Data loading
+        // Enhanced data loading with Registration Manager integration
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
@@ -1609,11 +1788,12 @@
             try {
                 const dataSyncManager = new DataSyncManager();
 
+                // Enhanced Registration Manager data recovery
                 function recoverRegistrationManagerData() {
                     const registrationManagerKeys = [
                         'direc_receipts', 'direc_receipts_backup', 'direc_data',
                         'receipt_data', 'form_submissions', 'tanda_terima_data',
-                        'registration_manager_data'
+                        'registration_manager_data', 'direc_form_data'
                     ];
 
                     let allRegistrationData = [];
@@ -1633,14 +1813,25 @@
                         }
                     });
 
+                    // Enhanced deduplication and data processing
                     const uniqueData = [];
                     const seenKeys = new Set();
+                    
                     allRegistrationData.forEach(item => {
                         if (!item || typeof item !== 'object') return;
+                        
                         const key1 = item.registrationNumber;
                         const key2 = `${item.date}_${item.recipientName}`;
-                        if (key1 && !seenKeys.has(key1)) {
-                            seenKeys.add(key1);
+                        const key3 = item.id;
+                        
+                        if ((key1 && !seenKeys.has(key1)) || 
+                            (!key1 && key2 && !seenKeys.has(key2)) || 
+                            (key3 && !seenKeys.has(key3))) {
+                            
+                            if (key1) seenKeys.add(key1);
+                            if (key2) seenKeys.add(key2);
+                            if (key3) seenKeys.add(key3);
+                            
                             const imageData = extractImageDataFromEntry(item);
                             uniqueData.push({
                                 ...item,
@@ -1648,22 +1839,18 @@
                                 photoUrl: imageData.photoUrl,
                                 signatureSenderUrl: imageData.signatureSenderUrl,
                                 signatureReceiverUrl: imageData.signatureReceiverUrl,
-                                fromRegistrationManager: true
-                            });
-                        } else if (!key1 && key2 && !seenKeys.has(key2)) {
-                            seenKeys.add(key2);
-                            const imageData = extractImageDataFromEntry(item);
-                            uniqueData.push({
-                                ...item,
-                                imageData,
-                                photoUrl: imageData.photoUrl,
-                                signatureSenderUrl: imageData.signatureSenderUrl,
-                                signatureReceiverUrl: imageData.signatureReceiverUrl,
-                                fromRegistrationManager: true
+                                fromRegistrationManager: true,
+                                dataSource: 'registration_manager_enhanced',
+                                pdfReady: true,
+                                imagesIntegrated: true,
+                                items: parseItems(item.items || item.itemsArray || item.itemsString),
+                                itemsArray: parseItems(item.items || item.itemsArray || item.itemsString),
+                                senderName: item.senderName || 'TEAM WAREHOUSE'
                             });
                         }
                     });
 
+                    console.log(`Recovered ${uniqueData.length} unique records from Registration Manager`);
                     return uniqueData;
                 }
 
@@ -1671,30 +1858,37 @@
                 const registrationManagerData = recoverRegistrationManagerData();
                 let apiData = [];
 
+                // Try to fetch from API with timeout
                 try {
-                    const response = await fetchWithRetry('/api/history');
+                    const response = await fetchWithRetry('/api/history', {}, 2, 1000);
                     if (response.ok) {
                         const result = await response.json();
                         apiData = result.data || [];
+                        console.log(`Loaded ${apiData.length} records from API`);
                     }
                 } catch (apiError) {
-                    console.warn('API not available, using localStorage:', apiError);
+                    console.warn('API not available, using localStorage only:', apiError);
                 }
 
+                // Enhanced data merging
                 const mergedData = [...localData];
+                
+                // Add Registration Manager data
                 registrationManagerData.forEach(regItem => {
                     const exists = mergedData.some(localItem => 
                         (localItem.registrationNumber && localItem.registrationNumber === regItem.registrationNumber) ||
+                        (localItem.id && localItem.id === regItem.id) ||
                         (localItem.date === regItem.date && localItem.recipientName === regItem.recipientName)
                     );
+                    
                     if (!exists && dataSyncManager.validateReceiptData(regItem)) {
                         mergedData.push({
                             ...regItem,
-                            items: regItem.items || regItem.itemsArray || regItem.itemsString || [],
-                            itemsArray: regItem.items || regItem.itemsArray || [],
-                            itemsString: regItem.itemsString || '',
+                            items: regItem.items || regItem.itemsArray || parseItems(regItem.itemsString) || [],
+                            itemsArray: regItem.items || regItem.itemsArray || parseItems(regItem.itemsString) || [],
+                            itemsString: regItem.itemsString || dataSyncManager.generateItemsString(regItem.items || regItem.itemsArray) || '',
                             senderName: regItem.senderName || 'TEAM WAREHOUSE',
-                            dataSource: 'registration_manager',
+                            dataSource: 'registration_manager_enhanced',
                             pdfReady: true,
                             imagesIntegrated: true,
                             photoUrl: regItem.photoUrl || regItem.imageData?.photoUrl,
@@ -1704,16 +1898,19 @@
                     }
                 });
 
+                // Add API data
                 apiData.forEach(apiItem => {
                     const exists = mergedData.some(localItem => 
                         (localItem.registrationNumber && localItem.registrationNumber === apiItem.registrationNumber) ||
+                        (localItem.id && localItem.id === apiItem.id) ||
                         (localItem.date === apiItem.date && localItem.recipientName === apiItem.recipientName)
                     );
+                    
                     if (!exists) {
                         mergedData.push({
                             ...apiItem,
-                            items: apiItem.items || apiItem.itemsString || [],
-                            itemsArray: apiItem.items || [],
+                            items: parseItems(apiItem.items || apiItem.itemsString) || [],
+                            itemsArray: parseItems(apiItem.items || apiItem.itemsString) || [],
                             itemsString: apiItem.itemsString || '',
                             senderName: apiItem.senderName || 'TEAM WAREHOUSE',
                             dataSource: 'api',
@@ -1730,14 +1927,23 @@
                     return;
                 }
 
+                // Build registration counters and sort data
                 buildRegistrationCounters(allData);
                 allData.sort((a, b) => getTimestamp(b.date) - getTimestamp(a.date));
                 filteredData = [...allData];
                 renderTable(filteredData, currentPage);
                 lastDataUpdate = dataSyncManager.getLastUpdate();
+
+                console.log(`Successfully loaded ${allData.length} total records:`, {
+                    local: localData.length,
+                    registrationManager: registrationManagerData.length,
+                    api: apiData.length,
+                    total: allData.length
+                });
+
             } catch (error) {
                 console.error('Error loading data:', error);
-                errorMessage.textContent = 'Terjadi kesalahan saat memuat data: ' + error.message;
+                errorMessage.textContent = `Terjadi kesalahan saat memuat data: ${error.message}`;
                 errorMessage.style.display = 'block';
             } finally {
                 loading.style.display = 'none';
@@ -1766,22 +1972,31 @@
             }
         });
 
-        // Auto-refresh every 60 seconds
+        // Enhanced auto-refresh with Registration Manager sync
         setInterval(async () => {
             const dataSyncManager = new DataSyncManager();
             const currentUpdate = dataSyncManager.getLastUpdate();
             if (currentUpdate !== lastDataUpdate) {
-                console.log('New data detected, refreshing...');
+                console.log('New data detected from Registration Manager, refreshing...');
                 await loadDownloadData();
             }
-        }, 60000);
+        }, 30000); // Check every 30 seconds
 
+        // Enhanced storage event listener for Registration Manager integration
         window.addEventListener('storage', (event) => {
-            if (event.key === 'direc_receipts') {
-                console.log('Form submission detected');
+            if (event.key === 'direc_receipts' || event.key === 'direc_form_data') {
+                console.log('Registration Manager form submission detected');
                 setTimeout(() => loadDownloadData(), 1000);
             }
         });
+
+        // Listen for custom events from Registration Manager
+        window.addEventListener('registrationManagerSubmit', (event) => {
+            console.log('Registration Manager submit event received:', event.detail);
+            setTimeout(() => loadDownloadData(), 500);
+        });
+
+        console.log('Enhanced Download page initialized with Registration Manager integration');
     </script>
 </body>
 </html>
