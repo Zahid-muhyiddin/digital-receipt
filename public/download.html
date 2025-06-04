@@ -735,6 +735,38 @@
             renderTable(filteredData, currentPage);
         }
 
+function attachEvents() {
+    // Preview buttons
+    const previewButtons = document.querySelectorAll('.preview-btn');
+    previewButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            try {
+                const rowData = btn.dataset.row.replace(/&#39;/g, "'");
+                const row = JSON.parse(rowData);
+                showPreview(row);
+            } catch (error) {
+                console.error('Error parsing row data for preview:', error);
+                alert('Error loading preview data');
+            }
+        });
+    });
+
+    // Download buttons
+    const downloadButtons = document.querySelectorAll('.download-btn');
+    downloadButtons.forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            try {
+                const rowData = btn.dataset.row.replace(/&#39;/g, "'");
+                const row = JSON.parse(rowData);
+                await generateEnhancedPDF(row);
+            } catch (error) {
+                console.error('Error parsing row data for download:', error);
+                alert('Error loading download data');
+            }
+        });
+    });
+}
+
         // Enhanced Image Fetching
         async function fetchImageWithRetry(url, maxRetries = 3) {
             if (!url || url.includes('placeholder.svg')) return null;
@@ -1058,6 +1090,25 @@
         loading.style.display = 'none';
     }
 }
+
+// Modal event listeners
+document.getElementById('previewClose').addEventListener('click', () => {
+    document.getElementById('previewModal').style.display = 'none';
+});
+
+document.getElementById('downloadFromPreview').addEventListener('click', async () => {
+    if (currentPreviewData) {
+        document.getElementById('previewModal').style.display = 'none';
+        await generateEnhancedPDF(currentPreviewData);
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('previewModal').addEventListener('click', (e) => {
+    if (e.target.id === 'previewModal') {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+});
 
 async function loadDownloadData() {
     const errorMessage = document.getElementById('errorMessage');
