@@ -273,20 +273,18 @@
         .preview-header {
             text-align: center;
             margin-bottom: 25px;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 15px;
         }
         .preview-title {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 28px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
             font-weight: 700;
-            color: #1e3a8a;
+            color: #000;
             margin-bottom: 8px;
         }
         .preview-reg-number {
-            font-size: 16px;
-            color: #6b7280;
-            font-weight: 600;
+            font-size: 14px;
+            color: #000;
+            font-weight: normal;
         }
         .preview-info {
             margin-bottom: 25px;
@@ -294,47 +292,44 @@
         .preview-info-row {
             display: flex;
             margin-bottom: 10px;
-            font-size: 16px;
-            align-items: center;
+            font-size: 14px;
+            align-items: flex-start;
         }
         .preview-info-label {
-            font-weight: 600;
-            width: 140px;
-            color: #374151;
+            font-weight: normal;
+            width: 120px;
+            color: #000;
         }
         .preview-info-value {
-            color: #1f2937;
+            color: #000;
             flex: 1;
         }
         .preview-items {
             margin-bottom: 25px;
         }
         .preview-items-title {
-            font-weight: 600;
-            font-size: 18px;
+            font-weight: bold;
+            font-size: 14px;
             margin-bottom: 15px;
-            color: #374151;
+            color: #000;
         }
         .preview-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 25px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         .preview-table th,
         .preview-table td {
-            border: 1px solid #d1d5db;
-            padding: 12px 8px;
+            border: 1px solid #000;
+            padding: 8px;
             text-align: center;
             font-size: 14px;
+            color: #000;
         }
         .preview-table th {
-            background: #10b981;
+            background: #00b894;
             color: #fff;
-            font-weight: 600;
-        }
-        .preview-table tr:nth-child(even) {
-            background: #f9fafb;
+            font-weight: normal;
         }
         .preview-table td:first-child {
             text-align: left;
@@ -343,57 +338,47 @@
             margin-bottom: 30px;
         }
         .preview-photo-title {
-            font-weight: 600;
-            font-size: 18px;
+            font-weight: bold;
+            font-size: 14px;
             margin-bottom: 15px;
-            color: #374151;
+            color: #000;
         }
         .preview-photo {
-            max-width: 250px;
-            max-height: 200px;
-            border-radius: 8px;
-            border: 2px solid #d1d5db;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 200px;
+            max-height: 150px;
+            border: 1px solid #d1d5db;
         }
         .preview-signatures {
             display: flex;
             justify-content: space-between;
             margin-top: 40px;
-            border-top: 2px solid #e5e7eb;
-            padding-top: 25px;
         }
         .preview-signature {
             text-align: center;
             width: 45%;
         }
         .preview-signature-title {
-            font-weight: 600;
-            font-size: 16px;
+            font-weight: normal;
+            font-size: 14px;
             margin-bottom: 15px;
-            color: #374151;
+            color: #000;
         }
         .preview-signature-img {
-            width: 220px;
-            height: 100px;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
+            width: 150px;
+            height: 80px;
             margin-bottom: 15px;
-            background: #f9fafb;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #6b7280;
-            font-style: italic;
+        }
+        .preview-signature-img img {
+            max-width: 100%;
+            max-height: 100%;
         }
         .preview-signature-name {
             font-size: 14px;
-            color: #374151;
+            color: #000;
             margin-bottom: 5px;
-            font-weight: 500;
-        }
-        .preview-signature-role {
-            font-size: 12px;
-            color: #6b7280;
         }
         
         @keyframes spin {
@@ -583,7 +568,7 @@
         let allData = [];
         let filteredData = [];
 
-        // ISSUE 1 FIX: Dynamic Registration Number System
+        // Registration Number System
         function buildRegistrationCounters(data) {
             registrationCounters = {};
             
@@ -743,7 +728,7 @@
             renderTable(filteredData, currentPage);
         }
 
-        // ISSUE 2 FIX: Enhanced Image Fetching with Better Error Handling
+        // Enhanced Image Fetching
         async function fetchImageWithRetry(url, maxRetries = 3) {
             if (!url || url.includes('placeholder.svg')) return null;
             
@@ -787,7 +772,7 @@
             return null;
         }
 
-        // Enhanced Preview Function
+        // Preview Function
         async function showPreview(row) {
             const items = parseItems(row.items);
             const registrationNumber = getRegistrationNumber(row);
@@ -795,22 +780,22 @@
             const previewReceipt = document.getElementById('previewReceipt');
             previewReceipt.innerHTML = `
                 <div class="preview-header">
-                    <div class="preview-title">DIREC - Input Form</div>
+                    <div class="preview-title">DIREC - TANDA TERIMA</div>
                     <div class="preview-reg-number">No. Registrasi: ${registrationNumber}</div>
                 </div>
                 
                 <div class="preview-info">
                     <div class="preview-info-row">
-                        <span class="preview-info-label">Tanggal:</span>
-                        <span class="preview-info-value">${row.date || '-'}</span>
+                        <span class="preview-info-label">Tanggal</span>
+                        <span class="preview-info-value">: ${row.date || '-'}</span>
                     </div>
                     <div class="preview-info-row">
-                        <span class="preview-info-label">Nama Penerima:</span>
-                        <span class="preview-info-value">${row.recipientName || '-'}</span>
+                        <span class="preview-info-label">Nama Penerima</span>
+                        <span class="preview-info-value">: ${row.recipientName || '-'}</span>
                     </div>
                     <div class="preview-info-row">
-                        <span class="preview-info-label">Departemen:</span>
-                        <span class="preview-info-value">${row.department || '-'}</span>
+                        <span class="preview-info-label">Departemen</span>
+                        <span class="preview-info-value">: ${row.department || '-'}</span>
                     </div>
                 </div>
                 
@@ -829,7 +814,7 @@
                         <tbody>
                             ${items.length ? items.map(item => `
                                 <tr>
-                                    <td style="text-align: left;">${item.desc}</td>
+                                    <td>${item.desc}</td>
                                     <td>${item.qty}</td>
                                     <td>${item.unit}</td>
                                     <td>${item.prNumber}</td>
@@ -850,20 +835,18 @@
                 
                 <div class="preview-signatures">
                     <div class="preview-signature">
-                        <div class="preview-signature-title">Tanda Tangan Pengirim:</div>
+                        <div class="preview-signature-title">Pengirim:</div>
                         <div class="preview-signature-img">
-                            ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='Tanda tangan tidak dapat dimuat';">` : 'Tidak ada tanda tangan'}
+                            ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                         </div>
-                        <div class="preview-signature-name">(_________________)</div>
-                        <div class="preview-signature-role">Pengirim</div>
+                        <div class="preview-signature-name">${row.senderName || '(TEAM WAREHOUSE)'}</div>
                     </div>
                     <div class="preview-signature">
-                        <div class="preview-signature-title">Tanda Tangan Penerima:</div>
+                        <div class="preview-signature-title">Penerima:</div>
                         <div class="preview-signature-img">
-                            ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='Tanda tangan tidak dapat dimuat';">` : 'Tidak ada tanda tangan'}
+                            ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                         </div>
                         <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
-                        <div class="preview-signature-role">Penerima</div>
                     </div>
                 </div>
             `;
@@ -872,7 +855,7 @@
             document.getElementById('previewModal').style.display = 'block';
         }
 
-        // ISSUE 3 FIX: Enhanced PDF Generation with Perfect Layout
+        // Enhanced PDF Generation matching the image exactly
         async function generateEnhancedPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
@@ -910,51 +893,51 @@
 
                 // Header - Exact match to image
                 doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(20);
-                doc.setTextColor(30, 58, 138); // #1e3a8a - blue color
-                doc.text('DIREC - Input Form', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 15;
+                doc.setFontSize(16);
+                doc.setTextColor(0, 0, 0); // Black color as in image
+                doc.text('DIREC - TANDA TERIMA', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 10;
 
                 // Registration Number - Exact positioning
                 doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(12);
-                doc.setTextColor(107, 114, 128); // #6b7280 - gray color
+                doc.setFontSize(11);
+                doc.setTextColor(0, 0, 0); // Black color as in image
                 doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 20;
+                yPosition += 15;
 
-                // Information Section - Exact layout
-                doc.setFontSize(14);
+                // Information Section - Exact layout as in image
+                doc.setFontSize(11);
                 doc.setTextColor(0, 0, 0); // Black text
-                const labelWidth = 45;
+                const labelWidth = 30;
                 
                 // Date
                 doc.setFont('Helvetica', 'bold');
-                doc.text('Tanggal:', margin, yPosition);
+                doc.text('Tanggal', margin, yPosition);
                 doc.setFont('Helvetica', 'normal');
-                doc.text(row.date || '-', margin + labelWidth, yPosition);
-                yPosition += 8;
+                doc.text(`: ${row.date || '-'}`, margin + labelWidth, yPosition);
+                yPosition += 7;
                 
                 // Recipient Name
                 doc.setFont('Helvetica', 'bold');
-                doc.text('Nama Penerima:', margin, yPosition);
+                doc.text('Nama Penerima', margin, yPosition);
                 doc.setFont('Helvetica', 'normal');
-                doc.text(row.recipientName || '-', margin + labelWidth, yPosition);
-                yPosition += 8;
+                doc.text(`: ${row.recipientName || '-'}`, margin + labelWidth, yPosition);
+                yPosition += 7;
                 
                 // Department
                 doc.setFont('Helvetica', 'bold');
-                doc.text('Departemen:', margin, yPosition);
+                doc.text('Departemen', margin, yPosition);
                 doc.setFont('Helvetica', 'normal');
-                doc.text(row.department || '-', margin + labelWidth, yPosition);
-                yPosition += 20;
+                doc.text(`: ${row.department || '-'}`, margin + labelWidth, yPosition);
+                yPosition += 15;
 
                 // Items Section - Exact table styling from image
                 doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(16);
+                doc.setFontSize(11);
                 doc.text('Deskripsi Barang:', margin, yPosition);
-                yPosition += 10;
+                yPosition += 7;
 
-                // Table with exact styling from the image
+                // Table with exact styling from the image - green header (#00b894)
                 doc.autoTable({
                     startY: yPosition,
                     head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
@@ -966,73 +949,68 @@
                         item.poNumber
                     ]) : [['Tidak ada barang', '-', '-', '-', '-']],
                     styles: { 
-                        fontSize: 12, 
-                        cellPadding: 8,
+                        fontSize: 10, 
+                        cellPadding: 6,
                         lineColor: [0, 0, 0], // Black borders
                         lineWidth: 0.5,
                         textColor: [0, 0, 0], // Black text
                         font: 'Helvetica'
                     },
                     headStyles: { 
-                        fillColor: [16, 185, 129], // #10b981 - green color from image
+                        fillColor: [0, 184, 148], // #00b894 - green color from image
                         textColor: [255, 255, 255], // White text
-                        fontStyle: 'bold',
-                        fontSize: 12
+                        fontStyle: 'normal',
+                        fontSize: 10
                     },
                     columnStyles: {
                         0: { cellWidth: 60, halign: 'left' }, // Deskripsi
-                        1: { cellWidth: 25, halign: 'center' }, // Qty
-                        2: { cellWidth: 30, halign: 'center' }, // Satuan
-                        3: { cellWidth: 35, halign: 'center' }, // No PR
-                        4: { cellWidth: 35, halign: 'center' }  // No PO
-                    },
-                    alternateRowStyles: {
-                        fillColor: [249, 250, 251] // Light gray alternating rows
+                        1: { cellWidth: 20, halign: 'center' }, // Qty
+                        2: { cellWidth: 25, halign: 'center' }, // Satuan
+                        3: { cellWidth: 30, halign: 'center' }, // No PR
+                        4: { cellWidth: 30, halign: 'center' }  // No PO
                     },
                     margin: { left: margin, right: margin }
                 });
 
-                yPosition = doc.lastAutoTable.finalY + 25;
+                yPosition = doc.lastAutoTable.finalY + 15;
 
                 // Photo Section - Exact positioning from image
                 doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(16);
+                doc.setFontSize(11);
                 doc.text('Foto Penerima:', margin, yPosition);
-                yPosition += 10;
+                yPosition += 7;
                 
                 if (photoData) {
                     try {
                         // Add photo with exact sizing from image
-                        doc.addImage(photoData, 'JPEG', margin, yPosition, 80, 60);
+                        doc.addImage(photoData, 'JPEG', margin, yPosition, 60, 45);
                         console.log('Photo added successfully');
+                        yPosition += 50; // Space after photo
                     } catch (error) {
                         console.error('Error adding photo:', error);
                         doc.setFont('Helvetica', 'italic');
-                        doc.setFontSize(12);
-                        doc.setTextColor(107, 114, 128);
-                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 30);
+                        doc.setFontSize(10);
+                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 20);
+                        yPosition += 25;
                     }
                 } else {
                     doc.setFont('Helvetica', 'italic');
-                    doc.setFontSize(12);
-                    doc.setTextColor(107, 114, 128);
-                    doc.text('(Tidak ada foto)', margin, yPosition + 30);
+                    doc.setFontSize(10);
+                    doc.text('(Tidak ada foto)', margin, yPosition + 20);
+                    yPosition += 25;
                 }
-                yPosition += 80;
 
                 // Signature Section - Exact layout from image
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(14);
-                doc.setTextColor(0, 0, 0);
-                
-                const signatureWidth = 80;
-                const signatureHeight = 30;
-                const signatureSpacing = 90;
+                const signatureWidth = 50;
+                const signatureHeight = 25;
+                const signatureSpacing = pageWidth - (2 * margin) - signatureWidth;
                 
                 // Signature titles - exact positioning
-                doc.text('Tanda Tangan Pengirim:', margin, yPosition);
-                doc.text('Tanda Tangan Penerima:', margin + signatureSpacing, yPosition);
-                yPosition += 10;
+                doc.setFont('Helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('Pengirim:', margin, yPosition);
+                doc.text('Penerima:', margin + signatureSpacing/2 + signatureWidth/2, yPosition);
+                yPosition += 7;
                 
                 // Signature images with exact sizing
                 if (signatureSenderData) {
@@ -1046,25 +1024,20 @@
                 
                 if (signatureReceiverData) {
                     try {
-                        doc.addImage(signatureReceiverData, 'PNG', margin + signatureSpacing, yPosition, signatureWidth, signatureHeight);
+                        doc.addImage(signatureReceiverData, 'PNG', margin + signatureSpacing/2 + signatureWidth/2, yPosition, signatureWidth, signatureHeight);
                         console.log('Receiver signature added successfully');
                     } catch (error) {
                         console.error('Error adding receiver signature:', error);
                     }
                 }
                 
-                yPosition += signatureHeight + 10;
+                yPosition += signatureHeight + 5;
                 
                 // Signature names - exact styling from image
                 doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(12);
-                doc.setTextColor(0, 0, 0);
-                doc.text('(_________________)', margin + 15, yPosition);
-                doc.text(`(${row.recipientName || '_________________'})`, margin + signatureSpacing + 15, yPosition);
-                
-                yPosition += 8;
-                doc.text('Pengirim', margin + 35, yPosition);
-                doc.text('Penerima', margin + signatureSpacing + 35, yPosition);
+                doc.setFontSize(10);
+                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, margin, yPosition);
+                doc.text(`(${row.recipientName || '_________________'})`, margin + signatureSpacing/2 + signatureWidth/2, yPosition);
 
                 // Save PDF with exact filename format
                 const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
