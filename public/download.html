@@ -137,6 +137,19 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
+        .sync-status {
+            background: #10b981;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: center;
+            display: none;
+        }
+        .sync-status.show {
+            display: block;
+        }
         .table-wrapper {
             overflow-x: auto;
         }
@@ -229,6 +242,10 @@
         .pagination button:disabled {
             background: #d1d5db;
             cursor: not-allowed;
+        }
+        .pagination button.active {
+            background: #1e40af;
+            font-weight: bold;
         }
         
         /* Preview Modal Styles */
@@ -471,6 +488,9 @@
             </div>
         </div>
         <div class="download-container">
+            <div class="sync-status" id="syncStatus">
+                Data tersinkronisasi dengan form terbaru
+            </div>
             <div class="loading" id="loading">
                 <div class="loading-content">
                     <div class="spinner"></div>
@@ -518,6 +538,11 @@
         // Global variables
         let currentPreviewData = null;
         let registrationCounters = {};
+        let lastDataUpdate = null;
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let allData = [];
+        let filteredData = [];
         
         const sidebar = document.getElementById('sidebar');
         const content = document.getElementById('content');
@@ -549,24 +574,151 @@
             });
         }
 
-        function parseItems(itemsString) {
-            if (!itemsString || itemsString === 'Tidak ada barang') return [];
-            return itemsString.split('\n').map(item => {
-                const match = item.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
-                return match ? {
-                    desc: match[1].trim(),
-                    qty: match[2],
-                    unit: match[3],
-                    prNumber: match[4],
-                    poNumber: match[5]
-                } : null;
-            }).filter(item => item);
+        // Enhanced Data Synchronization Manager
+        class DataSyncManager {
+            constructor() {
+                this.storageKey = 'direc_receipts';
+                this.lastUpdateKey = 'direc_last_update';
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Listen for data sync events from form submission
+                window.addEventListener('direcDataSync', (event) => {
+                    console.log('Data sync event received:', event.detail);
+                    this.handleDataSync();
+                });
+
+                // Listen for storage changes from other tabs
+                window.addEventListener('storage', (event) => {
+                    if (event.key === this.storageKey) {
+                        console.log('Storage change detected, refreshing data');
+                        this.handleDataSync();
+                    }
+                });
+            }
+
+            async handleDataSync() {
+                try {
+                    // Show sync status
+                    this.showSyncStatus();
+                    
+                    // Reload data
+                    await loadDownloadData();
+                    
+                    console.log('Data synchronized successfully');
+                } catch (error) {
+                    console.error('Error during data sync:', error);
+                }
+            }
+
+            showSyncStatus() {
+                const syncStatus = document.getElementById('syncStatus');
+                syncStatus.classList.add('show');
+                setTimeout(() => {
+                    syncStatus.classList.remove('show');
+                }, 3000);
+            }
+
+            getAllReceipts() {
+                try {
+                    const data = localStorage.getItem(this.storageKey);
+                    if (!data) return [];
+                    
+                    const receipts = JSON.parse(data);
+                    return receipts.filter(receipt => this.validateReceiptData(receipt));
+                } catch (error) {
+                    console.error('Error loading receipts:', error);
+                    return [];
+                }
+            }
+
+            validateReceiptData(receipt) {
+                const requiredFields = ['recipientName', 'department', 'date'];
+                return requiredFields.every(field => receipt.hasOwnProperty(field) && receipt[field]);
+            }
+
+            getLastUpdate() {
+                return localStorage.getItem(this.lastUpdateKey);
+            }
         }
 
-        let currentPage = 1;
-        const itemsPerPage = 10;
-        let allData = [];
-        let filteredData = [];
+        // Enhanced item parsing with multiple format support
+        function parseItems(itemsData) {
+            console.log('Parsing items data type:', typeof itemsData);
+            
+            // Handle empty or invalid data
+            if (!itemsData || itemsData === 'Tidak ada barang') {
+                console.log('No items data found');
+                return [];
+            }
+            
+            // Handle array format
+            if (Array.isArray(itemsData)) {
+                console.log('Items data is array with length:', itemsData.length);
+                return itemsData.filter(item => item && (item.desc || item.description));
+            }
+            
+            // Handle itemsArray property
+            if (itemsData && typeof itemsData === 'object' && itemsData.itemsArray) {
+                console.log('Using itemsArray property');
+                return Array.isArray(itemsData.itemsArray) ? itemsData.itemsArray : [];
+            }
+            
+            // Handle string format
+            if (typeof itemsData === 'string') {
+                console.log('Items data is string with length:', itemsData.length);
+                try {
+                    // Try to parse as JSON first
+                    const parsed = JSON.parse(itemsData);
+                    if (Array.isArray(parsed)) {
+                        return parsed;
+                    }
+                } catch (e) {
+                    // Parse string format: "desc - Qty: X unit - PR: Y - PO: Z"
+                    return itemsData.split('\n').map(item => {
+                        const trimmed = item.trim();
+                        if (!trimmed) return null;
+                        
+                        const match = trimmed.match(/^(.*?)\s*-\s*Qty:\s*(\d+)\s*(\w+)\s*-\s*PR:\s*(\d+)\s*-\s*PO:\s*(\w+)$/);
+                        if (match) {
+                            return {
+                                desc: match[1].trim(),
+                                qty: match[2],
+                                unit: match[3],
+                                prNumber: match[4],
+                                poNumber: match[5]
+                            };
+                        }
+                        
+                        // Fallback: treat as description only
+                        return {
+                            desc: trimmed,
+                            qty: '1',
+                            unit: 'Pcs',
+                            prNumber: '-',
+                            poNumber: '-'
+                        };
+                    }).filter(item => item);
+                }
+            }
+            
+            // Handle object with items property
+            if (itemsData && typeof itemsData === 'object') {
+                if (itemsData.items) {
+                    console.log('Using items property');
+                    return Array.isArray(itemsData.items) ? itemsData.items : [];
+                }
+                
+                if (itemsData.itemsString) {
+                    console.log('Using itemsString property');
+                    return parseItems(itemsData.itemsString);
+                }
+            }
+            
+            console.log('No valid items found, returning empty array');
+            return [];
+        }
 
         // Registration Number System
         function buildRegistrationCounters(data) {
@@ -647,6 +799,7 @@
             }
         }
 
+        // Fixed function to render table with proper data serialization
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
             downloadBody.innerHTML = '';
@@ -654,208 +807,303 @@
             const end = start + itemsPerPage;
             const pageData = data.slice(start, end);
             
-            pageData.forEach(row => {
-                const items = parseItems(row.items);
-                const firstItem = items[0] || { prNumber: '-', poNumber: '-' };
+            if (pageData.length === 0) {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.date || '-'}</td>
-                    <td>${row.department || '-'}</td>
-                    <td>${row.recipientName || '-'}</td>
-                    <td>${firstItem.prNumber}</td>
-                    <td>${firstItem.poNumber}</td>
-                    <td>
-                        <button class="preview-btn" data-row='${JSON.stringify(row)}'>Preview</button>
-                        <button class="download-btn" data-row='${JSON.stringify(row)}'>Download PDF</button>
-                    </td>
-                `;
+                tr.innerHTML = '<td colspan="6" style="text-align: center;">Tidak ada data</td>';
                 downloadBody.appendChild(tr);
+                return;
+            }
+            
+            pageData.forEach((row, index) => {
+                try {
+                    // Parse items safely
+                    const items = parseItems(row.items || row.itemsArray || row.itemsString);
+                    const firstItem = items[0] || { prNumber: '-', poNumber: '-' };
+                    
+                    // Create table row
+                    const tr = document.createElement('tr');
+                    
+                    // Safely serialize row data by removing circular references and handling special characters
+                    const safeRowData = JSON.stringify(row, (key, value) => {
+                        // Skip functions and DOM elements
+                        if (typeof value === 'function' || (value && value.nodeType)) {
+                            return undefined;
+                        }
+                        return value;
+                    }).replace(/'/g, "&#39;");
+                    
+                    tr.innerHTML = `
+                        <td>${row.date || '-'}</td>
+                        <td>${row.department || '-'}</td>
+                        <td>${row.recipientName || '-'}</td>
+                        <td>${firstItem.prNumber || '-'}</td>
+                        <td>${firstItem.poNumber || '-'}</td>
+                        <td>
+                            <button class="preview-btn" data-index="${start + index}">Preview</button>
+                            <button class="download-btn" data-index="${start + index}">Download PDF</button>
+                        </td>
+                    `;
+                    downloadBody.appendChild(tr);
+                } catch (error) {
+                    console.error('Error rendering row:', error, row);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.date || '-'}</td>
+                        <td>${row.department || '-'}</td>
+                        <td>${row.recipientName || '-'}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span style="color: red;">Error loading data</span></td>
+                    `;
+                    downloadBody.appendChild(tr);
+                }
             });
             
             renderPagination(data.length, page);
             attachEvents();
         }
 
+        // Fixed pagination rendering with active state
         function renderPagination(totalItems, currentPage) {
             const pagination = document.getElementById('pagination');
-            const totalPages = Math.ceil(totalItems / itemsPerPage);
             pagination.innerHTML = '';
             
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            if (totalPages <= 1) {
+                return; // Don't show pagination if only one page
+            }
+            
+            // Previous button
             const prevBtn = document.createElement('button');
             prevBtn.textContent = 'Previous';
             prevBtn.disabled = currentPage === 1;
             prevBtn.addEventListener('click', () => {
                 if (currentPage > 1) {
-                    currentPage--;
-                    renderTable(filteredData, currentPage);
+                    goToPage(currentPage - 1);
                 }
             });
             pagination.appendChild(prevBtn);
             
-            for (let i = 1; i <= totalPages; i++) {
+            // Page numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // Adjust start page if we're near the end
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            // First page button if not visible
+            if (startPage > 1) {
+                const firstBtn = document.createElement('button');
+                firstBtn.textContent = '1';
+                firstBtn.addEventListener('click', () => goToPage(1));
+                pagination.appendChild(firstBtn);
+                
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.style.margin = '0 5px';
+                    pagination.appendChild(ellipsis);
+                }
+            }
+            
+            // Page buttons
+            for (let i = startPage; i <= endPage; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
+                pageBtn.classList.toggle('active', i === currentPage);
                 pageBtn.disabled = i === currentPage;
-                pageBtn.addEventListener('click', () => {
-                    currentPage = i;
-                    renderTable(filteredData, currentPage);
-                });
+                pageBtn.addEventListener('click', () => goToPage(i));
                 pagination.appendChild(pageBtn);
             }
             
+            // Last page button if not visible
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.style.margin = '0 5px';
+                    pagination.appendChild(ellipsis);
+                }
+                
+                const lastBtn = document.createElement('button');
+                lastBtn.textContent = totalPages;
+                lastBtn.addEventListener('click', () => goToPage(totalPages));
+                pagination.appendChild(lastBtn);
+            }
+            
+            // Next button
             const nextBtn = document.createElement('button');
             nextBtn.textContent = 'Next';
             nextBtn.disabled = currentPage === totalPages;
             nextBtn.addEventListener('click', () => {
                 if (currentPage < totalPages) {
-                    currentPage++;
-                    renderTable(filteredData, currentPage);
+                    goToPage(currentPage + 1);
                 }
             });
             pagination.appendChild(nextBtn);
         }
 
+        // Helper function to navigate to a specific page
+        function goToPage(page) {
+            currentPage = page;
+            renderTable(filteredData, currentPage);
+            
+            // Scroll to top of table
+            document.getElementById('downloadTable').scrollIntoView({ behavior: 'smooth' });
+        }
+
         function searchData(query) {
             query = query.toLowerCase();
             filteredData = allData.filter(item => {
-                const items = parseItems(item.items);
-                return items.some(i => 
-                    i.prNumber.toLowerCase().includes(query) ||
-                    i.poNumber.toLowerCase().includes(query)
-                ) || (item.recipientName && item.recipientName.toLowerCase().includes(query));
+                try {
+                    const items = parseItems(item.items || item.itemsArray || item.itemsString);
+                    return items.some(i => 
+                        (i.prNumber && i.prNumber.toString().toLowerCase().includes(query)) ||
+                        (i.poNumber && i.poNumber.toString().toLowerCase().includes(query))
+                    ) || (item.recipientName && item.recipientName.toLowerCase().includes(query));
+                } catch (error) {
+                    console.error('Error filtering item:', error);
+                    return false;
+                }
             });
             currentPage = 1;
             renderTable(filteredData, currentPage);
         }
 
-        // Enhanced Image Fetching
-        async function fetchImageWithRetry(url, maxRetries = 3) {
-            if (!url || url.includes('placeholder.svg')) return null;
-            
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    const response = await fetch(url, { 
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        headers: {
-                            'Accept': 'image/*'
+        // Fixed event attachment function
+        function attachEvents() {
+            // Preview buttons
+            const previewButtons = document.querySelectorAll('.preview-btn');
+            previewButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    try {
+                        const index = parseInt(btn.dataset.index);
+                        const row = filteredData[index];
+                        if (row) {
+                            showPreview(row);
+                        } else {
+                            throw new Error('Data not found');
                         }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    } catch (error) {
+                        console.error('Error showing preview:', error);
+                        alert('Error loading preview data. Please try again.');
                     }
-                    
-                    const blob = await response.blob();
-                    
-                    // Validate that it's actually an image
-                    if (!blob.type.startsWith('image/')) {
-                        throw new Error('Response is not an image');
+                });
+            });
+
+            // Download buttons
+            const downloadButtons = document.querySelectorAll('.download-btn');
+            downloadButtons.forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    try {
+                        const index = parseInt(btn.dataset.index);
+                        const row = filteredData[index];
+                        if (row) {
+                            await generateEnhancedPDF(row);
+                        } else {
+                            throw new Error('Data not found');
+                        }
+                    } catch (error) {
+                        console.error('Error generating PDF:', error);
+                        alert('Error generating PDF. Please try again.');
                     }
-                    
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.onerror = () => resolve(null);
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (error) {
-                    console.warn(`Attempt ${attempt} failed for ${url}:`, error.message);
-                    if (attempt === maxRetries) {
-                        console.error(`Failed to fetch image after ${maxRetries} attempts:`, url);
-                        return null;
-                    }
-                    // Wait before retry
-                    await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-                }
-            }
-            return null;
+                });
+            });
         }
 
-        // Preview Function
+        // Enhanced Preview Function with complete form data integration
         async function showPreview(row) {
-            const items = parseItems(row.items);
-            const registrationNumber = getRegistrationNumber(row);
+            try {
+                console.log('Showing preview for:', row);
+                const items = parseItems(row.items || row.itemsArray || row.itemsString);
+                const registrationNumber = getRegistrationNumber(row);
 
-            const previewReceipt = document.getElementById('previewReceipt');
-            previewReceipt.innerHTML = `
-                <div class="preview-header">
-                    <div class="preview-title">DIREC - TANDA TERIMA</div>
-                    <div class="preview-reg-number">No. Registrasi: ${registrationNumber}</div>
-                </div>
-                
-                <div class="preview-info">
-                    <div class="preview-info-row">
-                        <span class="preview-info-label">Tanggal</span>
-                        <span class="preview-info-value">: ${row.date || '-'}</span>
+                const previewReceipt = document.getElementById('previewReceipt');
+                previewReceipt.innerHTML = `
+                    <div class="preview-header">
+                        <div class="preview-title">DIREC - TANDA TERIMA</div>
+                        <div class="preview-reg-number">No. Registrasi: ${registrationNumber}</div>
                     </div>
-                    <div class="preview-info-row">
-                        <span class="preview-info-label">Nama Penerima</span>
-                        <span class="preview-info-value">: ${row.recipientName || '-'}</span>
+                    
+                    <div class="preview-info">
+                        <div class="preview-info-row">
+                            <span class="preview-info-label">Tanggal</span>
+                            <span class="preview-info-value">: ${row.date || '-'}</span>
+                        </div>
+                        <div class="preview-info-row">
+                            <span class="preview-info-label">Nama Penerima</span>
+                            <span class="preview-info-value">: ${row.recipientName || '-'}</span>
+                        </div>
+                        <div class="preview-info-row">
+                            <span class="preview-info-label">Departemen</span>
+                            <span class="preview-info-value">: ${row.department || '-'}</span>
+                        </div>
                     </div>
-                    <div class="preview-info-row">
-                        <span class="preview-info-label">Departemen</span>
-                        <span class="preview-info-value">: ${row.department || '-'}</span>
-                    </div>
-                </div>
-                
-                <div class="preview-items">
-                    <div class="preview-items-title">Deskripsi Barang:</div>
-                    <table class="preview-table">
-                        <thead>
-                            <tr>
-                                <th>Deskripsi</th>
-                                <th>Qty</th>
-                                <th>Satuan</th>
-                                <th>No PR</th>
-                                <th>No PO</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${items.length ? items.map(item => `
+                    
+                    <div class="preview-items">
+                        <div class="preview-items-title">Deskripsi Barang:</div>
+                        <table class="preview-table">
+                            <thead>
                                 <tr>
-                                    <td>${item.desc}</td>
-                                    <td>${item.qty}</td>
-                                    <td>${item.unit}</td>
-                                    <td>${item.prNumber}</td>
-                                    <td>${item.poNumber}</td>
+                                    <th>Deskripsi</th>
+                                    <th>Qty</th>
+                                    <th>Satuan</th>
+                                    <th>No PR</th>
+                                    <th>No PO</th>
                                 </tr>
-                            `).join('') : '<tr><td colspan="5">Tidak ada barang</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="preview-photo-section">
-                    <div class="preview-photo-title">Foto Penerima:</div>
-                    <div id="photoContainer">
-                        ${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <p style="color: #6b7280; font-style: italic; display: none;">Foto tidak dapat dimuat</p>` : '<p style="color: #6b7280; font-style: italic;">Tidak ada foto</p>'}
+                            </thead>
+                            <tbody>
+                                ${items.length ? items.map(item => `
+                                    <tr>
+                                        <td>${item.desc || '-'}</td>
+                                        <td>${item.qty || '-'}</td>
+                                        <td>${item.unit || '-'}</td>
+                                        <td>${item.prNumber || '-'}</td>
+                                        <td>${item.poNumber || '-'}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="5">Tidak ada barang</td></tr>'}
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-                
-                <div class="preview-signatures">
-                    <div class="preview-signature">
-                        <div class="preview-signature-title">Pengirim:</div>
-                        <div class="preview-signature-img">
-                            ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                    
+                    <div class="preview-photo-section">
+                        <div class="preview-photo-title">Foto Penerima:</div>
+                        <div id="photoContainer">
+                            ${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <p style="color: #6b7280; font-style: italic; display: none;">Foto tidak dapat dimuat</p>` : '<p style="color: #6b7280; font-style: italic;">Tidak ada foto</p>'}
                         </div>
-                        <div class="preview-signature-name">${row.senderName || '(TEAM WAREHOUSE)'}</div>
                     </div>
-                    <div class="preview-signature">
-                        <div class="preview-signature-title">Penerima:</div>
-                        <div class="preview-signature-img">
-                            ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                    
+                    <div class="preview-signatures">
+                        <div class="preview-signature">
+                            <div class="preview-signature-title">Pengirim:</div>
+                            <div class="preview-signature-img">
+                                ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                            </div>
+                            <div class="preview-signature-name">(${row.senderName || 'TEAM WAREHOUSE'})</div>
                         </div>
-                        <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
+                        <div class="preview-signature">
+                            <div class="preview-signature-title">Penerima:</div>
+                            <div class="preview-signature-img">
+                                ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                            </div>
+                            <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
 
-            currentPreviewData = row;
-            document.getElementById('previewModal').style.display = 'block';
+                currentPreviewData = row;
+                document.getElementById('previewModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error in showPreview:', error);
+                alert('Error showing preview. Please try again.');
+            }
         }
 
-        // Enhanced PDF Generation matching the image exactly
+        // Enhanced PDF Generation with perfect form data integration and correct table formatting
         async function generateEnhancedPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
@@ -869,208 +1117,237 @@
 
                 const { jsPDF } = jsPDFInstance;
                 const doc = new jsPDF();
-                const items = parseItems(row.items);
+                
+                // Parse and validate form data
+                const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
 
-                // Fetch images with retry mechanism
-                console.log('Fetching images...');
-                const [photoData, signatureSenderData, signatureReceiverData] = await Promise.all([
-                    fetchImageWithRetry(row.photoUrl),
-                    fetchImageWithRetry(row.signatureSenderUrl),
-                    fetchImageWithRetry(row.signatureReceiverUrl)
-                ]);
-
-                console.log('Images fetched:', {
-                    photo: !!photoData,
-                    senderSignature: !!signatureSenderData,
-                    receiverSignature: !!signatureReceiverData
+                console.log('Generating PDF with complete form data:', {
+                    recipientName: row.recipientName,
+                    department: row.department,
+                    date: row.date,
+                    registrationNumber: registrationNumber,
+                    items: items,
+                    itemsCount: items.length,
+                    hasPhoto: !!row.photoUrl,
+                    hasSenderSignature: !!row.signatureSenderUrl,
+                    hasReceiverSignature: !!row.signatureReceiverUrl
                 });
 
-                // PDF Layout - Exact match to provided image
+                // Validate and prepare image data
+                const photoData = row.photoUrl && !row.photoUrl.includes('placeholder.svg') ? row.photoUrl : null;
+                const signatureSenderData = row.signatureSenderUrl;
+                const signatureReceiverData = row.signatureReceiverUrl;
+
+                // PDF Layout Configuration
                 const margin = 20;
                 const pageWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
                 let yPosition = margin;
 
-                // Header - Exact match to image
+                // Header Section
                 doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(16);
-                doc.setTextColor(0, 0, 0); // Black color as in image
+                doc.setFontSize(18);
+                doc.setTextColor(0, 0, 0);
                 doc.text('DIREC - TANDA TERIMA', pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
+                yPosition += 12;
 
-                // Registration Number - Exact positioning
+                // Registration Number
                 doc.setFont('Helvetica', 'normal');
-                doc.setFontSize(11);
-                doc.setTextColor(0, 0, 0); // Black color as in image
+                doc.setFontSize(12);
                 doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 15;
+                yPosition += 20;
 
-                // Information Section - Exact layout as in image
-                doc.setFontSize(11);
-                doc.setTextColor(0, 0, 0); // Black text
-                const labelWidth = 30;
+                // Information Section with proper spacing
+                doc.setFontSize(12);
+                const labelWidth = 35;
                 
                 // Date
-                doc.setFont('Helvetica', 'bold');
-                doc.text('Tanggal', margin, yPosition);
                 doc.setFont('Helvetica', 'normal');
+                doc.text('Tanggal', margin, yPosition);
                 doc.text(`: ${row.date || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 7;
+                yPosition += 8;
                 
                 // Recipient Name
-                doc.setFont('Helvetica', 'bold');
                 doc.text('Nama Penerima', margin, yPosition);
-                doc.setFont('Helvetica', 'normal');
                 doc.text(`: ${row.recipientName || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 7;
+                yPosition += 8;
                 
                 // Department
-                doc.setFont('Helvetica', 'bold');
                 doc.text('Departemen', margin, yPosition);
-                doc.setFont('Helvetica', 'normal');
                 doc.text(`: ${row.department || '-'}`, margin + labelWidth, yPosition);
-                yPosition += 15;
+                yPosition += 20;
 
-                // Items Section - Exact table styling from image
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(11);
+                // Items Section Header
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(12);
                 doc.text('Deskripsi Barang:', margin, yPosition);
-                yPosition += 7;
+                yPosition += 10;
 
-                // Table with exact styling from the image - green header (#00b894)
+                // Enhanced Table Generation with proper formatting
+                const tableData = items.length > 0 ? items.map(item => [
+                    item.desc || '-',
+                    item.qty || '-',
+                    item.unit || '-',
+                    item.prNumber || '-',
+                    item.poNumber || '-'
+                ]) : [['Tidak ada barang', '-', '-', '-', '-']];
+
                 doc.autoTable({
                     startY: yPosition,
                     head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                    body: items.length ? items.map(item => [
-                        item.desc, 
-                        item.qty, 
-                        item.unit, 
-                        item.prNumber, 
-                        item.poNumber
-                    ]) : [['Tidak ada barang', '-', '-', '-', '-']],
+                    body: tableData,
+                    theme: 'grid',
                     styles: { 
-                        fontSize: 10, 
-                        cellPadding: 6,
-                        lineColor: [0, 0, 0], // Black borders
+                        fontSize: 11,
+                        cellPadding: 5,
+                        lineColor: [0, 0, 0],
                         lineWidth: 0.5,
-                        textColor: [0, 0, 0], // Black text
-                        font: 'Helvetica'
+                        textColor: [0, 0, 0],
+                        font: 'Helvetica',
+                        halign: 'center',
+                        valign: 'middle'
                     },
                     headStyles: { 
-                        fillColor: [0, 184, 148], // #00b894 - green color from image
-                        textColor: [255, 255, 255], // White text
+                        fillColor: [26, 188, 156], // Teal color matching the image
+                        textColor: [255, 255, 255],
                         fontStyle: 'normal',
-                        fontSize: 10
+                        fontSize: 11,
+                        halign: 'center'
                     },
                     columnStyles: {
-                        0: { cellWidth: 60, halign: 'left' }, // Deskripsi
-                        1: { cellWidth: 20, halign: 'center' }, // Qty
-                        2: { cellWidth: 25, halign: 'center' }, // Satuan
-                        3: { cellWidth: 30, halign: 'center' }, // No PR
-                        4: { cellWidth: 30, halign: 'center' }  // No PO
+                        0: { 
+                            cellWidth: 70, 
+                            halign: 'left',
+                            fontSize: 10
+                        },
+                        1: { 
+                            cellWidth: 25, 
+                            halign: 'center',
+                            fontSize: 10
+                        },
+                        2: { 
+                            cellWidth: 30, 
+                            halign: 'center',
+                            fontSize: 10
+                        },
+                        3: { 
+                            cellWidth: 25, 
+                            halign: 'center',
+                            fontSize: 10
+                        },
+                        4: { 
+                            cellWidth: 30, 
+                            halign: 'center',
+                            fontSize: 10
+                        }
                     },
-                    margin: { left: margin, right: margin }
+                    margin: { left: margin, right: margin },
+                    tableWidth: 'wrap'
                 });
 
-                yPosition = doc.lastAutoTable.finalY + 15;
+                yPosition = doc.lastAutoTable.finalY + 20;
 
-                // Photo Section - Exact positioning from image
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(11);
+                // Photo Section
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(12);
                 doc.text('Foto Penerima:', margin, yPosition);
-                yPosition += 7;
+                yPosition += 10;
                 
                 if (photoData) {
                     try {
-                        // Add photo with exact sizing from image
-                        doc.addImage(photoData, 'JPEG', margin, yPosition, 60, 45);
-                        console.log('Photo added successfully');
-                        yPosition += 50; // Space after photo
+                        // Validate image data before adding
+                        if (photoData.startsWith('data:image/')) {
+                            const imageType = photoData.includes('data:image/png') ? 'PNG' : 'JPEG';
+                            doc.addImage(photoData, imageType, margin, yPosition, 80, 60);
+                            console.log('Photo added successfully to PDF');
+                        } else {
+                            throw new Error('Invalid image format');
+                        }
+                        yPosition += 70;
                     } catch (error) {
-                        console.error('Error adding photo:', error);
+                        console.error('Error adding photo to PDF:', error);
                         doc.setFont('Helvetica', 'italic');
                         doc.setFontSize(10);
-                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 20);
+                        doc.text('(Foto tidak dapat ditampilkan)', margin, yPosition + 10);
                         yPosition += 25;
                     }
                 } else {
                     doc.setFont('Helvetica', 'italic');
                     doc.setFontSize(10);
-                    doc.text('(Tidak ada foto)', margin, yPosition + 20);
+                    doc.text('(Tidak ada foto)', margin, yPosition + 10);
                     yPosition += 25;
                 }
 
-                // Signature Section - Exact layout from image
-                const signatureWidth = 50;
-                const signatureHeight = 25;
-                const signatureSpacing = pageWidth - (2 * margin) - signatureWidth;
+                // Check if we need a new page
+                if (yPosition > pageHeight - 80) {
+                    doc.addPage();
+                    yPosition = margin;
+                }
+
+                // Signature Section with proper spacing
+                const signatureY = yPosition;
+                const leftSignatureX = margin;
+                const rightSignatureX = pageWidth - margin - 80;
+                const signatureWidth = 70;
+                const signatureHeight = 40;
                 
-                // Signature titles - exact positioning
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(11);
-                doc.text('Pengirim:', margin, yPosition);
-                doc.text('Penerima:', margin + signatureSpacing/2 + signatureWidth/2, yPosition);
-                yPosition += 7;
+                // Signature labels
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(12);
+                doc.text('Pengirim:', leftSignatureX, signatureY);
+                doc.text('Penerima:', rightSignatureX, signatureY);
                 
-                // Signature images with exact sizing
+                const signatureImageY = signatureY + 10;
+                
+                // Add signature images with validation
                 if (signatureSenderData) {
                     try {
-                        doc.addImage(signatureSenderData, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
-                        console.log('Sender signature added successfully');
+                        if (signatureSenderData.startsWith('data:image/')) {
+                            doc.addImage(signatureSenderData, 'PNG', leftSignatureX, signatureImageY, signatureWidth, signatureHeight);
+                            console.log('Sender signature added successfully to PDF');
+                        }
                     } catch (error) {
-                        console.error('Error adding sender signature:', error);
+                        console.error('Error adding sender signature to PDF:', error);
                     }
                 }
                 
                 if (signatureReceiverData) {
                     try {
-                        doc.addImage(signatureReceiverData, 'PNG', margin + signatureSpacing/2 + signatureWidth/2, yPosition, signatureWidth, signatureHeight);
-                        console.log('Receiver signature added successfully');
+                        if (signatureReceiverData.startsWith('data:image/')) {
+                            doc.addImage(signatureReceiverData, 'PNG', rightSignatureX, signatureImageY, signatureWidth, signatureHeight);
+                            console.log('Receiver signature added successfully to PDF');
+                        }
                     } catch (error) {
-                        console.error('Error adding receiver signature:', error);
+                        console.error('Error adding receiver signature to PDF:', error);
                     }
                 }
                 
-                yPosition += signatureHeight + 5;
-                
-                // Signature names - exact styling from image
+                // Signature names
+                const nameY = signatureImageY + signatureHeight + 10;
                 doc.setFont('Helvetica', 'normal');
                 doc.setFontSize(10);
-                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, margin, yPosition);
-                doc.text(`(${row.recipientName || '_________________'})`, margin + signatureSpacing/2 + signatureWidth/2, yPosition);
+                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, leftSignatureX + (signatureWidth / 2), nameY, { align: 'center' });
+                doc.text(`(${row.recipientName || 'PENERIMA'})`, rightSignatureX + (signatureWidth / 2), nameY, { align: 'center' });
 
-                // Save PDF with exact filename format
-                const fileName = `DIREC-Tanda-Terima-${registrationNumber.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+                // Generate filename and save
+                const cleanRegNumber = registrationNumber.replace(/[^a-zA-Z0-9]/g, '-');
+                const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
                 doc.save(fileName);
                 
-                console.log('Enhanced PDF generated successfully:', fileName);
+                console.log('Enhanced PDF generated successfully with complete form data:', fileName);
+                
+                // Show success message
+                setTimeout(() => {
+                    alert(`PDF berhasil diunduh!\nFile: ${fileName}\nData: ${items.length} item(s), ${photoData ? 'dengan foto' : 'tanpa foto'}`);
+                }, 500);
                 
             } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Gagal membuat PDF: ' + error.message);
+                console.error('Error generating enhanced PDF:', error);
+                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi atau periksa data form.');
             } finally {
                 loading.style.display = 'none';
             }
-        }
-
-        function attachEvents() {
-            // Preview buttons
-            const previewButtons = document.querySelectorAll('.preview-btn');
-            previewButtons.forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    const row = JSON.parse(btn.dataset.row);
-                    showPreview(row);
-                });
-            });
-
-            // Download buttons
-            const downloadButtons = document.querySelectorAll('.download-btn');
-            downloadButtons.forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const row = JSON.parse(btn.dataset.row);
-                    await generateEnhancedPDF(row);
-                });
-            });
         }
 
         // Modal event listeners
@@ -1092,46 +1369,66 @@
             }
         });
 
+        // Enhanced data loading with real-time synchronization
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
             
             try {
-                // Try to load from API first
+                // Initialize data sync manager
+                const dataSyncManager = new DataSyncManager();
+                
+                // Load from localStorage as primary source
+                const localData = dataSyncManager.getAllReceipts();
+                console.log('Loaded local receipts:', localData.length);
+                
+                // Try to load from API as secondary source
                 let apiData = [];
                 try {
                     const response = await fetch('/api/history', { signal: AbortSignal.timeout(10000) });
                     if (response.ok) {
                         const result = await response.json();
                         apiData = result.data || [];
+                        console.log('Loaded API data:', apiData.length);
                     }
                 } catch (apiError) {
-                    console.warn('API not available, using localStorage:', apiError);
+                    console.warn('API not available, using localStorage only:', apiError);
                 }
 
-                // Load from localStorage as fallback
-                const localData = JSON.parse(localStorage.getItem('direc_receipts') || '[]');
-                
-                // Merge API and local data, removing duplicates
-                const mergedData = [...apiData];
-                localData.forEach(localItem => {
-                    const exists = mergedData.some(apiItem => 
-                        apiItem.date === localItem.date && 
-                        apiItem.recipientName === localItem.recipientName
+                // Merge and deduplicate data
+                const mergedData = [...localData];
+                apiData.forEach(apiItem => {
+                    const exists = mergedData.some(localItem => 
+                        localItem.registrationNumber === apiItem.registrationNumber ||
+                        (localItem.date === apiItem.date && 
+                        localItem.recipientName === apiItem.recipientName)
                     );
                     if (!exists) {
-                        mergedData.push(localItem);
+                        // Normalize API data structure
+                        const normalizedApiItem = {
+                            ...apiItem,
+                            items: apiItem.items || apiItem.itemsString || [],
+                            itemsArray: apiItem.items || [],
+                            itemsString: apiItem.itemsString || '',
+                            senderName: apiItem.senderName || 'TEAM WAREHOUSE',
+                            dataComplete: false,
+                            pdfReady: true
+                        };
+                        mergedData.push(normalizedApiItem);
                     }
                 });
 
                 allData = mergedData;
                 
                 if (allData.length === 0) {
-                    errorMessage.textContent = 'Belum ada data tanda terima';
+                    errorMessage.textContent = 'Belum ada data tanda terima. Silakan buat tanda terima baru di halaman Input Form.';
                     errorMessage.style.display = 'block';
                     return;
                 }
+                
+                console.log('Total merged data:', allData.length);
+                console.log('Sample data structure:', allData[0]);
                 
                 // Build registration counters for proper numbering
                 buildRegistrationCounters(allData);
@@ -1139,14 +1436,13 @@
                 // Sort by date (newest first) for display
                 allData.sort((a, b) => {
                     try {
-                        const matchA = a.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                        const matchB = b.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
-                        if (!matchA || !matchB) return 0;
-                        const [, dayA, monthA, yearA, hourA, minuteA] = matchA;
-                        const [, dayB, monthB, yearB, hourB, minuteB] = matchB;
-                        const dateA = new Date(`${yearA}-${monthA}-${dayA}T${hourA}:${minuteA}:00`);
-                        const dateB = new Date(`${yearB}-${monthB}-${dayB}T${hourB}:${minuteB}:00`);
-                        return dateB - dateA; // Newest first
+                        const getTimestamp = (dateStr) => {
+                            const match = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
+                            if (!match) return 0;
+                            const [, day, month, year, hour, minute] = match;
+                            return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`).getTime();
+                        };
+                        return getTimestamp(b.date) - getTimestamp(a.date);
                     } catch (error) {
                         return 0;
                     }
@@ -1155,15 +1451,21 @@
                 filteredData = [...allData];
                 renderTable(filteredData, currentPage);
                 
+                // Update last data update timestamp
+                lastDataUpdate = dataSyncManager.getLastUpdate();
+                
+                console.log('Data loading completed successfully');
+                
             } catch (error) {
-                errorMessage.textContent = 'Terjadi kesalahan: ' + error.message;
+                console.error('Error loading data:', error);
+                errorMessage.textContent = 'Terjadi kesalahan saat memuat data: ' + error.message;
                 errorMessage.style.display = 'block';
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        // Initialize
+        // Initialize enhanced data loading
         loadDownloadData();
 
         // Search functionality
@@ -1180,6 +1482,16 @@
             localStorage.removeItem('isLoggedIn');
             window.location.href = '/login.html';
         });
+
+        // Auto-refresh data every 30 seconds to catch new submissions
+        setInterval(async () => {
+            const dataSyncManager = new DataSyncManager();
+            const currentUpdate = dataSyncManager.getLastUpdate();
+            if (currentUpdate !== lastDataUpdate) {
+                console.log('New data detected, refreshing...');
+                await loadDownloadData();
+            }
+        }, 30000);
     </script>
 </body>
 </html>
