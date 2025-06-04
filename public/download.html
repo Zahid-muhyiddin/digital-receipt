@@ -1002,7 +1002,7 @@
                         const index = parseInt(btn.dataset.index);
                         const row = filteredData[index];
                         if (row) {
-                            await generateEnhancedPDF(row);
+                            await generateExactMatchPDF(row);
                         } else {
                             throw new Error('Data not found');
                         }
@@ -1020,6 +1020,16 @@
                 console.log('Showing preview for:', row);
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
+                
+                // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
+                let formattedDate = row.date;
+                if (formattedDate && formattedDate.includes(',')) {
+                    const [datePart, timePart] = formattedDate.split(',');
+                    if (timePart && timePart.includes(':')) {
+                        const trimmedTime = timePart.trim().replace(':', '.');
+                        formattedDate = `${datePart}, ${trimmedTime}`;
+                    }
+                }
 
                 const previewReceipt = document.getElementById('previewReceipt');
                 previewReceipt.innerHTML = `
@@ -1031,7 +1041,7 @@
                     <div class="preview-info">
                         <div class="preview-info-row">
                             <span class="preview-info-label">Tanggal</span>
-                            <span class="preview-info-value">: ${row.date || '-'}</span>
+                            <span class="preview-info-value">: ${formattedDate || '-'}</span>
                         </div>
                         <div class="preview-info-row">
                             <span class="preview-info-label">Nama Penerima</span>
@@ -1315,8 +1325,8 @@
             }
         }
 
-        // Enhanced PDF Generation with Comprehensive Image Handling
-        async function generateEnhancedPDF(row) {
+        // Pixel-Perfect PDF Generation matching the provided image layout
+        async function generateExactMatchPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
 
@@ -1328,22 +1338,23 @@
                 }
 
                 const { jsPDF } = jsPDFInstance;
-                const doc = new jsPDF();
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
                 
                 // Parse and validate form data
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
 
-                console.log('Starting PDF generation with enhanced image processing:', {
+                console.log('Starting PDF generation with exact layout matching:', {
                     recipientName: row.recipientName,
                     department: row.department,
                     date: row.date,
                     registrationNumber: registrationNumber,
                     items: items,
-                    itemsCount: items.length,
-                    photoUrl: row.photoUrl ? 'Present' : 'Missing',
-                    senderSignatureUrl: row.signatureSenderUrl ? 'Present' : 'Missing',
-                    receiverSignatureUrl: row.signatureReceiverUrl ? 'Present' : 'Missing'
+                    itemsCount: items.length
                 });
 
                 // Process all images with comprehensive error handling
@@ -1364,273 +1375,218 @@
                 const processedReceiverSig = receiverSigResult.status === 'fulfilled' ? receiverSigResult.value : 
                     { isValid: false, error: receiverSigResult.reason?.message || 'Processing failed', imageName: 'Receiver Signature' };
 
-                console.log('Image processing results:', {
-                    photo: processedPhoto.isValid ? 'Success' : `Failed: ${processedPhoto.error}`,
-                    senderSig: processedSenderSig.isValid ? 'Success' : `Failed: ${processedSenderSig.error}`,
-                    receiverSig: processedReceiverSig.isValid ? 'Success' : `Failed: ${processedReceiverSig.error}`
-                });
-
-                // PDF Layout Configuration
-                const margin = 20;
+                // PDF Layout Configuration - Exact match to the provided image
                 const pageWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
-                const maxItemsPerPage = 7; // Maximum items per page
-                let currentPageNumber = 1;
+                const margin = 20;
+                const contentWidth = pageWidth - (margin * 2);
 
-                // Function to add header to each page
-                function addPageHeader(doc, pageNum, totalPages) {
-                    doc.setFont('Helvetica', 'bold');
-                    doc.setFontSize(18);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text('DIREC - TANDA TERIMA', pageWidth / 2, 25, { align: 'center' });
-                    
-                    doc.setFont('Helvetica', 'normal');
-                    doc.setFontSize(12);
-                    doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, 35, { align: 'center' });
-                    
-                    // Page number
-                    if (totalPages > 1) {
-                        doc.setFontSize(10);
-                        doc.text(`Halaman ${pageNum} dari ${totalPages}`, pageWidth - margin, 15, { align: 'right' });
+                // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
+                let formattedDate = row.date;
+                if (formattedDate && formattedDate.includes(',')) {
+                    const [datePart, timePart] = formattedDate.split(',');
+                    if (timePart && timePart.includes(':')) {
+                        const trimmedTime = timePart.trim().replace(':', '.');
+                        formattedDate = `${datePart}, ${trimmedTime}`;
                     }
-                    
-                    return 45; // Return Y position after header
                 }
 
-                // Function to add basic info section
-                function addBasicInfo(doc, yPos) {
-                    doc.setFontSize(12);
-                    const labelWidth = 35;
-                    
-                    doc.setFont('Helvetica', 'normal');
-                    doc.text('Tanggal', margin, yPos);
-                    doc.text(`: ${row.date || '-'}`, margin + labelWidth, yPos);
-                    yPos += 8;
-                    
-                    doc.text('Nama Penerima', margin, yPos);
-                    doc.text(`: ${row.recipientName || '-'}`, margin + labelWidth, yPos);
-                    yPos += 8;
-                    
-                    doc.text('Departemen', margin, yPos);
-                    doc.text(`: ${row.department || '-'}`, margin + labelWidth, yPos);
-                    yPos += 15;
-                    
-                    return yPos;
-                }
-
-                // Function to add table with pagination
-                function addItemsTable(doc, items, startY, pageNum, isFirstPage = true) {
-                    if (isFirstPage) {
-                        doc.setFont('Helvetica', 'normal');
-                        doc.setFontSize(12);
-                        doc.text('Deskripsi Barang:', margin, startY);
-                        startY += 10;
-                    }
-
-                    const tableData = items.length > 0 ? items.map(item => [
-                        item.desc || '-',
-                        item.qty || '-',
-                        item.unit || '-',
-                        item.prNumber || '-',
-                        item.poNumber || '-'
-                    ]) : [['Tidak ada barang', '-', '-', '-', '-']];
-
-                    doc.autoTable({
-                        startY: startY,
-                        head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                        body: tableData,
-                        theme: 'grid',
-                        styles: { 
-                            fontSize: 10,
-                            cellPadding: 4,
-                            lineColor: [0, 0, 0],
-                            lineWidth: 0.5,
-                            textColor: [0, 0, 0],
-                            font: 'Helvetica',
-                            halign: 'center',
-                            valign: 'middle'
-                        },
-                        headStyles: { 
-                            fillColor: [26, 188, 156],
-                            textColor: [255, 255, 255],
-                            fontStyle: 'normal',
-                            fontSize: 10,
-                            halign: 'center'
-                        },
-                        columnStyles: {
-                            0: { cellWidth: 65, halign: 'left', fontSize: 9 },
-                            1: { cellWidth: 20, halign: 'center', fontSize: 9 },
-                            2: { cellWidth: 25, halign: 'center', fontSize: 9 },
-                            3: { cellWidth: 25, halign: 'center', fontSize: 9 },
-                            4: { cellWidth: 30, halign: 'center', fontSize: 9 }
-                        },
-                        margin: { left: margin, right: margin },
-                        tableWidth: 'wrap',
-                        pageBreak: 'avoid'
+                // 1. Title and Registration Number (centered)
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.text('DIREC - TANDA TERIMA', pageWidth / 2, 25, { align: 'center' });
+                
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(12);
+                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, 35, { align: 'center' });
+                
+                // 2. Basic Information (left-aligned with labels)
+                let yPos = 50;
+                doc.setFontSize(11);
+                
+                // Tanggal
+                doc.text('Tanggal', margin, yPos);
+                doc.text(`: ${formattedDate || '-'}`, margin + 30, yPos);
+                yPos += 8;
+                
+                // Nama Penerima
+                doc.text('Nama Penerima', margin, yPos);
+                doc.text(`: ${row.recipientName || '-'}`, margin + 30, yPos);
+                yPos += 8;
+                
+                // Departemen
+                doc.text('Departemen', margin, yPos);
+                doc.text(`: ${row.department || '-'}`, margin + 30, yPos);
+                yPos += 15;
+                
+                // 3. Items Table Section
+                doc.setFont('helvetica', 'bold');
+                doc.text('Deskripsi Barang:', margin, yPos);
+                yPos += 8;
+                
+                // Create table with exact styling from the image
+                const tableColumns = [
+                    { header: 'Deskripsi', dataKey: 'desc' },
+                    { header: 'Qty', dataKey: 'qty' },
+                    { header: 'Satuan', dataKey: 'satuan' },
+                    { header: 'No PR', dataKey: 'pr' },
+                    { header: 'No PO', dataKey: 'po' }
+                ];
+                
+                const tableData = items.map(item => ({
+                    desc: item.desc || '-',
+                    qty: item.qty || '-',
+                    satuan: item.unit || '-',
+                    pr: item.prNumber || '-',
+                    po: item.poNumber || '-'
+                }));
+                
+                // If no items, add a placeholder row
+                if (tableData.length === 0) {
+                    tableData.push({
+                        desc: '-',
+                        qty: '-',
+                        satuan: '-',
+                        pr: '-',
+                        po: '-'
                     });
-
-                    return doc.lastAutoTable.finalY;
                 }
-
-                // Enhanced function to add photo and signatures with robust error handling
-                function addPhotoAndSignatures(doc, yPos) {
-                    // Photo Section
-                    doc.setFont('Helvetica', 'normal');
-                    doc.setFontSize(12);
-                    doc.text('Foto Penerima:', margin, yPos);
-                    yPos += 10;
-                    
-                    if (processedPhoto.isValid) {
-                        try {
-                            doc.addImage(processedPhoto.data, processedPhoto.format, margin, yPos, 70, 50);
-                            console.log('✓ Photo added successfully to PDF');
-                            yPos += 60;
-                        } catch (error) {
-                            console.error('✗ Error adding photo to PDF:', error);
-                            doc.setFont('Helvetica', 'italic');
-                            doc.setFontSize(10);
-                            doc.text('(Foto tidak dapat ditampilkan - Error: ' + error.message + ')', margin, yPos + 10);
-                            yPos += 25;
-                        }
-                    } else {
-                        doc.setFont('Helvetica', 'italic');
+                
+                // Generate table with exact styling from the image
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                    body: tableData.map(row => [row.desc, row.qty, row.satuan, row.pr, row.po]),
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [0, 184, 148], // Teal color from the image
+                        textColor: [255, 255, 255],
+                        fontStyle: 'normal',
+                        halign: 'center',
+                        valign: 'middle',
+                        fontSize: 11
+                    },
+                    styles: {
+                        lineColor: [0, 0, 0],
+                        lineWidth: 0.5,
+                        fontSize: 10
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 65, halign: 'left' },
+                        1: { cellWidth: 20, halign: 'center' },
+                        2: { cellWidth: 30, halign: 'center' },
+                        3: { cellWidth: 30, halign: 'center' },
+                        4: { cellWidth: 30, halign: 'center' }
+                    },
+                    margin: { left: margin, right: margin }
+                });
+                
+                yPos = doc.lastAutoTable.finalY + 15;
+                
+                // 4. Photo Section
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('Foto Penerima:', margin, yPos);
+                yPos += 8;
+                
+                if (processedPhoto.isValid) {
+                    try {
+                        // Add photo with exact dimensions from the image
+                        doc.addImage(
+                            processedPhoto.data, 
+                            processedPhoto.format, 
+                            margin, 
+                            yPos, 
+                            50, // Width as in the image
+                            40  // Height as in the image
+                        );
+                        yPos += 45; // Photo height + margin
+                    } catch (error) {
+                        console.error('Error adding photo to PDF:', error);
+                        doc.setFont('helvetica', 'italic');
                         doc.setFontSize(10);
-                        doc.text(`(Tidak ada foto - ${processedPhoto.error})`, margin, yPos + 10);
-                        yPos += 25;
-                    }
-
-                    // Check if we need space for signatures
-                    if (yPos > pageHeight - 100) {
-                        doc.addPage();
-                        yPos = addPageHeader(doc, ++currentPageNumber, Math.ceil(items.length / maxItemsPerPage) + 1);
-                    }
-
-                    // Signature Section
-                    const signatureY = yPos;
-                    const leftSignatureX = margin;
-                    const rightSignatureX = pageWidth - margin - 70;
-                    const signatureWidth = 60;
-                    const signatureHeight = 35;
-                    
-                    // Signature labels
-                    doc.setFont('Helvetica', 'normal');
-                    doc.setFontSize(12);
-                    doc.text('Pengirim:', leftSignatureX, signatureY);
-                    doc.text('Penerima:', rightSignatureX, signatureY);
-                    
-                    const signatureImageY = signatureY + 8;
-                    
-                    // Add sender signature with enhanced error handling
-                    if (processedSenderSig.isValid) {
-                        try {
-                            doc.addImage(processedSenderSig.data, processedSenderSig.format, leftSignatureX, signatureImageY, signatureWidth, signatureHeight);
-                            console.log('✓ Sender signature added successfully to PDF');
-                        } catch (error) {
-                            console.error('✗ Error adding sender signature to PDF:', error);
-                            doc.setFont('Helvetica', 'italic');
-                            doc.setFontSize(8);
-                            doc.text('(Error: ' + error.message + ')', leftSignatureX, signatureImageY + 15);
-                        }
-                    } else {
-                        doc.setFont('Helvetica', 'italic');
-                        doc.setFontSize(8);
-                        doc.text('(Tanda tangan tidak tersedia)', leftSignatureX, signatureImageY + 15);
-                        console.log('✗ Sender signature not available:', processedSenderSig.error);
-                    }
-                    
-                    // Add receiver signature with enhanced error handling
-                    if (processedReceiverSig.isValid) {
-                        try {
-                            doc.addImage(processedReceiverSig.data, processedReceiverSig.format, rightSignatureX, signatureImageY, signatureWidth, signatureHeight);
-                            console.log('✓ Receiver signature added successfully to PDF');
-                        } catch (error) {
-                            console.error('✗ Error adding receiver signature to PDF:', error);
-                            doc.setFont('Helvetica', 'italic');
-                            doc.setFontSize(8);
-                            doc.text('(Error: ' + error.message + ')', rightSignatureX, signatureImageY + 15);
-                        }
-                    } else {
-                        doc.setFont('Helvetica', 'italic');
-                        doc.setFontSize(8);
-                        doc.text('(Tanda tangan tidak tersedia)', rightSignatureX, signatureImageY + 15);
-                        console.log('✗ Receiver signature not available:', processedReceiverSig.error);
-                    }
-                    
-                    // Signature names
-                    const nameY = signatureImageY + signatureHeight + 8;
-                    doc.setFont('Helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, leftSignatureX + (signatureWidth / 2), nameY, { align: 'center' });
-                    doc.text(`(${row.recipientName || 'PENERIMA'})`, rightSignatureX + (signatureWidth / 2), nameY, { align: 'center' });
-
-                    return nameY + 10;
-                }
-
-                // Calculate total pages needed
-                const totalPages = Math.ceil(items.length / maxItemsPerPage) + (items.length > 0 ? 1 : 0);
-
-                // Generate first page with basic info and first batch of items
-                let yPosition = addPageHeader(doc, currentPageNumber, totalPages);
-                yPosition = addBasicInfo(doc, yPosition);
-
-                if (items.length > 0) {
-                    // Add items in chunks of maxItemsPerPage
-                    for (let i = 0; i < items.length; i += maxItemsPerPage) {
-                        const itemsChunk = items.slice(i, i + maxItemsPerPage);
-                        const isFirstChunk = i === 0;
-                        
-                        if (!isFirstChunk) {
-                            doc.addPage();
-                            yPosition = addPageHeader(doc, ++currentPageNumber, totalPages);
-                            yPosition += 10;
-                        }
-                        
-                        yPosition = addItemsTable(doc, itemsChunk, yPosition, currentPageNumber, isFirstChunk);
-                        yPosition += 15;
-                        
-                        // Add photo and signatures only on the last page
-                        if (i + maxItemsPerPage >= items.length) {
-                            addPhotoAndSignatures(doc, yPosition);
-                        }
+                        doc.text('(Foto tidak tersedia)', margin, yPos + 10);
+                        yPos += 15;
                     }
                 } else {
-                    // No items, add empty table and photo/signatures on same page
-                    yPosition = addItemsTable(doc, [], yPosition, currentPageNumber, true);
-                    yPosition += 15;
-                    addPhotoAndSignatures(doc, yPosition);
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(10);
+                    doc.text('(Foto tidak tersedia)', margin, yPos + 10);
+                    yPos += 15;
                 }
-
+                
+                // 5. Signatures Section - Exact layout from the image
+                yPos += 15; // Add space before signatures
+                
+                // Signature titles
+                const leftSignatureX = margin + 20;
+                const rightSignatureX = pageWidth - margin - 70;
+                
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+                doc.text('Pengirim:', leftSignatureX, yPos, { align: 'center' });
+                doc.text('Penerima:', rightSignatureX, yPos, { align: 'center' });
+                
+                yPos += 10;
+                
+                // Add signatures with exact dimensions from the image
+                const signatureWidth = 40;
+                const signatureHeight = 25;
+                
+                // Sender signature
+                if (processedSenderSig.isValid) {
+                    try {
+                        doc.addImage(
+                            processedSenderSig.data,
+                            processedSenderSig.format,
+                            leftSignatureX - signatureWidth/2,
+                            yPos,
+                            signatureWidth,
+                            signatureHeight
+                        );
+                    } catch (error) {
+                        console.error('Error adding sender signature:', error);
+                    }
+                }
+                
+                // Receiver signature
+                if (processedReceiverSig.isValid) {
+                    try {
+                        doc.addImage(
+                            processedReceiverSig.data,
+                            processedReceiverSig.format,
+                            rightSignatureX - signatureWidth/2,
+                            yPos,
+                            signatureWidth,
+                            signatureHeight
+                        );
+                    } catch (error) {
+                        console.error('Error adding receiver signature:', error);
+                    }
+                }
+                
+                yPos += signatureHeight + 5;
+                
+                // Signature names - Exact format from the image
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.text(`(${row.senderName || 'TEAM WAREHOUSE'})`, leftSignatureX, yPos, { align: 'center' });
+                doc.text(`(${row.recipientName || row.recipientName})`, rightSignatureX, yPos, { align: 'center' });
+                
                 // Generate filename and save
                 const cleanRegNumber = registrationNumber.replace(/[^a-zA-Z0-9]/g, '-');
                 const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
                 doc.save(fileName);
                 
-                console.log('Enhanced PDF generated successfully with comprehensive image handling:', fileName);
+                console.log('PDF generated successfully with exact layout matching:', fileName);
                 
-                // Show detailed success message with image status
-                const imageStatus = [
-                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil' : '✗ Gagal'}`,
-                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil' : '✗ Gagal'}`,
-                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil' : '✗ Gagal'}`
-                ].join('\n');
-
-                const successDetails = [
-                    `PDF berhasil diunduh!`,
-                    `File: ${fileName}`,
-                    `Data: ${items.length} item(s)`,
-                    `Halaman: ${totalPages}`,
-                    ``,
-                    `Status Gambar:`,
-                    imageStatus
-                ].join('\n');
-                
+                // Show success message
                 setTimeout(() => {
-                    alert(successDetails);
+                    alert(`PDF berhasil diunduh!\nFile: ${fileName}`);
                 }, 500);
                 
             } catch (error) {
-                console.error('Error generating enhanced PDF:', error);
-                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi atau periksa data form.');
+                console.error('Error generating PDF:', error);
+                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi.');
             } finally {
                 loading.style.display = 'none';
             }
@@ -1644,7 +1600,7 @@
         document.getElementById('downloadFromPreview').addEventListener('click', async () => {
             if (currentPreviewData) {
                 document.getElementById('previewModal').style.display = 'none';
-                await generateEnhancedPDF(currentPreviewData);
+                await generateExactMatchPDF(currentPreviewData);
             }
         });
 
