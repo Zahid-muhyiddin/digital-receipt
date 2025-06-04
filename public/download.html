@@ -574,11 +574,12 @@
             });
         }
 
-        // Enhanced Data Synchronization Manager
+        // Enhanced Data Synchronization Manager with Registration Number Manager Integration
         class DataSyncManager {
             constructor() {
                 this.storageKey = 'direc_receipts';
                 this.lastUpdateKey = 'direc_last_update';
+                this.registrationCountersKey = 'direc_registration_counters';
                 this.setupEventListeners();
             }
 
@@ -596,6 +597,12 @@
                         this.handleDataSync();
                     }
                 });
+
+                // Listen for form submissions from registration number manager
+                window.addEventListener('receiptSubmitted', (event) => {
+                    console.log('Receipt submitted event received:', event.detail);
+                    this.handleFormSubmission(event.detail);
+                });
             }
 
             async handleDataSync() {
@@ -609,6 +616,65 @@
                     console.log('Data synchronized successfully');
                 } catch (error) {
                     console.error('Error during data sync:', error);
+                }
+            }
+
+            handleFormSubmission(submissionData) {
+                console.log('Processing form submission data:', submissionData);
+                
+                // Ensure the data includes all necessary image and signature information
+                if (submissionData) {
+                    this.saveReceiptWithImages(submissionData);
+                }
+            }
+
+            saveReceiptWithImages(receiptData) {
+                try {
+                    const receipts = this.getAllReceipts();
+                    
+                    // Enhanced receipt data structure with complete image integration
+                    const enhancedReceiptData = {
+                        ...receiptData,
+                        id: this.generateUniqueId(),
+                        createdAt: new Date().toISOString(),
+                        lastModified: new Date().toISOString(),
+                        version: '2.0',
+                        dataIntegrity: this.calculateDataHash(receiptData),
+                        
+                        // Ensure image data is properly structured
+                        imageData: {
+                            photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
+                            signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
+                            signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
+                            hasPhoto: !!(receiptData.photoUrl || receiptData.photoSrc),
+                            hasSenderSignature: !!(receiptData.signatureSenderUrl || receiptData.signatureSenderData),
+                            hasReceiverSignature: !!(receiptData.signatureReceiverUrl || receiptData.signatureReceiverData)
+                        },
+                        
+                        // Maintain backward compatibility
+                        photoUrl: receiptData.photoUrl || receiptData.photoSrc || null,
+                        signatureSenderUrl: receiptData.signatureSenderUrl || receiptData.signatureSenderData || null,
+                        signatureReceiverUrl: receiptData.signatureReceiverUrl || receiptData.signatureReceiverData || null,
+                        
+                        // Form integration flags
+                        fromRegistrationManager: true,
+                        pdfReady: true,
+                        imagesProcessed: true
+                    };
+                    
+                    receipts.push(enhancedReceiptData);
+                    localStorage.setItem(this.storageKey, JSON.stringify(receipts));
+                    localStorage.setItem(this.lastUpdateKey, new Date().toISOString());
+                    
+                    console.log('Receipt saved with enhanced image data:', enhancedReceiptData.id);
+                    
+                    // Trigger data sync for download interface
+                    this.triggerDataSync();
+                    
+                    return enhancedReceiptData;
+                } catch (error) {
+                    console.error('Error saving receipt with images:', error);
+                    throw error;
                 }
             }
 
@@ -640,6 +706,27 @@
 
             getLastUpdate() {
                 return localStorage.getItem(this.lastUpdateKey);
+            }
+
+            generateUniqueId() {
+                return 'receipt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            calculateDataHash(data) {
+                const str = JSON.stringify(data);
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return hash.toString();
+            }
+
+            triggerDataSync() {
+                window.dispatchEvent(new CustomEvent('direcDataSync', {
+                    detail: { timestamp: new Date().toISOString() }
+                }));
             }
         }
 
@@ -720,7 +807,7 @@
             return [];
         }
 
-        // Registration Number System
+        // Registration Number System Integration
         function buildRegistrationCounters(data) {
             registrationCounters = {};
             
@@ -799,6 +886,48 @@
             }
         }
 
+        // Enhanced Image Data Extraction from Registration Manager
+        function extractImageDataFromEntry(entry) {
+            console.log('Extracting image data from entry:', entry);
+            
+            // Multiple possible sources for image data
+            const imageData = {
+                photoUrl: null,
+                signatureSenderUrl: null,
+                signatureReceiverUrl: null
+            };
+            
+            // Check various possible property names for photo
+            imageData.photoUrl = entry.photoUrl || 
+                                 entry.photoSrc || 
+                                 entry.photo || 
+                                 entry.recipientPhoto ||
+                                 (entry.imageData && entry.imageData.photoUrl) ||
+                                 null;
+            
+            // Check various possible property names for sender signature
+            imageData.signatureSenderUrl = entry.signatureSenderUrl || 
+                                          entry.signatureSenderData || 
+                                          entry.senderSignature ||
+                                          (entry.imageData && entry.imageData.signatureSenderUrl) ||
+                                          null;
+            
+            // Check various possible property names for receiver signature
+            imageData.signatureReceiverUrl = entry.signatureReceiverUrl || 
+                                            entry.signatureReceiverData || 
+                                            entry.receiverSignature ||
+                                            (entry.imageData && entry.imageData.signatureReceiverUrl) ||
+                                            null;
+            
+            // Validate image URLs
+            if (imageData.photoUrl && (imageData.photoUrl.includes('placeholder.svg') || imageData.photoUrl === 'undefined')) {
+                imageData.photoUrl = null;
+            }
+            
+            console.log('Extracted image data:', imageData);
+            return imageData;
+        }
+
         // Fixed function to render table with proper data serialization
         function renderTable(data, page) {
             const downloadBody = document.getElementById('downloadBody');
@@ -822,15 +951,6 @@
                     
                     // Create table row
                     const tr = document.createElement('tr');
-                    
-                    // Safely serialize row data by removing circular references and handling special characters
-                    const safeRowData = JSON.stringify(row, (key, value) => {
-                        // Skip functions and DOM elements
-                        if (typeof value === 'function' || (value && value.nodeType)) {
-                            return undefined;
-                        }
-                        return value;
-                    }).replace(/'/g, "&#39;");
                     
                     tr.innerHTML = `
                         <td>${row.date || '-'}</td>
@@ -1002,7 +1122,7 @@
                         const index = parseInt(btn.dataset.index);
                         const row = filteredData[index];
                         if (row) {
-                            await generateExactMatchPDF(row);
+                            await generateIntegratedPDF(row);
                         } else {
                             throw new Error('Data not found');
                         }
@@ -1014,12 +1134,13 @@
             });
         }
 
-        // Enhanced Preview Function with complete form data integration
+        // Enhanced Preview Function with Registration Manager Integration
         async function showPreview(row) {
             try {
                 console.log('Showing preview for:', row);
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
+                const imageData = extractImageDataFromEntry(row);
                 
                 // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
                 let formattedDate = row.date;
@@ -1082,7 +1203,7 @@
                     <div class="preview-photo-section">
                         <div class="preview-photo-title">Foto Penerima:</div>
                         <div id="photoContainer">
-                            ${row.photoUrl ? `<img src="${row.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            ${imageData.photoUrl ? `<img src="${imageData.photoUrl}" alt="Foto Penerima" class="preview-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                             <p style="color: #6b7280; font-style: italic; display: none;">Foto tidak dapat dimuat</p>` : '<p style="color: #6b7280; font-style: italic;">Tidak ada foto</p>'}
                         </div>
                     </div>
@@ -1091,14 +1212,14 @@
                         <div class="preview-signature">
                             <div class="preview-signature-title">Pengirim:</div>
                             <div class="preview-signature-img">
-                                ${row.signatureSenderUrl ? `<img src="${row.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                                ${imageData.signatureSenderUrl ? `<img src="${imageData.signatureSenderUrl}" alt="Tanda Tangan Pengirim" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                             </div>
                             <div class="preview-signature-name">(${row.senderName || 'TEAM WAREHOUSE'})</div>
                         </div>
                         <div class="preview-signature">
                             <div class="preview-signature-title">Penerima:</div>
                             <div class="preview-signature-img">
-                                ${row.signatureReceiverUrl ? `<img src="${row.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
+                                ${imageData.signatureReceiverUrl ? `<img src="${imageData.signatureReceiverUrl}" alt="Tanda Tangan Penerima" style="max-width: 100%; max-height: 100%;" onerror="this.style.display='none';">` : ''}
                             </div>
                             <div class="preview-signature-name">(${row.recipientName || '_________________'})</div>
                         </div>
@@ -1113,10 +1234,10 @@
             }
         }
 
-        // Comprehensive Image Processing System for PDF Generation
-        class ImageProcessor {
+        // Comprehensive Image Processing System for Registration Manager Integration
+        class RegistrationManagerImageProcessor {
             static async validateAndProcessImage(imageUrl, imageName = 'image') {
-                console.log(`Processing ${imageName}:`, imageUrl ? 'URL provided' : 'No URL');
+                console.log(`Processing ${imageName} from Registration Manager:`, imageUrl ? 'URL provided' : 'No URL');
                 
                 if (!imageUrl || imageUrl.includes('placeholder.svg') || imageUrl === 'undefined' || imageUrl === 'null') {
                     return { 
@@ -1128,7 +1249,7 @@
                 }
 
                 try {
-                    // Handle data URLs (base64 encoded images)
+                    // Handle data URLs (base64 encoded images) - Primary format from Registration Manager
                     if (imageUrl.startsWith('data:image/')) {
                         return await this.processDataURL(imageUrl, imageName);
                     }
@@ -1189,7 +1310,8 @@
                         data: dataURL,
                         format: format,
                         size: base64Data.length,
-                        imageName
+                        imageName,
+                        source: 'registration_manager'
                     };
                 } catch (error) {
                     throw new Error(`Data URL processing failed: ${error.message}`);
@@ -1225,7 +1347,8 @@
                         data: dataURL,
                         format: format,
                         size: blob.size,
-                        imageName
+                        imageName,
+                        source: 'registration_manager'
                     };
                 } catch (error) {
                     throw new Error(`Blob processing failed: ${error.message}`);
@@ -1272,7 +1395,8 @@
                         data: dataURL,
                         format: format,
                         size: blob.size,
-                        imageName
+                        imageName,
+                        source: 'registration_manager'
                     };
                 } catch (error) {
                     throw new Error(`HTTP URL processing failed: ${error.message}`);
@@ -1317,7 +1441,8 @@
                         isValid: true,
                         data: dataURL,
                         format: 'PNG',
-                        imageName
+                        imageName,
+                        source: 'registration_manager'
                     };
                 } catch (error) {
                     throw new Error(`Other URL processing failed: ${error.message}`);
@@ -1325,8 +1450,8 @@
             }
         }
 
-        // Pixel-Perfect PDF Generation matching the provided image layout
-        async function generateExactMatchPDF(row) {
+        // Integrated PDF Generation with Registration Manager Data
+        async function generateIntegratedPDF(row) {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
 
@@ -1347,22 +1472,24 @@
                 // Parse and validate form data
                 const items = parseItems(row.items || row.itemsArray || row.itemsString);
                 const registrationNumber = getRegistrationNumber(row);
+                const imageData = extractImageDataFromEntry(row);
 
-                console.log('Starting PDF generation with exact layout matching:', {
+                console.log('Starting integrated PDF generation with Registration Manager data:', {
                     recipientName: row.recipientName,
                     department: row.department,
                     date: row.date,
                     registrationNumber: registrationNumber,
                     items: items,
-                    itemsCount: items.length
+                    itemsCount: items.length,
+                    imageData: imageData
                 });
 
-                // Process all images with comprehensive error handling
-                console.log('Processing images...');
+                // Process all images with Registration Manager integration
+                console.log('Processing images from Registration Manager...');
                 const [photoResult, senderSigResult, receiverSigResult] = await Promise.allSettled([
-                    ImageProcessor.validateAndProcessImage(row.photoUrl, 'Photo'),
-                    ImageProcessor.validateAndProcessImage(row.signatureSenderUrl, 'Sender Signature'),
-                    ImageProcessor.validateAndProcessImage(row.signatureReceiverUrl, 'Receiver Signature')
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.photoUrl, 'Photo'),
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureSenderUrl, 'Sender Signature'),
+                    RegistrationManagerImageProcessor.validateAndProcessImage(imageData.signatureReceiverUrl, 'Receiver Signature')
                 ]);
 
                 // Extract results and handle rejections
@@ -1375,10 +1502,15 @@
                 const processedReceiverSig = receiverSigResult.status === 'fulfilled' ? receiverSigResult.value : 
                     { isValid: false, error: receiverSigResult.reason?.message || 'Processing failed', imageName: 'Receiver Signature' };
 
+                console.log('Registration Manager image processing results:', {
+                    photo: processedPhoto.isValid ? '✓ Success' : `✗ Failed: ${processedPhoto.error}`,
+                    senderSig: processedSenderSig.isValid ? '✓ Success' : `✗ Failed: ${processedSenderSig.error}`,
+                    receiverSig: processedReceiverSig.isValid ? '✓ Success' : `✗ Failed: ${processedReceiverSig.error}`
+                });
+
                 // PDF Layout Configuration - Exact match to the provided image
                 const pageWidth = 210; // A4 width in mm
                 const margin = 20;
-                const contentWidth = pageWidth - (margin * 2);
 
                 // Format date to match the example (DD/MM/YYYY, HH:MM -> DD/MM/YYYY, HH.MM)
                 let formattedDate = row.date;
@@ -1422,15 +1554,6 @@
                 doc.setFont('helvetica', 'bold');
                 doc.text('Deskripsi Barang:', margin, yPos);
                 yPos += 8;
-                
-                // Create table with exact styling from the image
-                const tableColumns = [
-                    { header: 'Deskripsi', dataKey: 'desc' },
-                    { header: 'Qty', dataKey: 'qty' },
-                    { header: 'Satuan', dataKey: 'satuan' },
-                    { header: 'No PR', dataKey: 'pr' },
-                    { header: 'No PO', dataKey: 'po' }
-                ];
                 
                 const tableData = items.map(item => ({
                     desc: item.desc || '-',
@@ -1482,7 +1605,7 @@
                 
                 yPos = doc.lastAutoTable.finalY + 15;
                 
-                // 4. Photo Section
+                // 4. Photo Section with Registration Manager Integration
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(11);
                 doc.text('Foto Penerima:', margin, yPos);
@@ -1499,9 +1622,10 @@
                             50, // Width as in the image
                             40  // Height as in the image
                         );
+                        console.log('✓ Photo from Registration Manager added successfully to PDF');
                         yPos += 45; // Photo height + margin
                     } catch (error) {
-                        console.error('Error adding photo to PDF:', error);
+                        console.error('✗ Error adding photo from Registration Manager to PDF:', error);
                         doc.setFont('helvetica', 'italic');
                         doc.setFontSize(10);
                         doc.text('(Foto tidak tersedia)', margin, yPos + 10);
@@ -1514,7 +1638,7 @@
                     yPos += 15;
                 }
                 
-                // 5. Signatures Section - Exact layout from the image
+                // 5. Signatures Section with Registration Manager Integration - Exact layout from the image
                 yPos += 15; // Add space before signatures
                 
                 // Signature titles
@@ -1532,7 +1656,7 @@
                 const signatureWidth = 40;
                 const signatureHeight = 25;
                 
-                // Sender signature
+                // Sender signature from Registration Manager
                 if (processedSenderSig.isValid) {
                     try {
                         doc.addImage(
@@ -1543,12 +1667,13 @@
                             signatureWidth,
                             signatureHeight
                         );
+                        console.log('✓ Sender signature from Registration Manager added successfully to PDF');
                     } catch (error) {
-                        console.error('Error adding sender signature:', error);
+                        console.error('✗ Error adding sender signature from Registration Manager:', error);
                     }
                 }
                 
-                // Receiver signature
+                // Receiver signature from Registration Manager
                 if (processedReceiverSig.isValid) {
                     try {
                         doc.addImage(
@@ -1559,8 +1684,9 @@
                             signatureWidth,
                             signatureHeight
                         );
+                        console.log('✓ Receiver signature from Registration Manager added successfully to PDF');
                     } catch (error) {
-                        console.error('Error adding receiver signature:', error);
+                        console.error('✗ Error adding receiver signature from Registration Manager:', error);
                     }
                 }
                 
@@ -1577,16 +1703,32 @@
                 const fileName = `DIREC-Tanda-Terima-${cleanRegNumber}.pdf`;
                 doc.save(fileName);
                 
-                console.log('PDF generated successfully with exact layout matching:', fileName);
+                console.log('Integrated PDF generated successfully with Registration Manager data:', fileName);
                 
-                // Show success message
+                // Show detailed success message with Registration Manager integration status
+                const imageStatus = [
+                    `Foto: ${processedPhoto.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`,
+                    `Tanda tangan pengirim: ${processedSenderSig.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`,
+                    `Tanda tangan penerima: ${processedReceiverSig.isValid ? '✓ Berhasil dari Registration Manager' : '✗ Gagal'}`
+                ].join('\n');
+
+                const successDetails = [
+                    `PDF berhasil diunduh dengan integrasi Registration Manager!`,
+                    `File: ${fileName}`,
+                    `Data: ${items.length} item(s)`,
+                    `Sumber: Registration Manager Form`,
+                    ``,
+                    `Status Gambar:`,
+                    imageStatus
+                ].join('\n');
+                
                 setTimeout(() => {
-                    alert(`PDF berhasil diunduh!\nFile: ${fileName}`);
+                    alert(successDetails);
                 }, 500);
                 
             } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi.');
+                console.error('Error generating integrated PDF:', error);
+                alert('Gagal membuat PDF: ' + error.message + '\nSilakan coba lagi atau periksa data form.');
             } finally {
                 loading.style.display = 'none';
             }
@@ -1600,7 +1742,7 @@
         document.getElementById('downloadFromPreview').addEventListener('click', async () => {
             if (currentPreviewData) {
                 document.getElementById('previewModal').style.display = 'none';
-                await generateExactMatchPDF(currentPreviewData);
+                await generateIntegratedPDF(currentPreviewData);
             }
         });
 
@@ -1611,50 +1753,51 @@
             }
         });
 
-        // Enhanced data loading with comprehensive historical data recovery
+        // Enhanced data loading with Registration Manager integration
         async function loadDownloadData() {
             const errorMessage = document.getElementById('errorMessage');
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
             
             try {
-                // Initialize data sync manager
+                // Initialize data sync manager with Registration Manager integration
                 const dataSyncManager = new DataSyncManager();
                 
-                // Enhanced historical data recovery
-                function recoverHistoricalData() {
-                    const historicalKeys = [
+                // Enhanced historical data recovery with Registration Manager data
+                function recoverRegistrationManagerData() {
+                    const registrationManagerKeys = [
                         'direc_receipts',
                         'direc_receipts_backup',
                         'direc_data',
                         'receipt_data',
                         'form_submissions',
-                        'tanda_terima_data'
+                        'tanda_terima_data',
+                        'registration_manager_data'
                     ];
                     
-                    let allHistoricalData = [];
+                    let allRegistrationData = [];
                     
-                    historicalKeys.forEach(key => {
+                    registrationManagerKeys.forEach(key => {
                         try {
                             const data = localStorage.getItem(key);
                             if (data) {
                                 const parsed = JSON.parse(data);
                                 if (Array.isArray(parsed)) {
-                                    allHistoricalData = allHistoricalData.concat(parsed);
+                                    allRegistrationData = allRegistrationData.concat(parsed);
                                 } else if (parsed && typeof parsed === 'object') {
-                                    allHistoricalData.push(parsed);
+                                    allRegistrationData.push(parsed);
                                 }
                             }
                         } catch (error) {
-                            console.warn(`Error parsing historical data from ${key}:`, error);
+                            console.warn(`Error parsing Registration Manager data from ${key}:`, error);
                         }
                     });
                     
-                    // Deduplicate based on registration number and date+name combination
+                    // Deduplicate and enhance with image data extraction
                     const uniqueData = [];
                     const seenKeys = new Set();
                     
-                    allHistoricalData.forEach(item => {
+                    allRegistrationData.forEach(item => {
                         if (!item || typeof item !== 'object') return;
                         
                         const key1 = item.registrationNumber;
@@ -1662,14 +1805,32 @@
                         
                         if (key1 && !seenKeys.has(key1)) {
                             seenKeys.add(key1);
-                            uniqueData.push(item);
+                            // Extract and enhance image data
+                            const imageData = extractImageDataFromEntry(item);
+                            uniqueData.push({
+                                ...item,
+                                imageData: imageData,
+                                photoUrl: imageData.photoUrl,
+                                signatureSenderUrl: imageData.signatureSenderUrl,
+                                signatureReceiverUrl: imageData.signatureReceiverUrl,
+                                fromRegistrationManager: true
+                            });
                         } else if (!key1 && key2 && !seenKeys.has(key2)) {
                             seenKeys.add(key2);
-                            uniqueData.push(item);
+                            // Extract and enhance image data
+                            const imageData = extractImageDataFromEntry(item);
+                            uniqueData.push({
+                                ...item,
+                                imageData: imageData,
+                                photoUrl: imageData.photoUrl,
+                                signatureSenderUrl: imageData.signatureSenderUrl,
+                                signatureReceiverUrl: imageData.signatureReceiverUrl,
+                                fromRegistrationManager: true
+                            });
                         }
                     });
                     
-                    console.log(`Recovered ${uniqueData.length} historical records from ${historicalKeys.length} sources`);
+                    console.log(`Recovered ${uniqueData.length} Registration Manager records with enhanced image data`);
                     return uniqueData;
                 }
                 
@@ -1677,9 +1838,9 @@
                 const localData = dataSyncManager.getAllReceipts();
                 console.log('Loaded local receipts:', localData.length);
                 
-                // Recover additional historical data
-                const historicalData = recoverHistoricalData();
-                console.log('Recovered historical data:', historicalData.length);
+                // Recover Registration Manager data with image integration
+                const registrationManagerData = recoverRegistrationManagerData();
+                console.log('Recovered Registration Manager data:', registrationManagerData.length);
                 
                 // Try to load from API as secondary source
                 let apiData = [];
@@ -1694,27 +1855,32 @@
                     console.warn('API not available, using localStorage only:', apiError);
                 }
 
-                // Merge and deduplicate all data sources
+                // Merge and deduplicate all data sources with Registration Manager priority
                 const mergedData = [...localData];
                 
-                // Add historical data
-                historicalData.forEach(histItem => {
+                // Add Registration Manager data with enhanced image processing
+                registrationManagerData.forEach(regItem => {
                     const exists = mergedData.some(localItem => 
-                        (localItem.registrationNumber && localItem.registrationNumber === histItem.registrationNumber) ||
-                        (localItem.date === histItem.date && localItem.recipientName === histItem.recipientName)
+                        (localItem.registrationNumber && localItem.registrationNumber === regItem.registrationNumber) ||
+                        (localItem.date === regItem.date && localItem.recipientName === regItem.recipientName)
                     );
-                    if (!exists && dataSyncManager.validateReceiptData(histItem)) {
-                        // Normalize historical data structure
-                        const normalizedHistItem = {
-                            ...histItem,
-                            items: histItem.items || histItem.itemsArray || histItem.itemsString || [],
-                            itemsArray: histItem.items || histItem.itemsArray || [],
-                            itemsString: histItem.itemsString || '',
-                            senderName: histItem.senderName || 'TEAM WAREHOUSE',
-                            dataSource: 'historical',
-                            pdfReady: true
+                    if (!exists && dataSyncManager.validateReceiptData(regItem)) {
+                        // Normalize Registration Manager data structure with image integration
+                        const normalizedRegItem = {
+                            ...regItem,
+                            items: regItem.items || regItem.itemsArray || regItem.itemsString || [],
+                            itemsArray: regItem.items || regItem.itemsArray || [],
+                            itemsString: regItem.itemsString || '',
+                            senderName: regItem.senderName || 'TEAM WAREHOUSE',
+                            dataSource: 'registration_manager',
+                            pdfReady: true,
+                            imagesIntegrated: true,
+                            // Ensure image data is properly accessible
+                            photoUrl: regItem.photoUrl || regItem.imageData?.photoUrl,
+                            signatureSenderUrl: regItem.signatureSenderUrl || regItem.imageData?.signatureSenderUrl,
+                            signatureReceiverUrl: regItem.signatureReceiverUrl || regItem.imageData?.signatureReceiverUrl
                         };
-                        mergedData.push(normalizedHistItem);
+                        mergedData.push(normalizedRegItem);
                     }
                 });
                 
@@ -1747,7 +1913,7 @@
                     return;
                 }
                 
-                console.log(`Total merged data: ${allData.length} (Local: ${localData.length}, Historical: ${historicalData.length}, API: ${apiData.length})`);
+                console.log(`Total merged data with Registration Manager integration: ${allData.length} (Local: ${localData.length}, Registration Manager: ${registrationManagerData.length}, API: ${apiData.length})`);
                 
                 // Build registration counters for proper numbering
                 buildRegistrationCounters(allData);
@@ -1773,7 +1939,7 @@
                 // Update last data update timestamp
                 lastDataUpdate = dataSyncManager.getLastUpdate();
                 
-                console.log('Enhanced data loading completed successfully');
+                console.log('Enhanced data loading with Registration Manager integration completed successfully');
                 
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -1784,7 +1950,7 @@
             }
         }
 
-        // Initialize enhanced data loading
+        // Initialize enhanced data loading with Registration Manager integration
         loadDownloadData();
 
         // Search functionality
@@ -1802,15 +1968,25 @@
             window.location.href = '/login.html';
         });
 
-        // Auto-refresh data every 30 seconds to catch new submissions
+        // Auto-refresh data every 30 seconds to catch new Registration Manager submissions
         setInterval(async () => {
             const dataSyncManager = new DataSyncManager();
             const currentUpdate = dataSyncManager.getLastUpdate();
             if (currentUpdate !== lastDataUpdate) {
-                console.log('New data detected, refreshing...');
+                console.log('New Registration Manager data detected, refreshing...');
                 await loadDownloadData();
             }
         }, 30000);
+
+        // Listen for Registration Manager form submissions
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'direc_receipts') {
+                console.log('Registration Manager form submission detected');
+                setTimeout(() => {
+                    loadDownloadData();
+                }, 1000);
+            }
+        });
     </script>
 </body>
 </html>
