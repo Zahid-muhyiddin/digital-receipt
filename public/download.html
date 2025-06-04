@@ -905,11 +905,13 @@
         // Image extraction
         function extractImageDataFromEntry(entry) {
             const imageData = {
-                photoUrl: null,
-                signatureSenderUrl: null,
-                signatureReceiverUrl: null
+                photoUrl: entry.photoUrl || null,
+                signatureSenderUrl: entry.signatureSenderUrl || null,
+                signatureReceiverUrl: entry.signatureReceiverUrl || null
             };
-
+	    console.log('Extracted Image Data:', imageData);
+	    return imageData;
+	}
             imageData.photoUrl = entry.photoUrl || 
                                 entry.photoSrc || 
                                 entry.photo || 
@@ -1520,6 +1522,7 @@
                         yPos += 15;
                     }
                 } else {
+		    console.warn('Photo not valid:', processedPhoto.error);
                     doc.setFont('helvetica', 'italic');
                     doc.setFontSize(10);
                     doc.text('(Foto tidak tersedia)', margin, yPos + 10);
@@ -1674,11 +1677,15 @@
                 try {
                     const response = await fetchWithRetry('/api/history');
                     if (response.ok) {
-                        const result = await response.json();
-                        apiData = result.data || [];
+                        const apiResponse = await response.json();
+                        if (apiResponse.data && apiResponse.data.photoUrl) {
+			    receiptData.photoUrl = apiResponse.data.photoUrl;
+			    receiptData.signatureSenderUrl = apiResponse.data.signatureSenderUrl;
+			    receiptData.signatureReceiverUrl = apiResponse.data.signatureReceiverUrl;
+			    localReceipts.push(receiptData);
+			    localStorage.setItem('direc_receipts', JSON.stringify(localReceipts));
                     }
-                } catch (apiError) {
-                    console.warn('API not available, using localStorage:', apiError);
+               	    console.log('Successfully saved to API and synced to localStorage');
                 }
 
                 const mergedData = [...localData];
