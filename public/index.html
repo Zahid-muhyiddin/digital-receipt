@@ -395,9 +395,7 @@
                 // Load jsPDF
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                script.async = true;
                 script.onload = () => {
-                    console.log('jsPDF loaded successfully');
                     if (!window.jspdf || !window.jspdf.jsPDF) {
                         reject(new Error('Gagal menginisialisasi library jsPDF'));
                         return;
@@ -405,54 +403,20 @@
                     // Load autotable plugin
                     const autoTableScript = document.createElement('script');
                     autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
-                    autoTableScript.async = true;
                     autoTableScript.onload = () => {
-                        console.log('jsPDF-autotable loaded successfully');
-                        // Tambahkan penundaan kecil untuk memastikan plugin terinisialisasi
+                        // Delay untuk memastikan plugin terinisialisasi
                         setTimeout(() => {
                             if (!window.jspdf.jsPDF.prototype.autoTable) {
-                                reject(new Error('Gagal menginisialisasi plugin autotable'));
+                                reject(new Error('Gagal menginisialisasi plugin jsPDF autotable'));
                                 return;
                             }
                             resolve();
-                        }, 100); // Penundaan 100ms untuk memastikan plugin siap
+                        }, 100);
                     };
-                    autoTableScript.onerror = () => {
-                        console.error('Gagal memuat plugin autotable dari CDN');
-                        // Coba fallback ke versi lokal (jika ada)
-                        const localAutoTable = document.createElement('script');
-                        localAutoTable.src = '/js/jspdf.plugin.autotable.min.js'; // Ganti dengan path lokal jika tersedia
-                        localAutoTable.onload = () => {
-                            console.log('jsPDF-autotable lokal loaded successfully');
-                            setTimeout(() => {
-                                if (!window.jspdf.jsPDF.prototype.autoTable) {
-                                    reject(new Error('Gagal menginisialisasi plugin autotable dari lokal'));
-                                    return;
-                                }
-                                resolve();
-                            }, 100);
-                        };
-                        localAutoTable.onerror = () => reject(new Error('Gagal memuat plugin autotable dari lokal'));
-                        document.head.appendChild(localAutoTable);
-                    };
+                    autoTableScript.onerror = () => reject(new Error('Gagal memuat plugin jsPDF autotable dari CDN'));
                     document.head.appendChild(autoTableScript);
                 };
-                script.onerror = () => {
-                    console.error('Gagal memuat library jsPDF dari CDN');
-                    // Coba fallback ke versi lokal (jika tersedia)
-                    const localScript = document.createElement('script');
-                    localScript.src = '/js/jspdf.umd.min.js'; // Ganti dengan path lokal jika tersedia
-                    localScript.onload = () => {
-                        console.log('jsPDF lokal loaded successfully');
-                        if (!window.jspdf || !window.jspdf.jsPDF) {
-                            reject(new Error('Gagal menginisialisasi library jsPDF dari lokal'));
-                            return;
-                        }
-                        resolve();
-                    };
-                    localScript.onerror = () => reject(new Error('Gagal memuat library jsPDF dari lokal'));
-                    document.head.appendChild(localScript);
-                };
+                script.onerror = () => reject(new Error('Gagal memuat library jsPDF dari CDN'));
                 document.head.appendChild(script);
             });
         }
@@ -466,7 +430,7 @@
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
                 // Filter entries for the current month and year
-                const targetMonthYear = chromatic${year}-${month}`;
+                const targetMonthYear = `${year}-${month}`;
                 const filteredEntries = data.filter(entry => {
                     const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                     if (entryMatch) {
@@ -711,143 +675,139 @@
             loading.style.display = 'none';
         });
         document.getElementById('savePdfBtn').addEventListener('click', async () => {
-            if (!jsPDFInstance) {
-                try {
+            try {
+                if (!jsPDFInstance) {
                     await loadJsPDF();
                     jsPDFInstance = window.jspdf;
-                    console.log('jsPDF dan autotable berhasil dimuat');
-                } catch (error) {
-                    alert('Gagal memuat library PDF: ' + (error.message || 'Terjadi kesalahan saat memuat library'));
-                    console.error('Error saat memuat library PDF:', error);
-                    return;
                 }
-            }
-            if (!jsPDFInstance || !jsPDFInstance.jsPDF || !jsPDFInstance.jsPDF.prototype.autoTable) {
-                alert('Gagal memuat library PDF: Library atau plugin autotable tidak tersedia');
-                console.error('jsPDFInstance:', jsPDFInstance);
-                return;
-            }
-            const { jsPDF } = jsPDFInstance;
-            const doc = new jsPDF();
-            const date = document.getElementById('date').textContent;
-            const recipientName = document.getElementById('outputName').textContent;
-            const department = document.getElementById('outputDepartment').textContent;
-            const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
-            const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
-                const parts = li.textContent.split(' - ');
-                const desc = parts[0];
-                const qtyMatch = parts[1].match(/Qty: (\d+)/);
-                const unitMatch = parts[1].match(/Qty: \d+ (\w+)/);
-                const prMatch = parts[2].match(/PR: (\d+)/);
-                const poMatch = parts[3].match(/PO: (\w+)/);
-                return {
-                    desc: desc,
-                    qty: qtyMatch ? qtyMatch[1] : '-',
-                    unit: unitMatch ? unitMatch[1] : '-',
-                    prNumber: prMatch ? prMatch[1] : '-',
-                    poNumber: poMatch ? poMatch[1] : '-'
-                };
-            });
-            const photoSrc = document.getElementById('outputPhoto').src;
-            const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
-            const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
-
-            // Margin dan posisi awal
-            const margin = 15;
-            const pageWidth = 210; // A4 width in mm
-            const contentWidth = pageWidth - 2 * margin;
-            let yPosition = margin;
-
-            // Judul
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(16);
-            doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 7;
-
-            // Nomor Registrasi
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 10;
-
-            // Informasi (Tanggal, Penerima, Departemen)
-            doc.setFontSize(12);
-            const labelWidth = 30;
-            doc.text('Tanggal', margin, yPosition);
-            doc.text(`: ${date || '-'}`, margin + labelWidth, yPosition);
-            yPosition += 5;
-            doc.text('Penerima', margin, yPosition);
-            doc.text(`: ${recipientName || '-'}`, margin + labelWidth, yPosition);
-            yPosition += 5;
-            doc.text('Departemen', margin, yPosition);
-            doc.text(`: ${department || '-'}`, margin + labelWidth, yPosition);
-            yPosition += 10;
-
-            // Tabel Barang
-            doc.setFontSize(12);
-            doc.text('Deskripsi Barang:', margin, yPosition);
-            yPosition += 5;
-
-            doc.autoTable({
-                startY: yPosition,
-                head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
-                body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
-                styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
-                headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
-                columnStyles: {
-                    0: { cellWidth: 70 }, // Deskripsi
-                    1: { cellWidth: 20 }, // Qty
-                    2: { cellWidth: 25 }, // Satuan
-                    3: { cellWidth: 30 }, // No PR
-                    4: { cellWidth: 35 }  // No PO
-                },
-                margin: { left: margin, right: margin }
-            });
-
-            yPosition = doc.lastAutoTable.finalY + 10;
-
-            // Foto Penerima
-            doc.setFontSize(12);
-            doc.text('Foto Penerima:', margin, yPosition);
-            yPosition += 5;
-            if (photoSrc) {
-                try {
-                    doc.addImage(photoSrc, 'JPEG', margin, yPosition, 50, 30);
-                } catch (error) {
-                    console.error('Error adding photo:', error);
+                if (!jsPDFInstance || !jsPDFInstance.jsPDF || typeof jsPDFInstance.jsPDF.prototype.autoTable !== 'function') {
+                    throw new Error('Library jsPDF atau plugin autotable tidak tersedia');
                 }
-            }
-            yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
+                const { jsPDF } = jsPDFInstance;
+                const doc = new jsPDF();
+                const date = document.getElementById('date').textContent;
+                const recipientName = document.getElementById('outputName').textContent;
+                const department = document.getElementById('outputDepartment').textContent;
+                const registrationNumber = document.getElementById('registrationNumber').textContent.replace('No. Registrasi: ', '');
+                const items = Array.from(document.getElementById('outputItems').getElementsByTagName('li')).map(li => {
+                    const parts = li.textContent.split(' - ');
+                    const desc = parts[0];
+                    const qtyMatch = parts[1].match(/Qty: (\d+)/);
+                    const unitMatch = parts[1].match(/Qty: \d+ (\w+)/);
+                    const prMatch = parts[2].match(/PR: (\d+)/);
+                    const poMatch = parts[3].match(/PO: (\w+)/);
+                    return {
+                        desc: desc,
+                        qty: qtyMatch ? qtyMatch[1] : '-',
+                        unit: unitMatch ? unitMatch[1] : '-',
+                        prNumber: prMatch ? prMatch[1] : '-',
+                        poNumber: poMatch ? poMatch[1] : '-'
+                    };
+                });
+                const photoSrc = document.getElementById('outputPhoto').src;
+                const signatureSenderSrc = document.getElementById('signatureSenderPreview').src;
+                const signatureReceiverSrc = document.getElementById('signatureReceiverPreview').src;
 
-            // Tanda Tangan
-            doc.setFontSize(12);
-            const signatureWidth = 50;
-            const signatureHeight = 15;
-            const signatureSpacing = 40;
-            doc.text('Pengirim:', margin, yPosition);
-            doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
-            yPosition += 5;
-            if (signatureSenderSrc) {
-                try {
-                    doc.addImage(signatureSenderSrc, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
-                } catch (error) {
-                    console.error('Error adding sender signature:', error);
-                }
-            }
-            if (signatureReceiverSrc) {
-                try {
-                    doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
-                } catch (error) {
-                    console.error('Error adding receiver signature:', error);
-                }
-            }
-            yPosition += signatureHeight + 5; // Jarak setelah tanda tangan
-            // Tambahkan nama penerima di bawah tanda tangan penerima
-            doc.setFontSize(10);
-            doc.text(recipientName || '-', margin + signatureWidth + signatureSpacing, yPosition, { align: 'left' });
+                // Margin dan posisi awal
+                const margin = 15;
+                const pageWidth = 210; // A4 width in mm
+                const contentWidth = pageWidth - 2 * margin;
+                let yPosition = margin;
 
-            // Simpan PDF
-            doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
+                // Judul
+                doc.setFont('Helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 7;
+
+                // Nomor Registrasi
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.text(`No. Registrasi: ${registrationNumber}`, pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 10;
+
+                // Informasi (Tanggal, Penerima, Departemen)
+                doc.setFontSize(12);
+                const labelWidth = 30;
+                doc.text('Tanggal', margin, yPosition);
+                doc.text(`: ${date || '-'}`, margin + labelWidth, yPosition);
+                yPosition += 5;
+                doc.text('Penerima', margin, yPosition);
+                doc.text(`: ${recipientName || '-'}`, margin + labelWidth, yPosition);
+                yPosition += 5;
+                doc.text('Departemen', margin, yPosition);
+                doc.text(`: ${department || '-'}`, margin + labelWidth, yPosition);
+                yPosition += 10;
+
+                // Tabel Barang
+                doc.setFontSize(12);
+                doc.text('Deskripsi Barang:', margin, yPosition);
+                yPosition += 5;
+
+                doc.autoTable({
+                    startY: yPosition,
+                    head: [['Deskripsi', 'Qty', 'Satuan', 'No PR', 'No PO']],
+                    body: items.length ? items.map(item => [item.desc, item.qty, item.unit, item.prNumber, item.poNumber]) : [['-', '-', '-', '-', '-']],
+                    styles: { fontSize: 10, cellPadding: 2, halign: 'center', valign: 'middle' },
+                    headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+                    columnStyles: {
+                        0: { cellWidth: 70 }, // Deskripsi
+                        1: { cellWidth: 20 }, // Qty
+                        2: { cellWidth: 25 }, // Satuan
+                        3: { cellWidth: 30 }, // No PR
+                        4: { cellWidth: 35 }  // No PO
+                    },
+                    margin: { left: margin, right: margin }
+                });
+
+                yPosition = doc.lastAutoTable.finalY + 10;
+
+                // Foto Penerima
+                doc.setFontSize(12);
+                doc.text('Foto Penerima:', margin, yPosition);
+                yPosition += 5;
+                if (photoSrc) {
+                    try {
+                        doc.addImage(photoSrc, 'JPEG', margin, yPosition, 50, 30);
+                    } catch (error) {
+                        console.error('Error adding photo:', error);
+                    }
+                }
+                yPosition += 35; // Jarak setelah foto (30mm tinggi foto + 5mm)
+
+                // Tanda Tangan
+                doc.setFontSize(12);
+                const signatureWidth = 50;
+                const signatureHeight = 15;
+                const signatureSpacing = 40;
+                doc.text('Pengirim:', margin, yPosition);
+                doc.text('Penerima:', margin + signatureWidth + signatureSpacing, yPosition);
+                yPosition += 5;
+                if (signatureSenderSrc) {
+                    try {
+                        doc.addImage(signatureSenderSrc, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
+                    } catch (error) {
+                        console.error('Error adding sender signature:', error);
+                    }
+                }
+                if (signatureReceiverSrc) {
+                    try {
+                        doc.addImage(signatureReceiverSrc, 'PNG', margin + signatureWidth + signatureSpacing, yPosition, signatureWidth, signatureHeight);
+                    } catch (error) {
+                        console.error('Error adding receiver signature:', error);
+                    }
+                }
+                yPosition += signatureHeight + 5; // Jarak setelah tanda tangan
+                // Tambahkan nama penerima di bawah tanda tangan penerima
+                doc.setFontSize(10);
+                doc.text(recipientName || '-', margin + signatureWidth + signatureSpacing, yPosition, { align: 'left' });
+
+                // Simpan PDF
+                doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
+            } catch (error) {
+                alert('Gagal menyimpan PDF: ' + (error.message || 'Terjadi kesalahan saat menyimpan PDF'));
+                console.error('PDF save error:', error);
+            }
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn');
