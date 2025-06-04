@@ -396,7 +396,7 @@
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
                 script.onload = () => {
                     const autoTableScript = document.createElement('script');
-                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/卑3.8.2/jspdf.plugin.autotable.min.js';
                     autoTableScript.onload = resolve;
                     autoTableScript.onerror = reject;
                     document.head.appendChild(autoTableScript);
@@ -408,30 +408,38 @@
         async function generateRegistrationNumber() {
             try {
                 const response = await fetch('/api/history', { signal: AbortSignal.timeout(15000) });
+                if (!response.ok) throw new Error('Gagal mengambil data history');
                 const result = await response.json();
                 const data = result.data || [];
                 const now = new Date();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
-                // Hitung entri di bulan dan tahun yang sama
-                let count = 0;
+                // Filter entries for the current month and year
                 const targetMonthYear = `${year}-${month}`;
-                data.forEach(entry => {
+                const filteredEntries = data.filter(entry => {
                     const entryMatch = entry.date.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})/);
                     if (entryMatch) {
                         const [, , entryMonth, entryYear] = entryMatch;
-                        const entryMonthYear = `${entryYear}-${entryMonth}`;
-                        if (entryMonthYear === targetMonthYear) {
-                            count++;
-                        }
+                        return `${entryYear}-${entryMonth}` === targetMonthYear;
+                    }
+                    return false;
+                });
+                // Get the highest sequence number from existing entries
+                let maxSequence = 0;
+                filteredEntries.forEach(entry => {
+                    const regMatch = entry.registrationNumber?.match(/TT-RANT-\d{2}-\d{4}-(\d{3})/);
+                    if (regMatch) {
+                        const sequence = parseInt(regMatch[1], 10);
+                        if (sequence > maxSequence) maxSequence = sequence;
                     }
                 });
-                count++; // Increment untuk entri baru
-                const sequence = String(count).padStart(3, '0');
+                // Increment for the new entry
+                const sequence = String(maxSequence + 1).padStart(3, '0');
                 const regNumber = `TT-RANT-${month}-${year}-${sequence}`;
                 document.getElementById('registrationNumber').textContent = `No. Registrasi: ${regNumber}`;
                 return regNumber;
             } catch (error) {
+                console.error('Error generating registration number:', error);
                 document.getElementById('registrationNumber').textContent = 'No. Registrasi: Gagal memuat';
                 return null;
             }
@@ -693,7 +701,7 @@
             let yPosition = margin;
 
             // Judul
-            doc.setFont('Helvetica', 'bold'); // Fallback ke Helvetica karena Poppins tidak didukung
+            doc.setFont('Helvetica', 'bold');
             doc.setFontSize(16);
             doc.text('DIREC - Tanda Terima', pageWidth / 2, yPosition, { align: 'center' });
             yPosition += 7;
@@ -775,6 +783,10 @@
                     console.error('Error adding receiver signature:', error);
                 }
             }
+            yPosition += signatureHeight + 5; // Jarak setelah tanda tangan
+            // Tambahkan nama penerima di bawah tanda tangan penerima
+            doc.setFontSize(10);
+            doc.text(recipientName || '-', margin + signatureWidth + signatureSpacing, yPosition, { align: 'left' });
 
             // Simpan PDF
             doc.save(`direc-tanda-terima-${registrationNumber}.pdf`);
